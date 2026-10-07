@@ -3,6 +3,7 @@
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
+const storage = require('./storage');
 
 const SESSION_MS = 12 * 60 * 60 * 1000;
 const COOKIE = 'xq_admin';
@@ -85,7 +86,7 @@ module.exports = function setupAdmin(app, game) {
     next();
   });
 
-  api.get('/me', (req, res) => res.json({ ok: true, passwordRequired: !!password }));
+  api.get('/me', (req, res) => res.json({ ok: true, passwordRequired: !!password, storage: { name: storage.name, label: storage.describe(), ...storage.status() } }));
 
   function roomStatus(room) {
     if (!room.players.r || !room.players.b) return 'waiting';
@@ -101,19 +102,30 @@ module.exports = function setupAdmin(app, game) {
         id: u.id, username: u.username, name: u.displayName, avatar: u.avatar || null, createdAt: u.createdAt, lastSeen: u.lastSeen,
         games: st.games, wins: st.wins, losses: st.losses, draws: st.draws, aiGames: u.stats.ai.games,
         rating: u.rating, credit: u.credit, coins: u.coins, playerNo: u.playerNo,
+        streak: u.streak, bestStreak: u.bestStreak, puzzlesSolved: u.solvedPuzzles.length, region: u.region || null,
         banned: u.banned, online: !!o, roomId: (o && o.roomId) || null,
       };
     });
-    const seat = (s) => (s ? { name: s.name, accountId: s.accountId || null, online: s.online } : null);
-    const roomList = [...rooms.values()].map((r) => ({
-      id: r.id,
-      createdAt: r.createdAt,
-      status: roomStatus(r),
-      players: { r: seat(r.players.r), b: seat(r.players.b) },
-      members: r.members.size,
-      moves: r.game.history.length,
-      gamesFinished: r.archive.length + (r.game.result ? 1 : 0),
-    }));
+    const seat = (s) => (s ? { name: s.name, accountId: s.accountId || null, online: s.online, rating: s.rating || null } : null);
+    const roomList = [...rooms.values()].map((r) => {
+      const { r: red, b: black } = r.players;
+      // Loại phòng như trên trang chơi: Xếp hạng (ghép trận, 2 tài khoản) / Ghép trận (có khách) / Phòng riêng
+      const type = { room: 'private', ranked: 'rated', match: 'match', coin: 'coin', tournament: 'tournament' }[r.kind] || 'private';
+      return {
+        id: r.id,
+        createdAt: r.createdAt,
+        status: roomStatus(r),
+        type,
+        stake: r.stake || null,
+        tournament: r.tournament ? { id: r.tournament.id, name: r.tournament.name, round: r.tournament.round } : null,
+        settings: r.settings,
+        players: { r: seat(red), b: seat(black) },
+        members: r.members.size,
+        spectators: [...r.members.values()].filter((t) => !(red && red.token === t) && !(black && black.token === t)).length,
+        moves: r.game.history.length,
+        gamesFinished: r.archive.length + (r.game.result ? 1 : 0),
+      };
+    });
     res.json({
       stats: {
         users: userList.length,
@@ -123,7 +135,14 @@ module.exports = function setupAdmin(app, game) {
         playing: roomList.filter((r) => r.status === 'playing').length,
         searching: game.queueSize(),
         gamesPlayed: users.gamesPlayed(),
+        coins: userList.reduce((sum, u) => sum + u.coins, 0),
+        newToday: userList.filter((u) => u.createdAt >= new Date().setHours(0, 0, 0, 0)).length,
+        puzzles: game.puzzles.list({ all: true }).length,
+        feedback: users.listFeedback().length,
+        reports: users.listFeedback().filter((f) => f.type === 'report').length,
+        tournaments: game.tournaments.publicList().filter((t) => ['open', 'checkin', 'running'].includes(t.status)).length,
       },
+      storage: { name: storage.name, label: storage.describe(), ...storage.status() },
       users: userList,
       rooms: roomList,
     });
@@ -243,10 +262,10 @@ module.exports = function setupAdmin(app, game) {
   });
 
   // Tải ảnh bàn cờ lên (gửi thẳng nội dung file trong body)
-  api.post('/uploads', express.raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '10mb' }), (req, res) => {
+  api.post('/uploads', express.raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '10mb' }), async (req, res) => {
     try {
       if (!Buffer.isBuffer(req.body) || !req.body.length) throw new Error('Không nhận được ảnh.');
-      res.json({ src: theme.saveUpload(req.body) });
+      res.json({ src: await theme.saveUpload(req.body) });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
@@ -282,6 +301,26 @@ module.exports = function setupAdmin(app, game) {
   api.delete('/puzzles/:id', (req, res) => {
     if (!puzzles.remove(req.params.id)) return res.status(404).json({ error: 'Không tìm thấy bài tập.' });
     res.json({ ok: true });
+  });
+
+  // ---------- Giải đấu ----------
+  const T = game.tournaments;
+  const tourFail = (res, err) => res.status(err instanceof T.TournamentError ? 400 : 500).json({ error: err.message });
+  api.get('/tournaments', (req, res) => res.json({ tournaments: T.publicList().map((t) => T.detail(t.id)) }));
+  api.post('/tournaments', express.json({ limit: '20kb' }), (req, res) => {
+    try { res.json({ tournament: T.detail(T.create(req.body || {}).id) }); } catch (err) { tourFail(res, err); }
+  });
+  api.put('/tournaments/:id', express.json({ limit: '20kb' }), (req, res) => {
+    try { res.json({ tournament: T.detail(T.update(req.params.id, req.body || {}).id) }); } catch (err) { tourFail(res, err); }
+  });
+  api.post('/tournaments/:id/start', (req, res) => {
+    try { T.startNow(req.params.id); res.json({ tournament: T.detail(req.params.id) }); } catch (err) { tourFail(res, err); }
+  });
+  api.post('/tournaments/:id/cancel', (req, res) => {
+    try { T.cancel(req.params.id); res.json({ tournament: T.detail(req.params.id) }); } catch (err) { tourFail(res, err); }
+  });
+  api.delete('/tournaments/:id', (req, res) => {
+    try { T.remove(req.params.id); res.json({ ok: true }); } catch (err) { tourFail(res, err); }
   });
 
   // Góp ý của người chơi

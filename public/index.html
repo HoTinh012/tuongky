@@ -3,451 +3,915 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cờ Tướng Online</title>
+  <title>Tượng Kỳ — Cờ tướng Việt</title>
+  <meta name="description" content="Tượng Kỳ — cờ tướng online: xếp hạng Elo, chơi với bạn, đấu máy, cờ thế.">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&family=Noto+Serif+TC:wght@700&family=Noto+Sans+TC:wght@700&display=swap&text=%E5%B8%A5%E4%BB%95%E7%9B%B8%E9%A6%AC%E8%BB%8A%E7%82%AE%E5%85%B5%E5%B0%87%E5%A3%AB%E8%B1%A1%E5%8D%92%E6%A5%9A%E6%B2%B3%E6%BC%A2%E7%95%8C">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Bộ biểu tượng dùng chung (<use href="#i-...">) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h4.5v-6h4v6h4.5V9"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+      <symbol id="i-ai" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9.5 16h5"/></symbol>
+      <symbol id="i-rank" viewBox="0 0 24 24"><path d="M4 20V11M10 20V5M16 20v-6M22 20H2"/></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-6 6.5-6s5.9 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5c1.6.8 2.7 2.7 3 5.5"/></symbol>
+      <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-7 8-7s7 2.5 8 7"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6M9 18h4"/></symbol>
+      <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><path d="M12 9.5v5"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+      <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M9 3h6v3a2 2 0 1 0 0 4v1h3v3a2 2 0 1 1 0 4v3H6v-3a2 2 0 1 0 0-4v-3h3v-1a2 2 0 1 0 0-4z"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+      <symbol id="i-draw" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+      <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18"/><path d="m4 16 5-5 4 3 7-8"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+      <symbol id="i-fire" viewBox="0 0 24 24"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 .8 1.2 1.5 1.6 2.3 1.8C11 7.5 11 5 12 3z"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></symbol>
+      <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-first" viewBox="0 0 24 24"><path d="M6 5v14M18 6l-7 6 7 6z"/></symbol>
+      <symbol id="i-prev" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+      <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-last" viewBox="0 0 24 24"><path d="M18 5v14M6 6l7 6-7 6z"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+      <symbol id="i-piece" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5.5"/></symbol>
+      <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5c-2-4-6-4-6-1.5 0 1.5 2 1.5 6 1.5zM12 8.5c2-4 6-4 6-1.5 0 1.5-2 1.5-6 1.5z"/></symbol>
+      <symbol id="i-shop" viewBox="0 0 24 24"><path d="M4 9h16l-1 11H5zM4 9l2-5h12l2 5"/><path d="M9 13a3 3 0 0 0 6 0"/></symbol>
+      <symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-6 6.5-6s5.9 2.4 6.5 6M19 8v6M16 11h6"/></symbol>
+      <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></symbol>
+      <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4-2.4M19 12.5a10 10 0 0 0-3-2M12 20h.01"/></symbol>
+      <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 4 4 3-3 4 4"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 12h16M12 4v16M4 8h16M4 16h16M8 4v16M16 4v16"/></symbol>
+    </defs>
+  </svg>
+
   <div id="shell" class="shell">
-    <aside class="home-sidebar" id="home-sidebar">
-      <a class="sb-brand" href="#/" aria-label="Cờ Tướng Online — trang chủ">
-        <span class="logo-piece red">帥</span>
-        <span class="sb-brand-text">Cờ Tướng<small>Online</small></span>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#/" aria-label="Tượng Kỳ — trang chủ">
+        <img class="brand-mark" src="assets/logo-mark.png" alt="" width="160" height="153">
+        <span class="brand-text"><b>Tượng Kỳ</b><small>Cờ tướng Việt</small></span>
       </a>
-      <nav class="sb-nav" aria-label="Menu chính">
-        <button class="sb-item" data-go="home"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>Trang chủ</span></button>
-        <button class="sb-item" data-go="online"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="4"/><circle cx="16" cy="15" r="4"/><path d="M11 12l2 0"/></svg><span>Chơi online</span></button>
-        <button class="sb-item" data-go="ai"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><span>Chơi với máy</span></button>
-        <button class="sb-item" data-go="join"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg><span>Vào phòng</span></button>
-        <button class="sb-item" data-go="puzzles"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v3a2 2 0 1 0 0 4v1h3v3a2 2 0 1 1 0 4v3H6v-3a2 2 0 1 0 0-4V11h3v-1a2 2 0 1 0 0-4z" transform="translate(0 -1)"/></svg><span>Bài tập</span></button>
-        <button class="sb-item" data-go="profile"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-7 8-7s7 2.5 8 7"/></svg><span>Tài khoản &amp; lịch sử</span></button>
-        <button class="sb-item" data-go="rules"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6M9 18h4"/></svg><span>Luật chơi</span></button>
+      <div class="nav-label">Khám phá</div>
+      <nav class="nav" aria-label="Menu chính">
+        <button class="nav-item" data-go="home"><svg class="ico"><use href="#i-home"/></svg><span>Trang chủ</span></button>
+        <button class="nav-item" data-go="play"><svg class="ico"><use href="#i-play"/></svg><span>Chơi nhanh</span></button>
+        <button class="nav-item" data-go="ai"><svg class="ico"><use href="#i-ai"/></svg><span>Đấu máy</span></button>
+        <button class="nav-item" data-go="ranking"><svg class="ico"><use href="#i-rank"/></svg><span>Xếp hạng</span></button>
+        <button class="nav-item" data-go="tournaments"><svg class="ico"><use href="#i-trophy"/></svg><span>Giải đấu</span></button>
+        <button class="nav-item" data-go="friends"><svg class="ico"><use href="#i-users"/></svg><span>Bạn bè</span></button>
+        <button class="nav-item" data-go="inventory"><svg class="ico"><use href="#i-bag"/></svg><span>Túi đồ</span></button>
+        <button class="nav-item" data-go="profile"><svg class="ico"><use href="#i-user"/></svg><span>Hồ sơ kỳ thủ</span></button>
       </nav>
-      <div class="sb-auth" id="auth-bar"></div>
+      <div class="sb-promo">
+        <svg class="ico"><use href="#i-link"/></svg>
+        <b>Mời kỳ hữu vào bàn</b>
+        <p>Tạo phòng riêng và gửi link — bạn bè vào chơi ngay, không cần tài khoản.</p>
+        <a href="#/room">Tạo phòng mời <svg class="ico sm"><use href="#i-chev"/></svg></a>
+      </div>
+      <div class="sb-foot">
+        <a href="#/rules">Luật chơi</a><span>·</span><button class="link" id="sb-help">Góp ý</button>
+        <small>© 2026 Tượng Kỳ · Cờ tướng Việt</small>
+      </div>
     </aside>
     <div class="sb-backdrop" id="sb-backdrop"></div>
 
-    <div class="shell-main">
-      <header class="home-topbar">
-        <button class="sb-menu-btn" id="sb-menu-btn" aria-label="Mở menu" aria-controls="home-sidebar">☰</button>
-        <span class="logo-piece red">帥</span><b>Cờ Tướng Online</b>
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="sb-menu-btn" aria-label="Mở menu" aria-controls="sidebar"><svg class="ico"><use href="#i-menu"/></svg></button>
+        <a class="topbar-brand" href="#/" aria-label="Tượng Kỳ"><img class="brand-mark sm" src="assets/logo-mark.png" alt="" width="160" height="153"><b>Tượng Kỳ</b></a>
+        <nav class="crumbs" id="crumbs" aria-label="Vị trí"></nav>
+        <div class="top-right" id="auth-bar"></div>
       </header>
 
       <p class="err page-msg" id="lobby-err" role="alert"></p>
 
-      <section id="lobby" class="screen home">
-        <div class="home-grid">
-          <div class="hero">
-            <div class="hero-board" id="hero-frame"><svg id="hero-board" role="img" aria-label="Bàn cờ minh hoạ"></svg></div>
+      <!-- H01 · Trang chủ -->
+      <section id="lobby" class="screen page">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow" id="home-eyebrow">Chào kỳ thủ</p>
+            <h1 id="home-title">Chào bạn, đến giờ khai cuộc.</h1>
+            <p class="lead">Vào ván nhanh, luyện cùng máy hoặc giải một thế cờ — Tượng Kỳ luôn có bàn chờ bạn.</p>
           </div>
-          <div class="home-cta">
-            <h1 class="home-title">Chơi Cờ Tướng trực tuyến</h1>
-            <p class="home-sub">Ghép trận với người có Elo gần bạn, mời bạn bè qua link hoặc luyện tập với máy. Sau mỗi ván, máy phân tích từng nước để bạn biết nước nào hay, nước nào hớ.</p>
-            <a class="cta-btn primary" href="#/online"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="4"/><circle cx="16" cy="15" r="4"/><path d="M11 12l2 0"/></svg><span><b>Chơi online</b><small>Ghép trận nhanh hoặc tạo phòng riêng</small></span></a>
-            <a class="cta-btn" href="#/ai"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><span><b>Chơi với máy</b><small>Luyện tập với 3 mức độ khó</small></span></a>
-            <a class="cta-link" href="#/join">Có mã phòng bạn bè gửi? Vào phòng →</a>
-          </div>
-        </div>
-      </section>
-
-      <section id="page-online" class="screen page-sec hidden">
-        <div class="page-wrap">
-          <header class="page-head"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="4"/><circle cx="16" cy="15" r="4"/><path d="M11 12l2 0"/></svg><div><h1>Chơi online</h1><p>Ghép nhanh với người đang online có Elo gần bạn, hoặc tạo phòng riêng rồi gửi link mời bạn bè.</p></div></header>
-          <div class="play-card">
-              <label class="field name-field">
-                <span>Tên của bạn</span>
-                <input class="guest-name" id="name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname">
-              </label>
-            <div class="time-row">
-              <label class="mini-field">Thời gian mỗi bên
-                <select id="time-total">
-                    <option value="0">Không giới hạn</option>
-                    <option value="5">5 phút</option>
-                    <option value="10">10 phút</option>
-                    <option value="15" selected>15 phút</option>
-                    <option value="20">20 phút</option>
-                    <option value="30">30 phút</option>
-                    <option value="60">60 phút</option>
-                  </select>
-              </label>
-              <label class="mini-field">Thời gian mỗi nước
-                <select id="time-move">
-                    <option value="0">Không giới hạn</option>
-                    <option value="30">30 giây</option>
-                    <option value="60" selected>1 phút</option>
-                    <option value="120">2 phút</option>
-                    <option value="180">3 phút</option>
-                    <option value="300">5 phút</option>
-                  </select>
-              </label>
+        </header>
+        <div class="hero">
+          <div class="hero-body">
+            <span class="tag on-dark">Cờ tướng Việt</span>
+            <h2>Đấu trí trên bàn cờ.<br>Kết kỳ hữu bốn phương.</h2>
+            <p class="hero-meta"><span><i class="dot green"></i><b id="hero-online">—</b> người đang online</span><span><b id="hero-playing">—</b> ván đang diễn ra</span></p>
+            <div class="hero-actions">
+              <a class="btn primary" href="#/play"><svg class="ico"><use href="#i-play"/></svg>Chơi nhanh</a>
+              <a class="btn light" href="#/ai">Đấu máy</a>
             </div>
           </div>
-          <div class="play-card" id="card-play">
-            <div class="play-head"><span class="big-ico">⚡</span><div><h2>Ghép trận nhanh</h2><p>Ưu tiên đối thủ có Elo gần bạn · màu quân ngẫu nhiên</p></div></div>
-            <button id="quick-match" class="btn primary big wide">⚡ Ghép trận nhanh</button>
+          <div class="hero-art"><img src="assets/tuong-ky-logo.png" alt="Biểu tượng Tượng Kỳ — quân Tượng chữ 象 đỏ" width="480" height="460"></div>
+        </div>
+        <div class="quick-grid">
+          <a class="quick-card" href="#/play"><span class="qc-ico"><svg class="ico"><use href="#i-play"/></svg></span><b>Chơi nhanh</b><p>Xếp hạng Elo, chơi với bạn, xem trận hot.</p><span class="more">Vào chơi <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
+          <a class="quick-card" href="#/ai"><span class="qc-ico"><svg class="ico"><use href="#i-ai"/></svg></span><b>Đấu máy</b><p>8 cấp độ AI, có gợi ý và đi lại.</p><span class="more">Luyện ngay <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
+          <a class="quick-card" href="#/puzzles"><span class="qc-ico"><svg class="ico"><use href="#i-puzzle"/></svg></span><b>Cờ thế</b><p id="home-pz-desc">Giải thế cờ theo độ khó, nhận xu thưởng.</p><span class="more">Giải thế cờ <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
+          <a class="quick-card" href="#/ranking"><span class="qc-ico"><svg class="ico"><use href="#i-rank"/></svg></span><b>Xếp hạng</b><p>Bảng Elo, chuỗi thắng và cờ thế.</p><span class="more">Xem bảng <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
+        </div>
+        <div class="cols">
+          <div class="card">
+            <div class="card-head"><div><h3>Trận đấu hot</h3><p>Đang diễn ra tại Tượng Kỳ</p></div><a class="link-more" href="#/play">Xem tất cả <svg class="ico sm"><use href="#i-chev"/></svg></a></div>
+            <div class="live-list" id="home-live"></div>
           </div>
-          <div class="play-card">
-            <div class="play-head"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg><div><h2>Tạo phòng riêng</h2><p>Chọn màu quân, tạo phòng rồi gửi link mời</p></div></div>
-              <div class="group">
-                <h2>Màu quân của bạn</h2>
-                <div class="seg" role="radiogroup" aria-label="Chọn màu quân">
-                  <label><input type="radio" name="color" value="r" checked><span>Đỏ <small>(đi trước)</small></span></label>
-                  <label><input type="radio" name="color" value="b"><span>Đen</span></label>
-                  <label><input type="radio" name="color" value="random"><span>Ngẫu nhiên</span></label>
-                </div>
-              </div>
-            <button id="create" class="btn big wide">Tạo phòng riêng</button>
-          </div>
+          <div class="card" id="home-form"></div>
+        </div>
+        <div class="grid-3">
+          <div class="card" id="home-missions"></div>
+          <div class="card" id="home-tour"></div>
+          <div class="card" id="home-shop"></div>
         </div>
       </section>
 
-      <section id="page-ai" class="screen page-sec hidden">
-        <div class="page-wrap">
-          <header class="page-head"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><div><h1>Chơi với máy</h1><p>Luyện tập với máy ở 3 mức độ. Có nút Đi lại, và phân tích từng nước sau ván.</p></div></header>
-          <div class="play-card" id="card-ai">
-              <label class="field name-field">
-                <span>Tên của bạn</span>
-                <input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname">
-              </label>
-              <div class="group">
-                <h2>Màu quân của bạn</h2>
-                <div class="seg" role="radiogroup" aria-label="Chọn màu quân">
-                  <label><input type="radio" name="ai-color" value="r" checked><span>Đỏ <small>(đi trước)</small></span></label>
-                  <label><input type="radio" name="ai-color" value="b"><span>Đen</span></label>
-                  <label><input type="radio" name="ai-color" value="random"><span>Ngẫu nhiên</span></label>
-                </div>
-              </div>
-            <div class="group">
-              <h2>Độ khó</h2>
-              <div class="seg" role="radiogroup" aria-label="Độ khó">
-                <label><input type="radio" name="level" value="easy"><span>Dễ</span></label>
-                <label><input type="radio" name="level" value="medium" checked><span>Vừa</span></label>
-                <label><input type="radio" name="level" value="hard"><span>Khó</span></label>
-              </div>
+      <!-- Q01 · Chơi nhanh -->
+      <section id="page-play" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Chơi nhanh</p>
+            <h1>Chọn nhịp chơi của bạn.</h1>
+            <p class="lead">Thi đấu xếp hạng, chơi cùng bạn bè hoặc xem những ván đang hot.</p>
+          </div>
+        </header>
+        <div class="cols">
+          <div class="col-main">
+            <div class="tc-grid" id="tc-grid" role="radiogroup" aria-label="Nhịp chơi">
+              <button class="tc-card" data-tc="5|0" role="radio"><span class="tc-top"><span>Cờ chớp</span><svg class="ico"><use href="#i-play"/></svg></span><b>5+0</b><small>5 phút mỗi bên</small><em>Nhịp nhanh, phản xạ cao</em></button>
+              <button class="tc-card" data-tc="10|0" role="radio"><span class="tc-top"><span>Cờ nhanh</span><svg class="ico"><use href="#i-clock"/></svg></span><b>10+0</b><small>10 phút mỗi bên</small><em>Nhịp chính · khuyên dùng</em></button>
+              <button class="tc-card" data-tc="15|10" role="radio"><span class="tc-top"><span>Tiêu chuẩn</span><svg class="ico"><use href="#i-target"/></svg></span><b>15+10</b><small>15 phút, +10 giây mỗi nước</small><em>Có thời gian suy tính</em></button>
             </div>
-            <button id="play-ai" class="btn primary big wide">Đánh với máy</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="page-join" class="screen page-sec hidden">
-        <div class="page-wrap">
-          <header class="page-head"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg><div><h1>Vào phòng</h1><p>Nhập mã phòng bạn bè gửi, hoặc mở thẳng link mời.</p></div></header>
-          <div class="play-card" id="card-join">
-              <label class="field name-field">
-                <span>Tên của bạn</span>
-                <input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname">
-              </label>
-            <form id="join-form" class="row">
-              <input id="code" placeholder="Mã phòng, VD: K7QX2" maxlength="10" autocomplete="off" aria-label="Mã phòng">
-              <button class="btn primary">Vào</button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      <section id="page-puzzles" class="screen page-sec hidden">
-        <div class="page-wrap wide">
-          <header class="page-head"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v3a2 2 0 1 0 0 4v1h3v3a2 2 0 1 1 0 4v3H6v-3a2 2 0 1 0 0-4V11h3v-1a2 2 0 1 0 0-4z" transform="translate(0 -1)"/></svg><div><h1>Bài tập</h1><p>Giải các thế cờ để luyện tính toán. Tài khoản giải được bài lần đầu nhận <b>+5 xu</b>.</p></div></header>
-          <div class="pz-toolbar">
-            <div class="pz-filter" id="pz-filter" role="radiogroup" aria-label="Độ khó">
-              <button data-f="all" class="active">Tất cả</button><button data-f="easy">Dễ</button><button data-f="medium">Vừa</button><button data-f="hard">Khó</button>
+            <div class="card ranked-card">
+              <div class="card-head">
+                <div><h3>Sẵn sàng cho một ván xếp hạng?</h3><p id="play-elo-line">Elo khởi đầu 1.200 · ghép đối thủ ±100 Elo</p></div>
+                <span class="tag" id="ranked-fee-tag">Xếp hạng</span>
+              </div>
+              <label class="field name-field"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
+              <button id="quick-match" class="btn primary lg block"><svg class="ico"><use href="#i-swords"/></svg>Tìm đối thủ · <span id="qm-tc">10+0</span></button>
+              <p class="note">Elo chỉ thay đổi khi cả hai bên đều đăng nhập. Rời bàn giữa ván bị xử thua.</p>
             </div>
-            <label class="pz-check"><input type="checkbox" id="pz-unsolved"> Chỉ bài chưa giải</label>
-            <span class="muted" id="pz-progress"></span>
+            <div class="card coin-card" id="coin-card">
+              <div class="card-head">
+                <div><h3>Tranh xu</h3><p>Hai bên cùng đặt xu — thắng nhận mức đặt của đối thủ. Không tính Elo.</p></div>
+                <span class="tag gold"><svg class="ico sm"><use href="#i-coin"/></svg><span id="coin-balance">0 xu</span></span>
+              </div>
+              <div class="field"><span>Nhịp chơi</span><div class="chips" id="coin-tc"></div></div>
+              <div class="field"><span>Mức đặt</span><div class="chips" id="coin-stakes"></div></div>
+              <ul class="rule-list">
+                <li><b>Thắng</b> +mức đặt · <b>Thua</b> −mức đặt · <b>Hoà</b> hoàn nguyên</li>
+                <li><b>Bỏ trận</b> hoặc mất kết nối quá 90 giây bị xử thua</li>
+                <li>Xu chỉ dùng trong Tượng Kỳ (vật phẩm, tranh xu), không quy đổi tiền thật</li>
+              </ul>
+              <button id="coin-match" class="btn primary lg block"><svg class="ico"><use href="#i-coin"/></svg><span>Chọn mức xu &amp; tìm trận</span></button>
+            </div>
+            <h3 class="section-title">Nhiều cách chơi khác</h3>
+            <div class="mode-grid">
+              <a class="mode-row" href="#/room"><span class="mr-ico"><svg class="ico"><use href="#i-users"/></svg></span><span><b>Chơi với bạn</b><small>Tạo phòng hoặc nhập mã phòng</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
+              <a class="mode-row" href="#/tournaments"><span class="mr-ico gold"><svg class="ico"><use href="#i-trophy"/></svg></span><span><b>Giải đấu</b><small>Đăng ký, check-in và tranh giải</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
+              <a class="mode-row" href="#/ai"><span class="mr-ico"><svg class="ico"><use href="#i-ai"/></svg></span><span><b>Đấu máy</b><small>8 cấp độ AI để luyện tập</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
+              <a class="mode-row" href="#/puzzles"><span class="mr-ico"><svg class="ico"><use href="#i-puzzle"/></svg></span><span><b>Cờ thế</b><small>Giải thế cờ, nhận xu thưởng</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
+            </div>
           </div>
-          <div id="pz-grid" class="pz-grid"></div>
-        </div>
-      </section>
-
-      <section id="page-puzzle" class="screen page-sec hidden">
-        <div class="pz-solve">
-          <div class="pz-board-frame" id="pz-frame"><svg id="pz-board" role="img" aria-label="Bàn cờ bài tập"></svg></div>
-          <aside class="play-card pz-side">
-            <a href="#/puzzles" class="cta-link">← Danh sách bài tập</a>
-            <h1 id="pz-title" class="pz-title"></h1>
-            <div id="pz-meta" class="pz-meta"></div>
-            <p id="pz-desc" class="pz-desc"></p>
-            <div id="pz-status" class="pz-status"></div>
-            <ol id="pz-moves" class="pz-moves"></ol>
-            <div class="pz-actions">
-              <button class="btn" id="pz-hint">💡 Gợi ý</button>
-              <button class="btn" id="pz-reset">↺ Làm lại</button>
-              <button class="btn" id="pz-show">Xem lời giải</button>
-              <button class="btn primary" id="pz-next">Bài tiếp theo →</button>
+          <aside class="col-side">
+            <div class="card">
+              <div class="card-head"><div><h3 id="play-board-title">Bàn cờ đang chờ</h3><p id="play-board-sub">Mỗi ván cờ là một cuộc gặp.</p></div></div>
+              <div class="mini-board"><svg id="play-board" role="img" aria-label="Bàn cờ minh hoạ"></svg></div>
+              <p class="note" id="play-stats"></p>
+            </div>
+            <div class="card">
+              <div class="card-head"><div><h3>Trận đấu hot</h3><p>Bấm để vào xem trực tiếp</p></div></div>
+              <div class="live-list" id="play-live"></div>
             </div>
           </aside>
         </div>
       </section>
 
-      <section id="page-rules" class="screen page-sec hidden">
-        <div class="page-wrap">
-          <header class="page-head"><svg class="sb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6M9 18h4"/></svg><div><h1>Luật chơi Cờ Tướng</h1><p>Bàn cờ 9 cột × 10 hàng, quân đặt trên giao điểm. Bên Đỏ đi trước.</p></div></header>
-          <div class="play-card rules-page">
-            <p>Bàn cờ 9 cột × 10 hàng, quân đặt trên giao điểm. Bên Đỏ đi trước. Thắng khi <b>chiếu bí</b> tướng đối phương, hoặc đối phương hết nước đi, đầu hàng, hết giờ.</p>
-      <ul class="rules">
-        <li><b>Tướng (帥/將)</b>: đi 1 ô ngang/dọc, chỉ trong cung. Hai tướng không được đối mặt trên cùng một cột mà không có quân chắn.</li>
-        <li><b>Sĩ (仕/士)</b>: đi 1 ô chéo, chỉ trong cung.</li>
-        <li><b>Tượng (相/象)</b>: đi chéo 2 ô, không qua sông, bị chặn nếu có quân ở giữa (cản mắt tượng).</li>
-        <li><b>Mã (馬)</b>: đi hình chữ L (1 thẳng + 1 chéo), bị chặn nếu có quân ngay cạnh theo hướng đi (cản chân mã).</li>
-        <li><b>Xe (車)</b>: đi ngang/dọc bao xa cũng được nếu không bị chặn.</li>
-        <li><b>Pháo (炮)</b>: đi như xe, nhưng khi ăn quân phải nhảy qua đúng 1 quân (ngòi).</li>
-        <li><b>Tốt (兵/卒)</b>: đi thẳng 1 ô; qua sông được đi thêm ngang, không bao giờ đi lùi.</li>
-      </ul>
-      <p class="muted">Không được đi nước khiến tướng của mình bị chiếu. Máy sẽ chỉ cho bạn các ô đi được khi chọn quân.</p>
+      <!-- Q02 · Tìm đối thủ -->
+      <section id="page-search" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Chơi nhanh · Xếp hạng</p>
+            <h1>Tìm một đối thủ xứng tầm.</h1>
+            <p class="lead">Ưu tiên kỳ thủ có Elo gần bạn — chờ càng lâu, khoảng Elo càng được nới rộng.</p>
+          </div>
+          <button class="btn" id="mm-cancel-top"><svg class="ico"><use href="#i-x"/></svg>Huỷ tìm</button>
+        </header>
+        <div class="cols">
+          <div class="card search-card">
+            <div class="card-head"><span class="tag">Xếp hạng</span><span class="muted">Đã chờ <b id="mm-time">0:00</b></span></div>
+            <div class="search-ring" aria-hidden="true"><img class="brand-mark xl" src="assets/logo-mark.png" alt="" width="160" height="153"></div>
+            <h2 class="search-title">Đang tìm…</h2>
+            <p class="muted center" id="mm-info"></p>
+            <div class="stat-row">
+              <div><small>Elo</small><b id="mm-elo">1.200</b></div>
+              <div><small>Hạng</small><b id="mm-tier">—</b></div>
+              <div><small>Nhịp</small><b id="mm-tc">10+0</b></div>
+            </div>
+            <div class="accept-box hidden" id="mm-accept-box">
+              <b>Đã tìm thấy đối thủ!</b>
+              <p class="muted" id="mm-accept-info"></p>
+              <div class="accept-bar"><i id="mm-accept-bar"></i></div>
+              <div class="row">
+                <button class="btn primary lg" id="mm-accept"><svg class="ico"><use href="#i-check"/></svg>Chấp nhận <span id="mm-accept-left"></span></button>
+                <button class="btn lg" id="mm-decline">Từ chối</button>
+              </div>
+            </div>
+            <button class="btn block" id="mm-cancel">Huỷ tìm trận</button>
+            <div class="search-foot">
+              <span><svg class="ico sm"><use href="#i-users"/></svg><b id="mm-searching">1</b> người đang tìm</span>
+              <span><svg class="ico sm"><use href="#i-target"/></svg><span id="mm-range">±100 Elo</span></span>
+              <span><svg class="ico sm"><use href="#i-piece"/></svg>Màu quân ngẫu nhiên</span>
+            </div>
+          </div>
+          <aside class="col-side">
+            <div class="card opp-card">
+              <div class="card-head"><h3>Đối thủ</h3><span class="tag soft" id="mm-opp-tag">Đang chờ ghép…</span></div>
+              <div class="opp-avatar" id="mm-opp-av">?</div>
+              <b class="opp-name" id="mm-opp-name">Chưa có đối thủ</b>
+              <p class="muted center" id="mm-opp-sub">Hệ thống đang tìm người có Elo gần bạn nhất.</p>
+            </div>
+            <div class="card dark tip-card">
+              <svg class="ico"><use href="#i-bulb"/></svg>
+              <b>Mẹo nhỏ từ Tượng Kỳ</b>
+              <p id="mm-tip"></p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Q03 · Chơi với bạn (Phòng riêng) -->
+      <section id="page-room" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Chơi nhanh · Chơi với bạn</p>
+            <h1>Mời kỳ hữu vào bàn.</h1>
+            <p class="lead">Tạo phòng riêng rồi gửi link mời, hoặc nhập mã phòng bạn bè gửi cho bạn.</p>
+          </div>
+        </header>
+        <div class="cols">
+          <div class="card">
+            <div class="card-head"><div><h3>Tạo phòng</h3><p>Phòng riêng không tính Elo.</p></div><span class="tag soft">Phòng riêng</span></div>
+            <label class="field name-field"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
+            <div class="field"><span>Nhịp chơi</span>
+              <div class="chips" id="room-tc" role="radiogroup" aria-label="Nhịp chơi">
+                <button class="chip" data-tc="5|0">5+0</button><button class="chip" data-tc="10|0">10+0</button><button class="chip" data-tc="15|10">15+10</button><button class="chip" data-tc="30|0">30+0</button><button class="chip" data-tc="0|0">Không giới hạn</button>
+              </div>
+            </div>
+            <label class="field"><span>Giới hạn mỗi nước</span>
+              <select id="room-move">
+                <option value="0">Không giới hạn</option><option value="30">30 giây</option><option value="60">1 phút</option>
+                <option value="120">2 phút</option><option value="180">3 phút</option><option value="300">5 phút</option>
+              </select>
+            </label>
+            <div class="field"><span>Màu quân của bạn</span>
+              <div class="seg" role="radiogroup" aria-label="Chọn màu quân">
+                <label><input type="radio" name="color" value="r" checked><span><i class="side-dot r"></i>Đỏ <small>(đi trước)</small></span></label>
+                <label><input type="radio" name="color" value="b"><span><i class="side-dot b"></i>Đen</span></label>
+                <label><input type="radio" name="color" value="random"><span>Ngẫu nhiên</span></label>
+              </div>
+            </div>
+            <div class="field"><span>Luật phòng</span>
+              <label class="toggle-row"><span><b>Cho người xem</b><small>Người có link xem trực tiếp, hiện ở Trận đấu hot</small></span><input type="checkbox" class="toggle" id="rule-spectators" checked></label>
+              <label class="toggle-row"><span><b>Cho phép đi lại</b><small>Xin đi lại, đối thủ đồng ý thì lùi nước</small></span><input type="checkbox" class="toggle" id="rule-takeback"></label>
+            </div>
+            <button id="create" class="btn primary lg block"><svg class="ico"><use href="#i-link"/></svg>Tạo phòng &amp; lấy link mời</button>
+          </div>
+          <aside class="col-side">
+            <div class="card">
+              <div class="card-head"><div><h3>Nhập mã phòng</h3><p>Mã 5 ký tự bạn bè gửi, hoặc mở thẳng link mời.</p></div></div>
+              <label class="field name-field"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
+              <form id="join-form" class="row">
+                <input id="code" placeholder="VD: K7QX2" maxlength="10" autocomplete="off" aria-label="Mã phòng" class="code-input">
+                <button class="btn primary">Vào phòng</button>
+              </form>
+            </div>
+            <div class="card" id="invite-card">
+              <div class="card-head"><div><h3>Mời kỳ hữu</h3><p>Tạo phòng và gửi lời mời trực tiếp cho bạn bè.</p></div></div>
+              <div class="mini-list" id="invite-list"></div>
+            </div>
+            <div class="card">
+              <h3>Chơi với bạn thế nào?</h3>
+              <ol class="steps">
+                <li><b>Tạo phòng</b> và chọn nhịp chơi, màu quân.</li>
+                <li><b>Gửi link mời</b> — bạn bè mở link là vào bàn.</li>
+                <li><b>Chơi lại</b> bao nhiêu ván tuỳ thích, tự đổi màu quân.</li>
+              </ol>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- A01/A02 · Đấu máy + Cờ thế -->
+      <section id="page-ai" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Đấu máy</p>
+            <h1>Rèn kỹ nghệ, theo nhịp của bạn.</h1>
+            <p class="lead">Chọn cấp độ AI phù hợp, luyện cờ thế và xem lại các ván đã luyện.</p>
+          </div>
+        </header>
+        <div class="tabs" role="tablist" id="ai-tabs">
+          <button class="tab" data-ai-tab="ai" role="tab">Đấu với AI</button>
+          <button class="tab" data-ai-tab="puzzles" role="tab">Cờ thế</button>
+          <button class="tab" data-ai-tab="history" role="tab">Lịch sử luyện tập</button>
+        </div>
+
+        <div class="ai-panel" id="ai-panel-ai">
+          <div class="cols">
+            <div class="card">
+              <h3>Chọn cấp độ AI</h3>
+              <div class="level-grid" id="level-grid" role="radiogroup" aria-label="Cấp độ AI"></div>
+              <p class="callout"><svg class="ico"><use href="#i-info"/></svg><span id="level-note"></span></p>
+              <h3>Chọn màu quân</h3>
+              <div class="side-pick" role="radiogroup" aria-label="Chọn màu quân">
+                <label><input type="radio" name="ai-color" value="r" checked><span><i class="side-dot r lg"></i><b>Quân Đỏ</b><small>Đi trước</small></span></label>
+                <label><input type="radio" name="ai-color" value="b"><span><i class="side-dot b lg"></i><b>Quân Đen</b><small>Đi sau</small></span></label>
+                <label><input type="radio" name="ai-color" value="random"><span><i class="side-dot rnd lg"></i><b>Ngẫu nhiên</b><small>Để máy chọn</small></span></label>
+              </div>
+              <label class="field name-field"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
+              <label class="toggle-row">
+                <span><b>Gợi ý &amp; đi lại</b><small>Cho phép xin gợi ý nước đi và đi lại khi chơi với máy</small></span>
+                <input type="checkbox" id="ai-assist" class="toggle" checked>
+              </label>
+              <button id="play-ai" class="btn primary lg block"><svg class="ico"><use href="#i-ai"/></svg>Bắt đầu đấu máy</button>
+            </div>
+            <aside class="col-side">
+              <div class="card">
+                <div class="card-head"><div><h3>Bàn cờ luyện tập</h3><p id="ai-preview-sub"></p></div></div>
+                <div class="mini-board"><svg id="ai-board" role="img" aria-label="Bàn cờ luyện tập"></svg></div>
+                <div class="tag-row" id="ai-tags"></div>
+              </div>
+              <div class="card">
+                <h3>Mẹo từ kỳ thủ</h3>
+                <p class="muted">Đừng vội đổi quân khi chưa ra đủ Xe, Mã, Pháo. Khai cuộc chắc chắn giúp trung cuộc nhẹ nhàng hơn — bật “Gợi ý” để xem máy nghĩ gì.</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div class="ai-panel hidden" id="ai-panel-puzzles">
+          <div class="pz-toolbar">
+            <div class="seg-tabs" id="pz-filter" role="radiogroup" aria-label="Độ khó">
+              <button data-f="all" class="active">Tất cả</button><button data-f="easy">Dễ</button><button data-f="medium">Vừa</button><button data-f="hard">Khó</button>
+            </div>
+            <label class="check"><input type="checkbox" id="pz-unsolved"> Chỉ bài chưa giải</label>
+            <select id="pz-topic" aria-label="Chủ đề" class="sel-sm">
+              <option value="all">Mọi chủ đề</option><option value="mate">Chiếu bí</option><option value="capture">Bắt quân</option><option value="defense">Phòng thủ</option><option value="endgame">Tàn cuộc</option>
+            </select>
+            <span class="muted" id="pz-progress"></span>
+            <button class="btn sm" id="pz-continue"><svg class="ico sm"><use href="#i-next"/></svg>Tiếp tục bài gần nhất</button>
+          </div>
+          <div id="pz-grid" class="pz-grid"></div>
+        </div>
+
+        <div class="ai-panel hidden" id="ai-panel-history">
+          <div class="card">
+            <div class="card-head"><div><h3>Lịch sử luyện tập</h3><p>Ván đấu máy và cờ thế bạn đã giải gần đây</p></div></div>
+            <div id="ai-history"></div>
           </div>
         </div>
       </section>
 
-    <section id="profile" class="screen hidden">
-      <div class="pf-layout">
-        <div class="pf-left">
-          <div class="pf-card pf-header">
-            <div class="pf-hero">
-              <div class="pf-frame" id="pf-frame">
-                <div class="avatar" id="pf-avatar"></div>
-              </div>
-              <div class="pf-rankbadge" id="pf-rank"></div>
-            </div>
-            <div class="pf-lines">
-              <div class="pf-name" id="pf-name"></div>
-              <div class="pf-line" id="pf-meta-id"></div>
-              <div class="pf-line" id="pf-meta-region"></div>
-              <div class="pf-line" id="pf-meta-credit"></div>
-            </div>
-            <button class="pf-edit" data-pf="settings" aria-label="Chỉnh sửa hồ sơ">›</button>
+      <!-- A02 · Giải một thế cờ -->
+      <section id="page-puzzle" class="screen page hidden">
+        <div class="pz-solve">
+          <div class="board-card">
+            <div class="pz-board-frame" id="pz-frame"><svg id="pz-board" role="img" aria-label="Bàn cờ bài tập"></svg></div>
           </div>
-
-          <div class="pf-pills" id="pf-pills"></div>
-
-          <div class="pf-membercard">
-            <div class="mc-main">
-              <span class="mc-title">Thẻ kỳ hữu</span>
+          <aside class="card pz-side">
+            <a href="#/puzzles" class="link-more back"><svg class="ico sm flip"><use href="#i-chev"/></svg>Danh sách cờ thế</a>
+            <h2 id="pz-title" class="pz-title"></h2>
+            <div id="pz-meta" class="pz-meta"></div>
+            <p id="pz-desc" class="pz-desc"></p>
+            <div id="pz-status" class="status-box"></div>
+            <ol id="pz-moves" class="pz-moves"></ol>
+            <div class="pz-summary hidden" id="pz-summary"></div>
+            <div class="pz-actions">
+              <button class="btn" id="pz-hint"><svg class="ico"><use href="#i-bulb"/></svg>Gợi ý</button>
+              <button class="btn" id="pz-reset"><svg class="ico"><use href="#i-undo"/></svg>Làm lại</button>
+              <button class="btn" id="pz-show"><svg class="ico"><use href="#i-eye"/></svg>Xem lời giải</button>
+              <button class="btn primary" id="pz-next">Bài tiếp theo<svg class="ico"><use href="#i-chev"/></svg></button>
             </div>
-            <div class="mc-sub"><span class="mc-tag" id="pf-mc-tag"></span> <span id="pf-mc-games"></span></div>
-            <div class="mc-foot">
-              <span><i class="mc-dot"></i> Vĩnh viễn</span>
-              <button class="mc-btn" id="pf-perks">Xem đặc quyền</button>
-            </div>
-          </div>
-
-          <nav class="pf-menu" aria-label="Menu tài khoản">
-            <button class="pf-mi" data-pf="history"><svg class="pf-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Lịch sử ván đấu</span><span class="pf-chevron" aria-hidden="true">›</span></button>
-            <button class="pf-mi" data-pf="stats"><svg class="pf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Thống kê</span><span class="pf-chevron" aria-hidden="true">›</span></button>
-            <button class="pf-mi" data-pf="settings"><svg class="pf-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Cài đặt</span><span class="pf-chevron" aria-hidden="true">›</span></button>
-            <button class="pf-mi" id="pf-help"><svg class="pf-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a3 3 0 0 1 5.6 1c0 2-3 2.5-3 4.5M12 17.5h.01"/></svg><span>Trợ giúp &amp; góp ý</span><span class="pf-chevron" aria-hidden="true">›</span></button>
-            <button class="pf-mi" id="pf-share"><svg class="pf-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.7-3.4 3.3-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.4M15 15h7m0 0-2.5-2.5M22 15l-2.5 2.5"/></svg><span>Giới thiệu cho bạn bè</span><span class="pf-chevron" aria-hidden="true">›</span></button>
-            <button class="pf-mi" id="pf-logout"><svg class="pf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10"/></svg><span>Đăng xuất</span><span class="pf-chevron" aria-hidden="true">›</span></button>
-          </nav>
+          </aside>
         </div>
+      </section>
 
-        <div class="pf-right">
-          <div class="pf-panel" id="pf-panel-history">
-            <h2>Lịch sử ván đấu</h2>
-            <div id="pf-games" class="pf-games"></div>
+      <!-- R01 · Xếp hạng -->
+      <section id="page-ranking" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Bảng xếp hạng</p>
+            <h1>Những kỳ thủ dẫn đầu.</h1>
+            <p class="lead">Elo cập nhật sau mỗi ván xếp hạng giữa hai tài khoản.</p>
           </div>
-          <div class="pf-panel hidden" id="pf-panel-stats">
-            <h2>Thống kê</h2>
-            <div id="pf-stats" class="pf-stats"></div>
+        </header>
+        <div class="tabs-row">
+          <div class="seg-tabs" id="rank-tabs" role="tablist">
+            <button data-by="rating" class="active">Elo</button><button data-by="friends">Bạn bè</button><button data-by="season">Danh vọng mùa</button><button data-by="streak">Chuỗi thắng</button><button data-by="coin">Tranh xu</button><button data-by="puzzles">Cờ thế</button>
           </div>
-          <div class="pf-panel hidden" id="pf-panel-settings">
-            <h2>Cài đặt</h2>
-            <div class="pf-set">
-              <h3>Ảnh đại diện</h3>
-              <div class="pf-avatar-acts">
-                <label class="btn small">Đổi ảnh đại diện
-                  <input type="file" id="pf-avatar-file" accept="image/png,image/jpeg,image/webp" hidden>
-                </label>
-                <button class="btn small ghost hidden" id="pf-avatar-del">Xoá ảnh</button>
-              </div>
+          <span class="muted" id="rank-total"></span>
+        </div>
+        <div class="cols">
+          <div class="col-main">
+            <div class="podium" id="rank-podium"></div>
+            <div class="card flush">
+              <table class="table" id="rank-table">
+                <thead><tr><th class="w-rank">Hạng</th><th>Kỳ thủ</th><th class="num" id="rank-col">Elo</th><th class="num hide-sm">Ván</th><th class="num hide-sm">Tỉ lệ thắng</th></tr></thead>
+                <tbody></tbody>
+              </table>
             </div>
-            <form id="pf-name-form" class="pf-set">
-              <h3>Tên hiển thị</h3>
-              <div class="row">
-                <input id="pf-display" maxlength="20" placeholder="Tên hiển thị" aria-label="Tên hiển thị">
-                <button class="btn">Lưu</button>
-              </div>
+          </div>
+          <aside class="col-side">
+            <div class="card" id="rank-me"></div>
+            <div class="card">
+              <svg class="ico accent"><use href="#i-info"/></svg>
+              <h3>Cách tính Elo</h3>
+              <p class="muted">Mọi tài khoản bắt đầu với 1.200 Elo. Thắng người Elo cao hơn được cộng nhiều hơn; hệ số K = 32. Ván có khách tham gia không tính Elo.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- T01 · Giải đấu -->
+      <section id="page-tournaments" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Giải đấu</p>
+            <h1>Hội ngộ kỳ thủ. Tranh tài đỉnh cao.</h1>
+            <p class="lead">Đăng ký, check-in trước giờ đấu và vào bàn ngay từ lịch giải.</p>
+          </div>
+        </header>
+        <div class="hero slim" id="tour-hero"></div>
+        <div class="cols">
+          <div class="col-main">
+            <div class="seg-tabs" id="tour-tabs">
+              <button class="active" data-t="open">Đang mở đăng ký</button><button data-t="soon">Sắp diễn ra</button><button data-t="live">Đang thi đấu</button><button data-t="done">Đã kết thúc</button>
+            </div>
+            <div class="tour-list" id="tour-list"></div>
+          </div>
+          <aside class="col-side">
+            <div class="card">
+              <h3>Một giải đấu diễn ra thế nào?</h3>
+              <ol class="steps">
+                <li><b>Đăng ký</b> khi giải mở (trả lệ phí xu nếu có).</li>
+                <li><b>Check-in</b> trong khung giờ trước khi đấu.</li>
+                <li><b>Vào bàn</b> khi có thông báo mỗi vòng — quá giờ chờ sẽ bị xử thua.</li>
+                <li><b>Kết quả</b> ghi vào hồ sơ; top 3 nhận xu &amp; huy hiệu.</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>Thể thức</h3>
+              <dl class="kv">
+                <dt>Loại trực tiếp</dt><dd>Thua là dừng, hoà thì hạt giống cao đi tiếp</dd>
+                <dt>Vòng tròn</dt><dd>Mỗi người gặp tất cả</dd>
+                <dt>Hệ Thụy Sĩ</dt><dd>Ghép người cùng điểm, không gặp lại</dd>
+              </dl>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="page-tournament" class="screen page hidden">
+        <a class="link-more back" href="#/tournaments"><svg class="ico sm flip"><use href="#i-chev"/></svg>Danh sách giải đấu</a>
+        <div class="card tour-head" id="td-head"></div>
+        <div class="cols">
+          <div class="col-main">
+            <div class="card" id="td-board"></div>
+            <div class="card" id="td-rounds"></div>
+          </div>
+          <aside class="col-side">
+            <div class="card" id="td-me"></div>
+            <div class="card" id="td-info"></div>
+            <div class="card" id="td-players"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- F01 · Bạn bè -->
+      <section id="page-friends" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Bạn bè</p>
+            <h1>Kỳ hữu của bạn.</h1>
+            <p class="lead">Kết bạn, xem ai đang online và mời đấu chỉ với một chạm.</p>
+          </div>
+        </header>
+        <div class="cols">
+          <div class="col-main">
+            <form class="search-bar" id="fr-search-form">
+              <label class="search-input"><svg class="ico"><use href="#i-search"/></svg><input id="fr-search" placeholder="Tìm kỳ thủ theo tên, @tên đăng nhập hoặc ID..." autocomplete="off"></label>
+              <button class="btn primary"><svg class="ico"><use href="#i-search"/></svg>Tìm</button>
             </form>
-            <form id="pf-region-form" class="pf-set">
-              <h3>Khu vực</h3>
-              <div class="row">
-                <select id="pf-region" aria-label="Khu vực"><option value="">Chưa đặt</option></select>
-                <button class="btn">Lưu</button>
-              </div>
-            </form>
-            <form id="pf-pass-form" class="pf-set">
-              <h3>Đổi mật khẩu</h3>
-              <div class="pf-pass">
-                <input id="pf-cur" type="password" placeholder="Mật khẩu hiện tại" autocomplete="current-password" aria-label="Mật khẩu hiện tại">
-                <input id="pf-new" type="password" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" autocomplete="new-password" aria-label="Mật khẩu mới">
-                <button class="btn">Đổi mật khẩu</button>
-              </div>
-            </form>
+            <div class="card hidden" id="fr-results-card">
+              <div class="card-head"><h3>Kết quả tìm kiếm</h3><button class="link-more" type="button" id="fr-results-close">Đóng</button></div>
+              <div class="fr-list" id="fr-results"></div>
+            </div>
+            <div class="seg-tabs" id="fr-tabs">
+              <button class="active" data-t="friends">Bạn bè</button><button data-t="requests">Lời mời <span class="count-dot hidden" id="fr-req-count"></span></button><button data-t="activity">Hoạt động</button><button data-t="suggest">Gợi ý</button><button data-t="blocked">Đã chặn</button>
+            </div>
+            <div class="card">
+              <div class="card-head"><div><h3 id="fr-list-title">Bạn bè</h3><p id="fr-count"></p></div></div>
+              <div class="fr-list" id="fr-list"></div>
+            </div>
+          </div>
+          <aside class="col-side">
+            <div class="card fr-detail" id="fr-detail"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- I01 · Túi đồ -->
+      <section id="page-inventory" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow" id="inv-eyebrow">Túi đồ</p>
+            <h1 id="inv-title">Túi đồ của bạn.</h1>
+            <p class="lead">Bàn cờ, quân cờ và đồng hồ chỉ đổi giao diện — không ảnh hưởng sức mạnh thi đấu.</p>
+          </div>
+          <span class="coin-pill big" id="inv-coins"><svg class="ico"><use href="#i-coin"/></svg>0 xu</span>
+        </header>
+        <div class="tabs" id="inv-mode">
+          <button class="tab active" data-mode="bag">Túi đồ</button><button class="tab" data-mode="shop">Cửa hàng</button>
+        </div>
+        <div class="seg-tabs" id="inv-tabs">
+          <button class="active" data-cat="board">Bàn cờ</button><button data-cat="pieces">Quân cờ</button><button data-cat="clock">Đồng hồ</button>
+        </div>
+        <div class="cols">
+          <div class="col-main">
+            <div class="card-head plain"><h3 id="inv-cat-title">Bàn cờ</h3><span class="muted" id="inv-count"></span></div>
+            <div class="inv-grid" id="inv-grid"></div>
+          </div>
+          <aside class="col-side">
+            <div class="card inv-preview">
+              <div class="card-head"><h3>Xem trước</h3><span class="tag soft" id="inv-state"></span></div>
+              <div class="clock-demo" id="inv-clock-top"><b>09:58</b></div>
+              <div class="mini-board"><svg id="inv-board" role="img" aria-label="Xem trước trang bị"></svg></div>
+              <div class="clock-demo running" id="inv-clock-bottom"><b>09:54</b></div>
+              <dl class="kv" id="inv-set"></dl>
+              <p class="note" id="inv-note"></p>
+              <button class="btn primary block" id="inv-equip">Trang bị</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Luật chơi -->
+      <section id="page-rules" class="screen page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Luật chơi</p>
+            <h1>Luật cờ tướng cơ bản.</h1>
+            <p class="lead">Bàn cờ 9 cột × 10 hàng, quân đặt trên giao điểm. Bên Đỏ đi trước.</p>
+          </div>
+        </header>
+        <div class="card prose">
+          <p>Thắng khi <b>chiếu bí</b> tướng đối phương, hoặc đối phương hết nước đi, đầu hàng, hết giờ.</p>
+          <ul class="rules">
+            <li><b>Tướng (帥/將)</b>: đi 1 ô ngang/dọc, chỉ trong cung. Hai tướng không được đối mặt trên cùng một cột mà không có quân chắn.</li>
+            <li><b>Sĩ (仕/士)</b>: đi 1 ô chéo, chỉ trong cung.</li>
+            <li><b>Tượng (相/象)</b>: đi chéo 2 ô, không qua sông, bị chặn nếu có quân ở giữa (cản mắt tượng).</li>
+            <li><b>Mã (馬)</b>: đi hình chữ L (1 thẳng + 1 chéo), bị chặn nếu có quân ngay cạnh theo hướng đi (cản chân mã).</li>
+            <li><b>Xe (車)</b>: đi ngang/dọc bao xa cũng được nếu không bị chặn.</li>
+            <li><b>Pháo (炮)</b>: đi như xe, nhưng khi ăn quân phải nhảy qua đúng 1 quân (ngòi).</li>
+            <li><b>Tốt (兵/卒)</b>: đi thẳng 1 ô; qua sông được đi thêm ngang, không bao giờ đi lùi.</li>
+          </ul>
+          <p class="muted">Không được đi nước khiến tướng của mình bị chiếu. Khi chọn quân, Tượng Kỳ sẽ chỉ cho bạn các ô đi được.</p>
+        </div>
+      </section>
+
+      <!-- P01 · Hồ sơ kỳ thủ -->
+      <section id="profile" class="screen page hidden">
+        <div class="card pf-header">
+          <div class="pf-avatar avatar" id="pf-avatar"></div>
+          <div class="pf-lines">
+            <div class="pf-name-row"><h1 id="pf-name"></h1><span class="tag" id="pf-rank"></span></div>
+            <p class="muted" id="pf-meta"></p>
+            <p id="pf-bio"></p>
+          </div>
+          <div class="pf-acts">
+            <button class="btn" id="pf-edit"><svg class="ico"><use href="#i-edit"/></svg>Chỉnh sửa hồ sơ</button>
+            <button class="btn ghost" id="pf-share"><svg class="ico"><use href="#i-share"/></svg>Mời bạn bè</button>
           </div>
         </div>
-      </div>
-    </section>
+        <div class="stat-grid" id="pf-stats"></div>
+        <div class="cols">
+          <div class="col-main">
+            <div class="card">
+              <div class="card-head"><div><h3>Biến thiên Elo</h3><p id="pf-chart-sub"></p></div></div>
+              <svg class="line-chart" id="pf-chart" viewBox="0 0 640 180" preserveAspectRatio="none" role="img" aria-label="Biểu đồ Elo"></svg>
+            </div>
+            <div class="card flush">
+              <div class="card-head pad"><div><h3>Lịch sử đấu</h3><p id="pf-games-sub"></p></div></div>
+              <table class="table" id="pf-games">
+                <thead><tr><th>Đối thủ</th><th class="hide-sm">Chế độ</th><th>Kết quả</th><th class="num">Elo</th><th class="num hide-sm">Nước</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <div class="table-foot"><button class="btn sm hidden" id="pf-more">Xem thêm</button></div>
+            </div>
+          </div>
+          <aside class="col-side">
+            <div class="card">
+              <div class="card-head"><div><h3>Theo chế độ</h3><p id="pf-fav"></p></div></div>
+              <div id="pf-modes"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3>Thành tích &amp; huy hiệu</h3></div>
+              <div class="ach-list" id="pf-ach"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3>Bộ trang bị</h3><a class="link-more" href="#/inventory">Túi đồ <svg class="ico sm"><use href="#i-chev"/></svg></a></div>
+              <dl class="kv" id="pf-equip"></dl>
+            </div>
+            <div class="card dark goal-card" id="pf-goal"></div>
+            <div class="card">
+              <h3>Tài khoản</h3>
+              <div class="menu-list">
+                <button id="pf-help"><svg class="ico"><use href="#i-chat"/></svg>Trợ giúp &amp; góp ý<svg class="ico chev"><use href="#i-chev"/></svg></button>
+                <button id="pf-logout"><svg class="ico"><use href="#i-logout"/></svg>Đăng xuất<svg class="ico chev"><use href="#i-chev"/></svg></button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- G01/G02 · Bàn cờ online & kết thúc ván -->
+      <section id="game" class="screen page game hidden">
+        <header class="page-head game-head">
+          <div>
+            <p class="eyebrow"><span id="room-prefix">Phòng</span> <b id="room-code"></b> <span id="spectators"></span></p>
+            <h1 id="game-title">Một ván cờ hay đang mở ra.</h1>
+            <p class="lead" id="time-control"></p>
+          </div>
+          <div class="head-acts">
+            <button id="copy" class="btn"><svg class="ico"><use href="#i-copy"/></svg>Sao chép link mời</button>
+          </div>
+        </header>
+        <div class="game-grid">
+          <!-- G02: kết quả (chỉ hiện khi hết ván) -->
+          <div class="result-view" id="result-view">
+            <div class="card result-card" id="result-card">
+              <span class="result-ico" id="result-ico"><svg class="ico"><use href="#i-trophy"/></svg></span>
+              <h2 id="result-title" class="result-title"></h2>
+              <p id="result-sub" class="muted center"></p>
+              <div class="vs-row" id="result-vs"></div>
+              <p id="result-hint" class="result-hint"></p>
+              <div class="result-actions">
+                <button id="res-rematch" class="btn primary lg"></button>
+                <button id="res-alt" class="btn lg hidden"></button>
+              </div>
+              <div class="result-links">
+                <button class="btn ghost" id="res-analysis"><svg class="ico"><use href="#i-chart"/></svg>Phân tích</button>
+                <button class="btn ghost" id="res-share"><svg class="ico"><use href="#i-share"/></svg>Chia sẻ</button>
+                <button class="btn ghost" id="res-leave"><svg class="ico"><use href="#i-logout"/></svg>Rời bàn</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3>Thống kê ván</h3></div>
+              <div class="stat-row plain" id="result-stats"></div>
+            </div>
+            <div class="card radar-card">
+              <div class="card-head"><div><h3>Chỉ số ván đấu</h3><p id="radar-sub"></p></div></div>
+              <div class="radar-wrap"><svg id="radar" viewBox="0 0 320 260" role="img" aria-label="Biểu đồ 6 chỉ số"></svg><ul class="radar-legend" id="radar-legend"></ul></div>
+            </div>
+          </div>
+
+          <div class="board-col">
+            <div class="end-board-head"><h3>Bàn cờ cuối ván</h3></div>
+            <div class="player" id="p-top"></div>
+            <div class="board-frame" id="board-frame">
+              <svg id="board" role="img" aria-label="Bàn cờ tướng"></svg>
+            </div>
+            <div class="player" id="p-bottom"></div>
+            <div class="end-insight" id="end-insight">
+              <div class="tag-row" id="end-tags"></div>
+              <h3 id="end-ins-title">Xem lại ván vừa chơi</h3>
+              <p class="muted" id="end-ins-text">Máy sẽ đánh giá từng nước: nước hay, thiếu chính xác hay sai lầm.</p>
+              <button class="btn primary block" id="end-analysis"><svg class="ico"><use href="#i-chart"/></svg>Phân tích ván</button>
+            </div>
+          </div>
+
+          <aside class="game-side">
+            <div class="card moves-card">
+              <div class="card-head">
+                <h3>Lịch sử nước đi</h3>
+                <div class="row tight">
+                  <select id="game-pick" aria-label="Chọn ván để xem"></select>
+                  <button id="download" class="icon-btn" title="Tải biên bản ván cờ" aria-label="Tải biên bản"><svg class="ico"><use href="#i-download"/></svg></button>
+                </div>
+              </div>
+              <div id="an-box" class="an-box hidden">
+                <div id="an-progress" class="an-progress">
+                  <span id="an-progress-text"></span>
+                  <div class="an-bar"><i id="an-bar"></i></div>
+                </div>
+                <div id="an-summary" class="an-summary"></div>
+                <svg id="an-chart" class="an-chart" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="Biểu đồ thế trận"></svg>
+                <div id="an-detail" class="an-detail"></div>
+                <div id="an-review" class="an-review hidden"></div>
+              </div>
+              <div class="mv-head"><span>#</span><span>Đỏ</span><span>Đen</span></div>
+              <ol id="move-list"></ol>
+              <div class="replay-bar">
+                <button id="rp-first" class="icon-btn" title="Về đầu ván" aria-label="Về đầu ván"><svg class="ico"><use href="#i-first"/></svg></button>
+                <button id="rp-prev" class="icon-btn" title="Lùi một nước (←)" aria-label="Lùi một nước"><svg class="ico"><use href="#i-prev"/></svg></button>
+                <span id="rp-label" class="rp-label"></span>
+                <button id="rp-next" class="icon-btn" title="Tiến một nước (→)" aria-label="Tiến một nước"><svg class="ico"><use href="#i-next"/></svg></button>
+                <button id="rp-last" class="icon-btn" title="Về nước hiện tại" aria-label="Về nước hiện tại"><svg class="ico"><use href="#i-last"/></svg></button>
+              </div>
+            </div>
+
+            <div class="card chat-card" id="chat-card">
+              <div class="card-head"><h3>Trò chuyện</h3><span class="muted" id="chat-count"></span></div>
+              <div id="chat-log" aria-live="polite"></div>
+              <form id="chat-form" class="chat-form">
+                <input id="chat-input" placeholder="Nhắn tin..." maxlength="300" autocomplete="off" aria-label="Tin nhắn">
+                <button class="icon-btn" aria-label="Gửi"><svg class="ico"><use href="#i-next"/></svg></button>
+              </form>
+            </div>
+
+            <div class="card actions-card">
+              <div id="status" class="status-box"></div>
+              <div id="ready-box" class="ready-box hidden">
+                <p id="ready-text"></p>
+                <button id="btn-ready" class="btn primary block"><svg class="ico"><use href="#i-check"/></svg><span>Sẵn sàng</span></button>
+              </div>
+              <div id="offline-banner" class="banner warn hidden"><span><svg class="ico sm"><use href="#i-wifi-off"/></svg> <span id="offline-text"></span></span></div>
+              <div id="takeback-banner" class="banner hidden">
+                <span>Đối thủ xin đi lại</span>
+                <div>
+                  <button id="accept-takeback" class="btn sm primary">Đồng ý</button>
+                  <button id="decline-takeback" class="btn sm">Từ chối</button>
+                </div>
+              </div>
+              <div id="draw-banner" class="banner hidden">
+                <span>Đối thủ xin hoà</span>
+                <div>
+                  <button id="accept-draw" class="btn sm primary">Đồng ý</button>
+                  <button id="decline-draw" class="btn sm">Từ chối</button>
+                </div>
+              </div>
+              <div class="actions">
+                <button id="btn-hint" class="btn hidden"><svg class="ico"><use href="#i-bulb"/></svg>Gợi ý</button>
+                <button id="btn-undo" class="btn hidden"><svg class="ico"><use href="#i-undo"/></svg>Đi lại</button>
+                <button id="btn-takeback" class="btn hidden"><svg class="ico"><use href="#i-undo"/></svg><span>Xin đi lại</span></button>
+                <button id="btn-draw" class="btn"><svg class="ico"><use href="#i-draw"/></svg><span>Xin hoà</span></button>
+                <button id="btn-resign" class="btn danger"><svg class="ico"><use href="#i-flag"/></svg>Đầu hàng</button>
+                <button id="btn-close-analysis" class="btn primary hidden">Thoát phân tích</button>
+                <button id="btn-leave" class="btn ghost"><svg class="ico"><use href="#i-logout"/></svg>Rời bàn</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
     </div>
   </div>
 
-  <div id="perks-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Đặc quyền thẻ kỳ hữu">
-    <div class="modal-card card rules-card">
-      <button class="modal-close" data-close aria-label="Đóng">×</button>
-      <h2>Đặc quyền thẻ kỳ hữu</h2>
-      <p class="muted">Mọi tài khoản đều có thẻ kỳ hữu vĩnh viễn, miễn phí. Chất liệu thẻ nâng cấp theo số ván bạn đã chơi.</p>
-      <ul class="perks">
-        <li><b>Lưu lịch sử</b> mọi ván online và ván với máy, mở lại xem bất cứ lúc nào.</li>
-        <li><b>Phân tích từng nước</b> sau ván: ★ tốt nhất, ?! thiếu chính xác, ?? sai lầm…</li>
-        <li><b>Điểm Elo</b> tăng giảm khi đánh online với người cũng có tài khoản.</li>
-        <li><b>Ảnh đại diện</b> hiển thị trên bàn cờ, viền đếm giờ quanh ảnh.</li>
-        <li><b>Xu thưởng</b>: +20 mỗi ngày đăng nhập, +10 mỗi ván online (+10 khi thắng).</li>
-      </ul>
-      <div class="mc-tiers">
-        <span><b>Gỗ thông</b> 0+ ván</span><span><b>Gỗ đàn</b> 10+ ván</span><span><b>Ngọc bích</b> 50+ ván</span><span><b>Hoàng kim</b> 200+ ván</span>
+  <!-- Chỉnh sửa hồ sơ -->
+  <div id="edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Chỉnh sửa hồ sơ">
+    <div class="modal-card wide">
+      <button class="modal-close" data-close aria-label="Đóng"><svg class="ico"><use href="#i-x"/></svg></button>
+      <h2>Chỉnh sửa hồ sơ</h2>
+      <div class="form-sec">
+        <h3>Ảnh đại diện</h3>
+        <div class="row">
+          <label class="btn sm">Đổi ảnh đại diện
+            <input type="file" id="pf-avatar-file" accept="image/png,image/jpeg,image/webp" hidden>
+          </label>
+          <button class="btn sm ghost hidden" id="pf-avatar-del">Xoá ảnh</button>
+        </div>
       </div>
+      <form id="pf-name-form" class="form-sec">
+        <h3>Tên hiển thị</h3>
+        <div class="row">
+          <input id="pf-display" maxlength="20" placeholder="Tên hiển thị" aria-label="Tên hiển thị">
+          <button class="btn">Lưu</button>
+        </div>
+      </form>
+      <form id="pf-region-form" class="form-sec">
+        <h3>Khu vực</h3>
+        <div class="row">
+          <select id="pf-region" aria-label="Khu vực"><option value="">Chưa đặt</option></select>
+          <button class="btn">Lưu</button>
+        </div>
+      </form>
+      <form id="pf-pass-form" class="form-sec">
+        <h3>Đổi mật khẩu</h3>
+        <div class="pf-pass">
+          <input id="pf-cur" type="password" placeholder="Mật khẩu hiện tại" autocomplete="current-password" aria-label="Mật khẩu hiện tại">
+          <input id="pf-new" type="password" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" autocomplete="new-password" aria-label="Mật khẩu mới">
+          <button class="btn">Đổi mật khẩu</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <div id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Trợ giúp và góp ý">
-    <div class="modal-card card rules-card">
-      <button class="modal-close" data-close aria-label="Đóng">×</button>
+    <div class="modal-card wide">
+      <button class="modal-close" data-close aria-label="Đóng"><svg class="ico"><use href="#i-x"/></svg></button>
       <h2>Trợ giúp &amp; góp ý</h2>
-      <p>Chưa rõ cách đi quân? <button class="link-btn" id="help-rules">Xem luật chơi</button></p>
-      <ul class="perks">
+      <p>Chưa rõ cách đi quân? <button class="link" id="help-rules">Xem luật chơi</button></p>
+      <ul class="bullets">
         <li><b>Elo</b> chỉ thay đổi khi cả hai người chơi đều đăng nhập.</li>
         <li><b>Uy tín</b> +1 mỗi ván chơi trọn, −10 nếu rời bàn giữa ván (tối đa 1100).</li>
+        <li><b>Xu</b>: +20 mỗi ngày đăng nhập, +10 mỗi ván online (+10 khi thắng), +5 khi giải cờ thế lần đầu.</li>
         <li>Mất kết nối? Tải lại trang trong 90 giây để giữ chỗ ngồi.</li>
       </ul>
       <form id="feedback-form" class="feedback-form">
         <h3>Gửi góp ý cho quản trị viên</h3>
         <textarea id="fb-message" rows="4" maxlength="1000" placeholder="Bạn gặp lỗi gì, muốn thêm tính năng gì?" required></textarea>
         <input id="fb-contact" maxlength="100" placeholder="Email / Zalo để phản hồi (không bắt buộc)">
-        <button class="btn primary wide">Gửi góp ý</button>
+        <button class="btn primary block">Gửi góp ý</button>
       </form>
     </div>
   </div>
 
-  <div id="mm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Đang tìm đối thủ">
-    <div class="modal-card card mm-card">
-      <div class="mm-spinner" aria-hidden="true"><span class="logo-piece red">帥</span><span class="logo-piece black">將</span></div>
-      <h2>Đang tìm đối thủ…</h2>
-      <div class="mm-time" id="mm-time">0:00</div>
-      <p class="mm-info" id="mm-info"></p>
-      <p class="muted mm-note">Ưu tiên người đang online có Elo gần bạn. Chờ càng lâu, khoảng Elo càng được nới rộng. Màu quân chọn ngẫu nhiên.</p>
-      <button class="btn wide" id="mm-cancel">Huỷ tìm trận</button>
-    </div>
-  </div>
-
   <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Tài khoản">
-    <div class="modal-card card">
-      <button class="modal-close" id="auth-close" aria-label="Đóng">×</button>
-      <div class="atabs">
+    <div class="modal-card">
+      <button class="modal-close" id="auth-close" aria-label="Đóng"><svg class="ico"><use href="#i-x"/></svg></button>
+      <div class="auth-brand"><img class="brand-mark lg" src="assets/logo-mark.png" alt="" width="160" height="153"><b>Tượng Kỳ</b></div>
+      <div class="seg-tabs block">
         <button class="atab active" data-auth="login">Đăng nhập</button>
         <button class="atab" data-auth="register">Đăng ký</button>
       </div>
       <form id="login-form" class="auth-form">
         <label class="field"><span>Tên đăng nhập</span><input id="li-user" autocomplete="username" required></label>
         <label class="field"><span>Mật khẩu</span><input id="li-pass" type="password" autocomplete="current-password" required></label>
-        <button class="btn primary wide">Đăng nhập</button>
+        <button class="btn primary block lg">Đăng nhập</button>
       </form>
       <form id="register-form" class="auth-form hidden">
         <label class="field"><span>Tên đăng nhập</span><input id="rg-user" autocomplete="username" maxlength="20" required placeholder="vd: tuan_cotuong"></label>
         <label class="field"><span>Tên hiển thị</span><input id="rg-name" maxlength="20" placeholder="Tên người khác sẽ thấy"></label>
         <label class="field"><span>Mật khẩu</span><input id="rg-pass" type="password" autocomplete="new-password" minlength="6" required placeholder="Ít nhất 6 ký tự"></label>
         <label class="field"><span>Nhập lại mật khẩu</span><input id="rg-pass2" type="password" autocomplete="new-password" required></label>
-        <button class="btn primary wide">Tạo tài khoản</button>
+        <button class="btn primary block lg">Tạo tài khoản</button>
       </form>
       <p class="err" id="auth-err" role="alert"></p>
-      <p class="muted auth-note">Không bắt buộc — khách vẫn chơi được, nhưng chỉ tài khoản mới được lưu thành tích và lịch sử ván.</p>
+      <p class="muted center small">Không bắt buộc — khách vẫn chơi được, nhưng chỉ tài khoản mới được lưu Elo, xu và lịch sử ván.</p>
     </div>
   </div>
 
-  <section id="game" class="screen hidden">
-    <div class="player" id="p-top"></div>
-    <div class="board-frame">
-      <svg id="board" role="img" aria-label="Bàn cờ tướng"></svg>
-      <div id="result-overlay" class="result-overlay hidden" role="dialog" aria-labelledby="result-title">
-        <div class="result-card">
-          <div id="result-title" class="result-title"></div>
-          <div id="result-sub" class="result-sub"></div>
-          <div id="result-hint" class="result-hint"></div>
-          <div class="result-actions">
-            <button id="res-rematch" class="btn primary">Chơi lại</button>
-            <button id="res-analysis" class="btn">Phân tích</button>
-            <button id="res-leave" class="btn ghost">Rời bàn</button>
-          </div>
-        </div>
+  <div id="share-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Chia sẻ kết quả">
+    <div class="modal-card wide">
+      <button class="modal-close" data-close aria-label="Đóng"><svg class="ico"><use href="#i-x"/></svg></button>
+      <h2>Chia sẻ kết quả</h2>
+      <canvas id="share-canvas" width="1200" height="630" class="share-canvas"></canvas>
+      <div class="row wrap">
+        <button class="btn primary" id="share-native"><svg class="ico"><use href="#i-share"/></svg>Chia sẻ ảnh</button>
+        <button class="btn" id="share-download"><svg class="ico"><use href="#i-download"/></svg>Tải ảnh</button>
+        <button class="btn" id="share-link"><svg class="ico"><use href="#i-link"/></svg>Sao chép link xem lại</button>
       </div>
     </div>
-    <div class="player" id="p-bottom"></div>
+  </div>
 
-    <aside class="panel card">
-      <div class="room-info">
-        <div><span id="room-prefix">Phòng</span> <b id="room-code"></b> <span id="spectators" class="muted"></span>
-          <div id="time-control" class="time-control hidden"></div></div>
-        <button id="copy" class="btn small">Sao chép link mời</button>
-      </div>
+  <div id="report-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Báo cáo kỳ thủ">
+    <div class="modal-card">
+      <button class="modal-close" data-close aria-label="Đóng"><svg class="ico"><use href="#i-x"/></svg></button>
+      <h2>Báo cáo kỳ thủ</h2>
+      <p class="muted" id="report-target"></p>
+      <form id="report-form" class="auth-form">
+        <label class="field"><span>Lý do</span><textarea id="report-reason" rows="4" maxlength="1000" required placeholder="Ngôn từ xúc phạm, gian lận, bỏ ván liên tục..."></textarea></label>
+        <button class="btn primary block">Gửi báo cáo</button>
+      </form>
+    </div>
+  </div>
 
-      <div id="status" class="status"></div>
+  <div id="notif-panel" class="notif-panel hidden" role="dialog" aria-label="Thông báo">
+    <div class="card-head"><h3>Thông báo</h3><button class="link-more" id="notif-readall">Đánh dấu đã đọc</button></div>
+    <div id="notif-list" class="notif-list"></div>
+  </div>
 
-      <div id="draw-banner" class="banner hidden">
-        <span>Đối thủ xin hoà</span>
-        <div>
-          <button id="accept-draw" class="btn small primary">Đồng ý</button>
-          <button id="decline-draw" class="btn small">Từ chối</button>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button id="btn-undo" class="btn hidden">Đi lại</button>
-        <button id="btn-draw" class="btn">Xin hoà</button>
-        <button id="btn-resign" class="btn danger">Đầu hàng</button>
-        <button id="btn-close-analysis" class="btn primary hidden">Thoát phân tích</button>
-        <button id="btn-leave" class="btn ghost">Rời bàn</button>
-      </div>
-
-      <div class="replay-bar">
-        <button id="rp-first" class="btn icon" title="Về đầu ván" aria-label="Về đầu ván">⏮</button>
-        <button id="rp-prev" class="btn icon" title="Lùi một nước (←)" aria-label="Lùi một nước">◀</button>
-        <span id="rp-label" class="rp-label"></span>
-        <button id="rp-next" class="btn icon" title="Tiến một nước (→)" aria-label="Tiến một nước">▶</button>
-        <button id="rp-last" class="btn icon" title="Về nước hiện tại" aria-label="Về nước hiện tại">⏭</button>
-      </div>
-
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-tab="moves" role="tab">Nước đi</button>
-        <button class="tab" data-tab="chat" role="tab">Chat <span id="chat-badge" class="badge hidden"></span></button>
-      </div>
-
-      <div class="tab-body" id="tab-moves">
-        <div class="row moves-head">
-          <select id="game-pick" aria-label="Chọn ván để xem"></select>
-          <button id="download" class="btn small" title="Tải biên bản ván cờ">Tải về</button>
-        </div>
-        <div id="an-box" class="an-box hidden">
-          <div id="an-progress" class="an-progress">
-            <span id="an-progress-text"></span>
-            <div class="an-bar"><i id="an-bar"></i></div>
-          </div>
-          <div id="an-summary" class="an-summary"></div>
-          <svg id="an-chart" class="an-chart" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="Biểu đồ thế trận"></svg>
-          <div id="an-detail" class="an-detail"></div>
-        </div>
-        <ol id="move-list"></ol>
-      </div>
-
-      <div class="tab-body chat hidden" id="tab-chat">
-        <div id="chat-log" aria-live="polite"></div>
-        <form id="chat-form" class="row">
-          <input id="chat-input" placeholder="Nhắn tin..." maxlength="300" autocomplete="off">
-          <button class="btn">Gửi</button>
-        </form>
-      </div>
-    </aside>
-  </section>
-
+  <div id="conn-banner" class="conn-banner hidden"><svg class="ico"><use href="#i-wifi-off"/></svg><span>Mất kết nối — đang kết nối lại…</span></div>
   <div id="toast" role="status"></div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -455,6 +919,7 @@
   <script src="board-render.js"></script>
   <script src="board-ui.js"></script>
   <script src="ranks.js"></script>
+  <script src="catalog.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

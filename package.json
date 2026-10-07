@@ -5,10 +5,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "migrate:supabase": "node scripts/migrate-to-supabase.js"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=20.12"
+  },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
   }

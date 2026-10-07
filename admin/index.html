@@ -4,463 +4,302 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Quản trị Cờ Tướng</title>
-  <style>
-    :root {
-      --bg: #1b1714; --bg-2: #27211c; --card: #2d2620; --line: #4a3f35;
-      --text: #f3ece3; --muted: #b3a595; --accent: #d9a441; --accent-ink: #2a1d07;
-      --red: #e0675a; --ok: #4caf7a; --danger: #e05a47; --radius: 14px;
-      font-family: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
-    button, input, select { font: inherit; color: inherit; }
-    .hidden { display: none !important; }
-    .muted { color: var(--muted); }
-
-    .btn {
-      border: 1px solid var(--line); background: var(--bg-2); border-radius: 9px;
-      padding: 8px 14px; cursor: pointer; white-space: nowrap;
-    }
-    .btn:hover { border-color: var(--accent); }
-    .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-    .btn.danger { color: #ffb4a8; }
-    .btn.danger:hover { border-color: var(--danger); }
-    .btn.sm { padding: 5px 10px; font-size: 0.82rem; }
-    input, select {
-      background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; outline: none;
-    }
-    input:focus, select:focus { border-color: var(--accent); }
-
-    /* Đăng nhập */
-    #login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
-    .login-card {
-      width: 100%; max-width: 360px; background: var(--card); border: 1px solid var(--line);
-      border-radius: var(--radius); padding: 28px; box-shadow: 0 20px 50px rgba(0,0,0,.35);
-    }
-    .login-card h1 { margin: 0 0 4px; font-size: 1.4rem; }
-    .login-card p { margin: 0 0 20px; color: var(--muted); font-size: 0.9rem; }
-    .login-card input { width: 100%; margin-bottom: 12px; padding: 11px 12px; }
-    .login-card .btn { width: 100%; padding: 11px; }
-    .err { color: var(--danger); min-height: 1.2em; margin: 10px 0 0; font-size: 0.9rem; }
-
-    /* Bố cục: menu trái + nội dung */
-    #app { display: flex; min-height: 100vh; }
-    #app.hidden { display: none; }
-    .sidebar {
-      width: 240px; flex: none; position: sticky; top: 0; height: 100vh; overflow-y: auto;
-      background: var(--bg-2); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 16px 12px; gap: 8px;
-    }
-    .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; font-weight: 700; }
-    .brand small { display: block; font-weight: 400; color: var(--muted); font-size: 0.78rem; }
-    .logo { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; flex: none;
-      background: radial-gradient(circle at 38% 32%, #fcebd0, #f1d2a3 55%, #ddb078); color: #c42d24; border: 1px solid rgba(120,75,35,.4);
-      box-shadow: 0 2px 0 #95643a; font-family: "LXGW WenKai TC", "Kaiti TC", "Kaiti SC", "STKaiti", "KaiTi", serif; font-weight: 700; }
-    .nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-    .nav-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 12px 10px 4px; }
-    .nav-item {
-      display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px;
-      background: none; color: var(--muted); cursor: pointer; text-align: left; text-decoration: none; font-size: 0.92rem;
-    }
-    .nav-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
-    .nav-item.active { background: rgba(217,164,65,.14); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
-    .nav-item .ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-    .nav-item.active .ico { stroke: var(--accent); }
-    .nav-item .count { margin-left: auto; }
-    .sidebar-foot { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
-    .content { flex: 1; min-width: 0; }
-    .topbar {
-      position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 14px 24px;
-      background: rgba(27, 23, 20, 0.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line);
-    }
-    .topbar h1 { margin: 0; font-size: 1.15rem; }
-    .menu-btn { display: none; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-size: 18px; width: 38px; height: 38px; cursor: pointer; }
-    .sidebar-backdrop { display: none; }
-    main { max-width: 1200px; padding: 24px; }
-
-    .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .panel-box { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-    .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .panel-head h3 { margin: 0; font-size: 0.95rem; }
-    .link { background: none; border: 0; color: var(--accent); cursor: pointer; font-size: 0.85rem; padding: 0; }
-    .mini-list { display: flex; flex-direction: column; }
-    .mini-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
-    .mini-row:last-child { border-bottom: 0; }
-    .mini-row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .mini-empty { color: var(--muted); font-size: 0.88rem; padding: 12px 0; text-align: center; }
-
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
-    .stat .v { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .stat .l { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
-    .stat.ok .v { color: var(--ok); }
-
-    .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 10px;
-      background: var(--bg-2); border: 1px solid var(--line); font-size: 0.75rem; line-height: 18px; }
-
-    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .toolbar input { flex: 1; min-width: 180px; }
-
-    .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; background: var(--bg-2); }
-    tr:last-child td { border-bottom: 0; }
-    tbody tr:hover { background: rgba(255,255,255,.02); }
-    td.num { font-variant-numeric: tabular-nums; }
-    .name { font-weight: 600; }
-    .sub { color: var(--muted); font-size: 0.78rem; font-family: ui-monospace, Menlo, monospace; margin-top: 2px; }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #777; margin-right: 6px; }
-    .dot.on { background: var(--ok); }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid var(--line); }
-    .pill.banned { color: #ffb4a8; border-color: var(--danger); background: rgba(224,90,71,.12); }
-    .pill.locked { color: var(--accent); border-color: var(--accent); }
-    .pill.playing { color: var(--ok); border-color: var(--ok); }
-    .pill.waiting { color: var(--accent); border-color: var(--accent); }
-    .pill.finished { color: var(--muted); }
-    .wld b { color: var(--ok); } .wld i { color: var(--red); font-style: normal; }
-    .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-    .room-link { color: var(--accent); text-decoration: none; font-family: ui-monospace, Menlo, monospace; font-weight: 600; }
-    .seat-r { color: var(--red); } .seat-b { color: #d6d6d6; }
-    .empty { text-align: center; color: var(--muted); padding: 32px; }
-
-    #toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: #111; color: #fff;
-      padding: 10px 16px; border-radius: 10px; opacity: 0; pointer-events: none; transition: .2s; border: 1px solid var(--line);
-      max-width: calc(100% - 32px); }
-    #toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-    .acc-cell { display: flex; align-items: center; gap: 10px; }
-    .acc-av { width: 36px; height: 36px; border-radius: 10px; flex: none; object-fit: cover; display: grid; place-items: center;
-      background: linear-gradient(135deg, #e7b553, #b8792a); color: var(--accent-ink); font-weight: 800; }
-    .fb-list { display: flex; flex-direction: column; gap: 10px; }
-    .fb-item { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
-    .fb-item .fb-body { flex: 1; min-width: 0; }
-    .fb-item .fb-meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
-    .fb-item .fb-msg { white-space: pre-wrap; line-height: 1.5; overflow-wrap: anywhere; }
-    /* Danh sách tài khoản */
-    tr.row-link { cursor: pointer; }
-    tr.row-link:hover td { background: rgba(217,164,65,.06); }
-    tr.row-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-    .chev { color: var(--accent); font-weight: 600; font-size: .85rem; white-space: nowrap; }
-    .rank-cell { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
-    .rank-pill { --tier: #f2c35b; display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 5px; border-radius: 999px;
-      background: color-mix(in srgb, var(--tier) 18%, transparent); border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent);
-      color: var(--text); font-size: .8rem; font-weight: 700; white-space: nowrap; }
-    .rank-pill .gem { width: 11px; height: 11px; transform: rotate(45deg); border-radius: 2px; background: linear-gradient(135deg, #fff, var(--tier)); }
-    td.warn, .stat.warn .v { color: #ffb4a8; }
-    .link, .link-name { color: var(--accent); text-decoration: none; }
-    .link-name:hover, .link:hover { text-decoration: underline; }
-
-    /* Trang chi tiết tài khoản */
-    .user-detail { display: flex; flex-direction: column; gap: 16px; }
-    .back-link { font-size: .9rem; }
-    .ud-head { display: flex; gap: 18px; align-items: flex-start; }
-    .ud-av { width: 96px; height: 96px; border-radius: 22px; flex: none; object-fit: cover; display: grid; place-items: center;
-      background: linear-gradient(135deg, #e7b553, #b8792a); color: var(--accent-ink); font-weight: 800; font-size: 2.4rem; }
-    .ud-head-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-    .ud-head-main h2 { margin: 0; font-size: 1.4rem; }
-    .ud-sub { color: var(--muted); font-size: .9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .ud-sub .sep { opacity: .5; }
-    .ud-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    .stat .l2 { color: var(--muted); font-size: .78rem; margin-top: 2px; }
-    .user-detail .stats { margin-bottom: 0; }
-    .ud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-    table.kv { width: 100%; border-collapse: collapse; font-size: .9rem; }
-    table.kv th { text-align: left; color: var(--muted); font-weight: 500; padding: 7px 10px 7px 0; width: 46%; border-bottom: 1px solid var(--line); background: none; text-transform: none; letter-spacing: 0; font-size: .88rem; }
-    table.kv td { padding: 7px 0; border-bottom: 1px solid var(--line); }
-    table.kv tr:last-child th, table.kv tr:last-child td { border-bottom: 0; }
-    table.kv code { font-size: .82rem; color: var(--muted); }
-    .elo-chart { width: 100%; height: auto; display: block; }
-    .elo-chart .grid { stroke: var(--line); stroke-dasharray: 3 4; }
-    .elo-chart .axis { fill: var(--muted); font-size: 11px; }
-    .elo-chart .area { fill: rgba(217,164,65,.12); }
-    .elo-chart .line { fill: none; stroke: var(--accent); stroke-width: 2.5; }
-    .elo-chart .pt { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
-    .filters { display: flex; gap: 6px; }
-    .filters select { padding: 5px 8px; font-size: .85rem; }
-    .table-wrap.flat { border-radius: 10px; }
-    .mini-table { width: 100%; font-size: .88rem; }
-    .mini-table th { background: none; padding: 6px 8px; }
-    .mini-table td { padding: 7px 8px; }
-    .elo.up { color: #9fe3bc; font-weight: 700; } .elo.down { color: #ffb4a8; font-weight: 700; }
-    .side-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1px solid #f0d8a8; vertical-align: -1px; }
-    .side-dot.r { background: #c0392b; } .side-dot.b { background: #111; }
-    .ud-small { max-width: 420px; }
-    .ud-form { display: flex; flex-direction: column; gap: 12px; }
-    .ud-form h2 { margin: 0; font-size: 1.15rem; }
-    .ud-field { display: flex; flex-direction: column; gap: 5px; font-size: .88rem; color: var(--muted); }
-    .ud-field input { width: 100%; }
-    .ud-form-acts { display: flex; justify-content: flex-end; gap: 8px; }
-    .form-err { color: var(--danger); min-height: 1em; margin: 0; font-size: .88rem; }
-    /* Xem biên bản */
-    .gv-card { max-width: 980px; }
-    .gv-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; margin-top: 14px; }
-    .gv-frame { background: #3c2614; border-radius: 10px; overflow: hidden; }
-    .gv-board { display: block; width: 100%; height: auto; max-height: calc(100vh - 240px); }
-    .gv-controls { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
-    .gv-label { min-width: 110px; text-align: center; color: var(--muted); font-size: .88rem; font-variant-numeric: tabular-nums; }
-    .gv-moves { list-style: none; margin: 0; padding: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
-      max-height: calc(100vh - 240px); overflow-y: auto; display: grid; grid-template-columns: 30px 1fr 1fr; gap: 2px 4px; align-content: start; }
-    .gv-moves li { display: contents; }
-    .gv-moves .no { color: var(--muted); text-align: right; padding: 4px 4px 4px 0; font-size: .85rem; }
-    .gv-moves button { background: none; border: 0; border-radius: 6px; padding: 4px 8px; text-align: left; cursor: pointer; font-family: ui-monospace, Menlo, monospace; font-size: .88rem; color: var(--text); }
-    .gv-moves button.r { color: #ff9c8f; }
-    .gv-moves button:hover { background: var(--bg-2); }
-    .gv-moves button.current { background: var(--accent); color: var(--accent-ink); }
-    @media (max-width: 900px) {
-      .ud-grid, .gv-body { grid-template-columns: 1fr; }
-      .ud-head { flex-direction: column; }
-      .gv-moves { max-height: 220px; }
-    }
-    /* Bài tập */
-    .pz-thumb { width: 54px; height: 54px; border-radius: 8px; overflow: hidden; flex: none; background: #3c2614; }
-    .pz-thumb svg { width: 100%; height: 100%; display: block; }
-    .diff { padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: .78rem; }
-    .diff.easy { background: rgba(76,175,122,.18); color: #9fe3bc; }
-    .diff.medium { background: rgba(217,164,65,.18); color: #f2c35b; }
-    .diff.hard { background: rgba(224,90,71,.18); color: #ffb4a8; }
-    .pill.hidden-pz { color: var(--muted); }
-    .pill.shown-pz { color: var(--ok); border-color: var(--ok); }
-    .ed { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
-    .ed-board { background: #3c2614; border-radius: 10px; overflow: hidden; max-width: 640px; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
-    .ed-board svg { display: block; width: 100%; height: auto; }
-    .ed-side { display: flex; flex-direction: column; gap: 14px; }
-    .ed-side .panel-box { display: flex; flex-direction: column; gap: 10px; }
-    .ed-field { display: flex; flex-direction: column; gap: 5px; font-size: .85rem; color: var(--muted); }
-    .ed-field input, .ed-field select, .ed-field textarea { width: 100%; color: var(--text); }
-    .ed-field textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; font: inherit; resize: vertical; }
-    .ed-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .ed-check { display: flex; gap: 8px; align-items: center; font-size: .9rem; cursor: pointer; }
-    .ed-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
-    .ed-modes button { background: none; border: 0; color: var(--muted); padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 700; }
-    .ed-modes button.active { background: var(--accent); color: var(--accent-ink); }
-    .palette { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-    .palette button { background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 3px; cursor: pointer; aspect-ratio: 1; display: grid; place-items: center; color: var(--text); font-size: .78rem; }
-    .palette button.active { border-color: var(--accent); background: rgba(217,164,65,.15); }
-    .palette button svg { width: 100%; height: 100%; display: block; }
-    .tools { display: flex; gap: 6px; flex-wrap: wrap; }
-    .tools .btn.active { border-color: var(--accent); background: rgba(217,164,65,.15); }
-    .sol-list { list-style: none; margin: 0; padding: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; min-height: 44px;
-      display: grid; grid-template-columns: 30px 1fr 1fr; gap: 2px 6px; font-family: ui-monospace, Menlo, monospace; font-size: .9rem; }
-    .sol-list li { display: contents; }
-    .sol-list .no { color: var(--muted); text-align: right; }
-    .sol-list .r { color: #ff9c8f; }
-    .ed-msg { font-size: .88rem; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); line-height: 1.45; }
-    .ed-msg.ok { border-color: var(--ok); color: #9fe3bc; }
-    .ed-msg.bad { border-color: var(--danger); color: #ffb4a8; }
-    .ed-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    @media (max-width: 1000px) { .ed { grid-template-columns: 1fr; } }
-    /* Chi tiết tài khoản */
-    .ud-modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 16px; z-index: 50; }
-    .ud-card { position: relative; width: 100%; max-width: 860px; max-height: calc(100vh - 32px); overflow: auto; background: var(--card);
-      border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
-    .ud-card h2 { margin: 0 0 4px; }
-    .ud-card h3 { margin: 18px 0 10px; font-size: 0.95rem; }
-    .ud-close { position: absolute; top: 10px; right: 12px; background: none; border: 0; color: var(--muted); font-size: 26px; cursor: pointer; }
-    .ud-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-    .ud-stat { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; }
-    .ud-stat span { color: var(--muted); }
-    .res { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
-    .res.win { background: rgba(76,175,122,.18); color: #9fe3bc; }
-    .res.loss { background: rgba(224,90,71,.18); color: #ffb4a8; }
-    .res.draw { background: var(--bg-2); color: var(--muted); }
-    @media (max-width: 760px) { .ud-stats { grid-template-columns: 1fr; } }
-
-    /* Giao diện bàn cờ */
-    .theme-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
-    .preview-col { position: sticky; top: 80px; }
-    .preview-frame { background: #3c2614; border-radius: 10px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.5); max-width: 620px; margin: 0 auto; }
-    #tp-board { display: block; width: 100%; height: auto; }
-    .check { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 10px; color: var(--muted); font-size: 0.88rem; cursor: pointer; }
-    .settings-col { display: flex; flex-direction: column; gap: 16px; }
-    .sec { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-    .sec h3 { margin: 0 0 12px; font-size: 1rem; }
-    .opt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-bottom: 12px; }
-    .opt { position: relative; border: 2px solid var(--line); border-radius: 10px; padding: 6px; background: var(--bg); cursor: pointer; text-align: center; font-size: 0.78rem; color: var(--muted); }
-    .opt:hover { border-color: #7a6650; }
-    .opt.active { border-color: var(--accent); color: var(--text); }
-    .opt .thumb { width: 100%; aspect-ratio: 1; display: block; border-radius: 6px; object-fit: cover; background: #3c2614; margin-bottom: 4px; }
-    .opt .del { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,.65); color: #fff; cursor: pointer; font-size: 13px; line-height: 22px; padding: 0; }
-    .opt .del:hover { background: var(--danger); }
-    .upload { display: inline-block; }
-    .calib { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-    .calib-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-    .field-row { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
-    .calib-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .calib-grid label, .fields label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--muted); }
-    .calib-grid input { width: 100%; }
-    .fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
-    .fields select { width: 100%; }
-    input[type="color"] { padding: 2px; height: 38px; width: 100%; cursor: pointer; }
-    .small { font-size: 0.8rem; margin: 0; }
-    .theme-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    /* Màn hình hẹp: menu trái thành ngăn kéo */
-    @media (max-width: 900px) {
-      .sidebar { position: fixed; left: 0; top: 0; z-index: 40; transform: translateX(-100%); transition: transform .2s ease; box-shadow: 0 0 40px rgba(0,0,0,.5); }
-      .sidebar.open { transform: none; }
-      .sidebar-backdrop { position: fixed; inset: 0; z-index: 39; background: rgba(0,0,0,.5); }
-      .sidebar.open + .sidebar-backdrop { display: block; }
-      .menu-btn { display: inline-grid; place-items: center; }
-      .topbar { padding: 12px 16px; }
-      .overview-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 960px) {
-      .theme-layout { grid-template-columns: 1fr; }
-      .preview-col { position: static; }
-    }
-
-    /* Điện thoại: bảng chuyển thành thẻ */
-    @media (max-width: 760px) {
-      main { padding: 16px; }
-      .table-wrap { background: none; border: 0; }
-      table, tbody, tr, td { display: block; }
-      thead { display: none; }
-      tr { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; padding: 6px 0; }
-      td { border: 0; padding: 6px 14px; display: flex; justify-content: space-between; gap: 12px; }
-      td::before { content: attr(data-label); color: var(--muted); font-size: 0.8rem; flex: none; }
-      td:first-child::before, td.actions-cell::before { content: none; }
-      td.actions-cell { padding-top: 10px; }
-      .actions { justify-content: flex-start; }
-    }
-  </style>
+  <title>Quản trị Tượng Kỳ</title>
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-overview" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-6 6.5-6s5.9 2.4 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5c1.6.8 2.7 2.7 3 5.5"/></symbol>
+      <symbol id="i-rooms" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 12h17M12 3.5v17"/></symbol>
+      <symbol id="i-rank" viewBox="0 0 24 24"><path d="M4 20V11M10 20V5M16 20v-6M22 20H2"/></symbol>
+      <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M9 3h6v3a2 2 0 1 0 0 4v1h3v3a2 2 0 1 1 0 4v3H6v-3a2 2 0 1 0 0-4v-3h3v-1a2 2 0 1 0 0-4z"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></symbol>
+      <symbol id="i-piece" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5.5"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+      <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+      <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><path d="M12 9.5v5"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+    </defs>
+  </svg>
+
   <section id="login" class="hidden">
-    <form class="login-card" id="login-form">
-      <h1>Quản trị Cờ Tướng</h1>
-      <p>Nhập mật khẩu quản trị để tiếp tục.</p>
-      <input id="password" type="password" placeholder="Mật khẩu" autocomplete="current-password" required>
-      <button class="btn primary">Đăng nhập</button>
-      <p class="err" id="login-err" role="alert"></p>
+    <form class="card login-card" id="login-form">
+      <div class="auth-brand"><img class="brand-mark lg" src="/assets/logo-mark.png" alt="" width="160" height="153"><b>Tượng Kỳ</b><small>Quản trị</small></div>
+      <p class="muted center">Nhập mật khẩu quản trị để tiếp tục.</p>
+      <label class="field"><span>Mật khẩu</span><input id="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary lg block">Đăng nhập</button>
+      <p class="err center" id="login-err" role="alert"></p>
     </form>
   </section>
 
-  <section id="app" class="hidden">
+  <div id="app" class="shell hidden">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><span class="logo">帥</span><span>Quản trị<small>Cờ Tướng Online</small></span></div>
+      <a class="brand" href="#overview" aria-label="Quản trị Tượng Kỳ">
+        <img class="brand-mark" src="/assets/logo-mark.png" alt="" width="160" height="153">
+        <span class="brand-text"><b>Tượng Kỳ</b><span class="admin-badge">Quản trị</span></span>
+      </a>
+      <div class="nav-label">Vận hành</div>
       <nav class="nav" aria-label="Menu quản trị">
-        <div class="nav-label">Quản lý</div>
-        <button class="nav-item" data-page="overview"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Tổng quan</span></button>
-        <button class="nav-item" data-page="users"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.5c2.6.2 4.4 1.9 5 4.5"/></svg><span>Tài khoản</span><span class="count" id="c-users">0</span></button>
-        <button class="nav-item" data-page="rooms"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18M12 4v16"/></svg><span>Phòng chơi</span><span class="count" id="c-rooms">0</span></button>
-        <button class="nav-item" data-page="puzzles"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v3a2 2 0 1 0 0 4v1h3v3a2 2 0 1 1 0 4v3H6v-3a2 2 0 1 0 0-4V10h3V9a2 2 0 1 0 0-4z"/></svg><span>Bài tập</span><span class="count" id="c-puzzles">0</span></button>
-        <button class="nav-item" data-page="feedback"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Góp ý</span><span class="count" id="c-feedback">0</span></button>
-        <div class="nav-label">Cài đặt</div>
-        <button class="nav-item" data-page="theme"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><path d="M12 9.5v5M9.5 12h5"/></svg><span>Giao diện bàn cờ</span></button>
+        <button class="nav-item" data-page="overview"><svg class="ico"><use href="#i-overview"/></svg><span>Tổng quan</span></button>
+        <button class="nav-item" data-page="rooms"><svg class="ico"><use href="#i-rooms"/></svg><span>Phòng chơi</span><span class="count" id="c-rooms">0</span></button>
+        <button class="nav-item" data-page="users"><svg class="ico"><use href="#i-users"/></svg><span>Kỳ thủ</span><span class="count" id="c-users">0</span></button>
+        <button class="nav-item" data-page="tournaments"><svg class="ico"><use href="#i-trophy"/></svg><span>Giải đấu</span><span class="count" id="c-tours">0</span></button>
+        <button class="nav-item" data-page="ranking"><svg class="ico"><use href="#i-rank"/></svg><span>Bảng xếp hạng</span></button>
       </nav>
-      <div class="sidebar-foot">
-        <a class="nav-item" href="/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span>Mở trang chơi</span></a>
-        <button class="nav-item" id="logout"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h10"/></svg><span>Đăng xuất</span></button>
+      <div class="nav-label">Nội dung</div>
+      <nav class="nav" aria-label="Nội dung">
+        <button class="nav-item" data-page="puzzles"><svg class="ico"><use href="#i-puzzle"/></svg><span>Cờ thế</span><span class="count" id="c-puzzles">0</span></button>
+        <button class="nav-item" data-page="feedback"><svg class="ico"><use href="#i-chat"/></svg><span>Góp ý</span><span class="count" id="c-feedback">0</span></button>
+        <button class="nav-item" data-page="theme"><svg class="ico"><use href="#i-piece"/></svg><span>Bàn cờ &amp; quân cờ</span></button>
+      </nav>
+      <div class="sb-foot-nav">
+        <a class="nav-item" href="/" target="_blank" rel="noopener"><svg class="ico"><use href="#i-external"/></svg><span>Mở trang chơi</span></a>
+        <button class="nav-item" id="logout"><svg class="ico"><use href="#i-logout"/></svg><span>Đăng xuất</span></button>
       </div>
     </aside>
-    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <div class="sb-backdrop" id="sidebar-backdrop"></div>
 
-    <div class="content">
+    <div class="main">
       <header class="topbar">
-        <button class="menu-btn" id="menu-btn" aria-label="Mở menu" aria-controls="sidebar">☰</button>
-        <h1 id="page-title">Tổng quan</h1>
+        <button class="icon-btn menu-btn" id="menu-btn" aria-label="Mở menu" aria-controls="sidebar"><svg class="ico"><use href="#i-menu"/></svg></button>
+        <a class="topbar-brand" href="#overview"><img class="brand-mark sm" src="/assets/logo-mark.png" alt="" width="160" height="153"><b>Quản trị</b></a>
+        <nav class="crumbs" aria-label="Vị trí"><span>Quản trị</span><span>/</span><b id="page-title">Tổng quan</b></nav>
+        <div class="top-right">
+          <span class="live-dot"><i class="dot on"></i><span id="updated">Đang tải…</span></span>
+        </div>
       </header>
-      <main>
-      <div id="page-overview" class="page">
-        <div class="stats" id="stats"></div>
-        <div class="overview-grid">
-          <section class="panel-box">
-            <div class="panel-head"><h3>Tài khoản đang online</h3><button class="link" data-goto="users">Xem tất cả →</button></div>
+
+      <!-- Tổng quan -->
+      <div id="page-overview" class="admin-page">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Tổng quan</p>
+            <h1>Tượng Kỳ hôm nay.</h1>
+            <p class="lead">Số liệu cập nhật tự động mỗi 5 giây.</p>
+          </div>
+        </header>
+        <div class="stat-grid six" id="stats"></div>
+        <div class="grid-2">
+          <section class="card">
+            <div class="card-head"><div><h3>Trận đấu đang diễn ra</h3><p>Giống mục “Trận đấu hot” trên trang chơi</p></div><button class="link-more" data-goto="rooms">Tất cả phòng <svg class="ico sm"><use href="#i-chev"/></svg></button></div>
+            <div id="ov-live" class="mini-list"></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><div><h3>Kỳ thủ đang online</h3><p>Tài khoản đã đăng nhập</p></div><button class="link-more" data-goto="users">Tất cả kỳ thủ <svg class="ico sm"><use href="#i-chev"/></svg></button></div>
             <div id="ov-online" class="mini-list"></div>
           </section>
-          <section class="panel-box">
-            <div class="panel-head"><h3>Phòng đang mở</h3><button class="link" data-goto="rooms">Xem tất cả →</button></div>
-            <div id="ov-rooms" class="mini-list"></div>
+        </div>
+        <div class="grid-3">
+          <section class="card">
+            <div class="card-head"><h3>Top Elo</h3><button class="link-more" data-goto="ranking">Bảng xếp hạng <svg class="ico sm"><use href="#i-chev"/></svg></button></div>
+            <div id="ov-top" class="mini-list"></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h3>Kỳ thủ mới</h3></div>
+            <div id="ov-new" class="mini-list"></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h3>Góp ý mới nhất</h3><button class="link-more" data-goto="feedback">Xem tất cả <svg class="ico sm"><use href="#i-chev"/></svg></button></div>
+            <div id="ov-feedback" class="mini-list"></div>
           </section>
         </div>
       </div>
 
-      <div id="page-users" class="page hidden">
+      <!-- Phòng & trận đấu -->
+      <div id="page-rooms" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Phòng &amp; trận đấu</p>
+            <h1>Các bàn đang mở.</h1>
+            <p class="lead">Xếp hạng (phí 10 xu, tính Elo) · Tranh xu (đặt cược, không tính Elo) · Giải đấu · Ghép trận (có khách) · Phòng riêng (không xu, không Elo).</p>
+          </div>
+        </header>
         <div class="toolbar">
-          <input id="search" type="search" placeholder="Tìm theo tên hiển thị hoặc tên đăng nhập...">
+          <div class="seg-tabs" id="room-filter">
+            <button class="active" data-f="all">Tất cả</button><button data-f="playing">Đang chơi</button><button data-f="waiting">Chờ đối thủ</button><button data-f="rated">Xếp hạng</button><button data-f="coin">Tranh xu</button><button data-f="tournament">Giải đấu</button><button data-f="private">Phòng riêng</button>
+          </div>
+          <span class="spacer"></span>
+          <span class="muted" id="queue-info"></span>
+        </div>
+        <div class="card flush table-card">
+          <table class="table">
+            <thead><tr><th>Phòng</th><th>Loại · nhịp</th><th>Đỏ</th><th>Đen</th><th>Trạng thái</th><th class="num">Nước</th><th class="num">Xem</th><th>Tạo lúc</th><th></th></tr></thead>
+            <tbody id="rooms-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Kỳ thủ -->
+      <div id="page-users" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Kỳ thủ</p>
+            <h1>Tài khoản người chơi.</h1>
+            <p class="lead">Bấm vào một kỳ thủ để xem hồ sơ, lịch sử ván, chỉnh Elo / xu / uy tín hoặc khoá tài khoản.</p>
+          </div>
+        </header>
+        <div class="toolbar">
+          <label class="search-input"><svg class="ico"><use href="#i-search"/></svg><input id="search" type="search" placeholder="Tìm theo tên hiển thị hoặc tên đăng nhập..."></label>
           <select id="filter" aria-label="Lọc">
             <option value="all">Tất cả</option>
             <option value="online">Đang online</option>
             <option value="banned">Bị khoá</option>
+            <option value="lowcredit">Uy tín thấp</option>
           </select>
           <select id="sort" aria-label="Sắp xếp">
             <option value="lastSeen">Hoạt động gần nhất</option>
             <option value="createdAt">Mới tham gia</option>
+            <option value="rating">Elo cao nhất</option>
             <option value="games">Nhiều ván nhất</option>
             <option value="winrate">Tỉ lệ thắng</option>
-            <option value="rating">Elo cao nhất</option>
             <option value="coins">Nhiều xu nhất</option>
             <option value="credit">Uy tín cao nhất</option>
+            <option value="puzzles">Giải nhiều cờ thế</option>
           </select>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Tài khoản</th><th>Elo</th><th>Trạng thái</th><th>Online T-T-H</th>
-                <th>Xu</th><th>Uy tín</th><th>Hoạt động</th><th></th>
-              </tr>
-            </thead>
+        <div class="card flush table-card">
+          <table class="table">
+            <thead><tr><th>Kỳ thủ</th><th>Elo · hạng</th><th>Trạng thái</th><th>Online T-T-H</th><th class="num">Xu</th><th class="num">Uy tín</th><th class="num">Cờ thế</th><th>Hoạt động</th><th></th></tr></thead>
             <tbody id="users-body"></tbody>
           </table>
         </div>
       </div>
 
-      <div id="page-user" class="page hidden">
-        <div id="user-detail" class="user-detail"></div>
+      <div id="page-user" class="admin-page hidden">
+        <div id="user-detail" class="admin-page" style="padding:0"></div>
       </div>
 
-      <div id="page-puzzles" class="page hidden">
-        <div class="toolbar">
-          <button class="btn primary" id="pz-new">+ Thêm bài tập</button>
-          <span class="muted" id="pz-count"></span>
+      <!-- Bảng xếp hạng -->
+      <div id="page-ranking" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Bảng xếp hạng</p>
+            <h1>Những kỳ thủ dẫn đầu.</h1>
+            <p class="lead">Giống trang Xếp hạng người chơi đang thấy.</p>
+          </div>
+        </header>
+        <div class="seg-tabs" id="rank-tabs">
+          <button class="active" data-by="rating">Elo</button><button data-by="season">Danh vọng mùa</button><button data-by="streak">Chuỗi thắng</button><button data-by="coin">Tranh xu</button><button data-by="puzzles">Cờ thế</button>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Bài tập</th><th>Độ khó</th><th>Số nước</th><th>Đã giải</th><th>Trạng thái</th><th>Cập nhật</th><th></th></tr></thead>
+        <div class="card flush table-card">
+          <table class="table">
+            <thead><tr><th>Hạng</th><th>Kỳ thủ</th><th class="num" id="rank-col">Elo</th><th class="num">Ván online</th><th class="num">Tỉ lệ thắng</th><th>Khu vực</th></tr></thead>
+            <tbody id="rank-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cờ thế -->
+      <div id="page-puzzles" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Cờ thế</p>
+            <h1>Thư viện thế cờ.</h1>
+            <p class="lead">Hiện trong tab Cờ thế của trang Đấu máy. Kỳ thủ giải được lần đầu nhận +5 xu.</p>
+          </div>
+          <button class="btn primary" id="pz-new"><svg class="ico"><use href="#i-plus"/></svg>Thêm thế cờ</button>
+        </header>
+        <p class="muted" id="pz-count"></p>
+        <div class="card flush table-card">
+          <table class="table">
+            <thead><tr><th>Thế cờ</th><th>Độ khó · chủ đề</th><th class="num">Số nước</th><th class="num">Đã giải</th><th>Trạng thái</th><th>Cập nhật</th><th></th></tr></thead>
             <tbody id="pz-body"></tbody>
           </table>
         </div>
       </div>
 
-      <div id="page-puzzle" class="page hidden">
-        <div id="pz-editor"></div>
+      <div id="page-puzzle" class="admin-page hidden">
+        <div id="pz-editor" class="ed-wrap"></div>
       </div>
 
-      <div id="page-feedback" class="page hidden">
-        <div id="feedback-list" class="fb-list"></div>
-      </div>
-
-      <div id="page-rooms" class="page hidden">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Phòng</th><th>Đỏ</th><th>Đen</th><th>Trạng thái</th><th>Nước đi</th>
-                <th>Đang trong phòng</th><th>Tạo lúc</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="rooms-body"></tbody>
+      <!-- Giải đấu -->
+      <div id="page-tournaments" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Giải đấu</p>
+            <h1>Tổ chức giải.</h1>
+            <p class="lead">Loại trực tiếp · Vòng tròn · Hệ Thụy Sĩ. Giải tự mở check-in, tự bắt đầu, ghép cặp, xử thua vắng mặt và trao thưởng top 3.</p>
+          </div>
+          <button class="btn primary" id="tour-new"><svg class="ico"><use href="#i-plus"/></svg>Tạo giải</button>
+        </header>
+        <div class="toolbar">
+          <div class="seg-tabs" id="tour-filter">
+            <button class="active" data-f="active">Sắp & đang diễn ra</button><button data-f="done">Đã kết thúc</button><button data-f="all">Tất cả</button>
+          </div>
+        </div>
+        <div class="card flush table-card">
+          <table class="table">
+            <thead><tr><th>Giải</th><th>Trạng thái</th><th>Bắt đầu</th><th class="num">Kỳ thủ</th><th>Nhịp</th><th>Lệ phí · thưởng</th><th class="num">Vòng</th><th></th></tr></thead>
+            <tbody id="tour-body"></tbody>
           </table>
         </div>
       </div>
-      <div id="page-theme" class="page hidden">
+
+      <div id="page-tournament" class="admin-page hidden">
+        <div id="tour-detail" class="admin-page" style="padding:0"></div>
+      </div>
+
+      <!-- Góp ý -->
+      <div id="page-feedback" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Góp ý</p>
+            <h1>Người chơi nói gì.</h1>
+            <p class="lead">Gửi từ mục “Góp ý” ở menu trái hoặc “Trợ giúp &amp; góp ý” trong Hồ sơ kỳ thủ.</p>
+          </div>
+        </header>
+        <div class="toolbar">
+          <div class="seg-tabs" id="fb-filter">
+            <button class="active" data-f="all">Tất cả</button><button data-f="feedback">Góp ý</button><button data-f="report">Báo cáo kỳ thủ <span class="count-dot hidden" id="fb-report-count"></span></button>
+          </div>
+        </div>
+        <div id="feedback-list" class="fb-list"></div>
+      </div>
+
+      <!-- Bàn cờ & quân cờ mặc định -->
+      <div id="page-theme" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Bàn cờ &amp; quân cờ</p>
+            <h1>Giao diện mặc định.</h1>
+            <p class="lead">Là món “Theo Tượng Kỳ” trong Túi đồ — áp dụng ngay cho mọi người chơi chưa tự trang bị kiểu khác.</p>
+          </div>
+        </header>
         <div class="theme-layout">
           <div class="preview-col">
-            <div class="preview-frame"><svg id="tp-board" role="img" aria-label="Xem trước bàn cờ"></svg></div>
-            <label class="check"><input type="checkbox" id="tp-dots"> Hiện điểm giao (kiểm tra căn chỉnh)</label>
+            <div class="card">
+              <div class="preview-frame"><svg id="tp-board" role="img" aria-label="Xem trước bàn cờ"></svg></div>
+              <label class="check"><input type="checkbox" id="tp-dots"> Hiện điểm giao (kiểm tra căn chỉnh)</label>
+            </div>
           </div>
           <div class="settings-col">
-            <section class="sec">
+            <section class="card">
               <h3>Bàn cờ</h3>
               <div id="board-list" class="opt-grid"></div>
-              <label class="btn upload">Tải ảnh bàn cờ lên…
+              <label class="btn">
+                <svg class="ico"><use href="#i-upload"/></svg>Tải ảnh bàn cờ lên…
                 <input type="file" id="board-file" accept="image/png,image/jpeg,image/webp" hidden>
               </label>
               <div id="calib" class="calib hidden">
-                <div class="calib-head"><b>Căn chỉnh lưới</b> <span id="calib-status" class="muted"></span></div>
-                <label class="field-row">Tên bàn cờ <input id="calib-name" maxlength="40"></label>
+                <div class="card-head"><b>Căn chỉnh lưới</b><span id="calib-status" class="muted small"></span></div>
+                <label class="field"><span>Tên bàn cờ</span><input id="calib-name" maxlength="40"></label>
                 <p class="muted small">Toạ độ (pixel trên ảnh) của đường kẻ ngoài cùng — lưới ở giữa được chia đều.</p>
                 <div class="calib-grid">
                   <label>Cột trái <input type="number" id="c-x0" step="1"></label>
@@ -471,7 +310,7 @@
                 <button class="btn sm" id="calib-auto">Tự nhận diện lại</button>
               </div>
             </section>
-            <section class="sec">
+            <section class="card">
               <h3>Quân cờ</h3>
               <div id="piece-list" class="opt-grid"></div>
               <div class="fields">
@@ -488,9 +327,8 @@
           </div>
         </div>
       </div>
-      </main>
     </div>
-  </section>
+  </div>
 
   <div id="toast" role="status"></div>
   <script src="/xiangqi.js"></script>

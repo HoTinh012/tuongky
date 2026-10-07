@@ -1,4 +1,5 @@
-// Bài tập (giải thế cờ) — lưu ở data/puzzles.json. Lần chạy đầu nạp bài mẫu từ puzzles-seed.json.
+// Cờ thế (bài tập giải thế cờ) — lưu qua storage/ (data/puzzles.json hoặc Supabase).
+// Lần chạy đầu nạp bài mẫu từ puzzles-seed.json.
 // puzzle = { id, title, description, difficulty: 'easy'|'medium'|'hard', side: 'r'|'b', board, solution: [{from,to}],
 //            published, createdAt, updatedAt, solvedBy: số tài khoản đã giải }
 // Lời giải gồm các nước xen kẽ: nước của người giải, nước đáp trả của đối phương, ... (kết thúc bằng nước của người giải).
@@ -6,19 +7,23 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const X = require('./public/xiangqi.js');
+const storage = require('./storage');
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const FILE = path.join(DATA_DIR, 'puzzles.json');
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
+// Chủ đề cờ thế (doc §12.2)
+const TOPICS = { mate: 'Chiếu bí', capture: 'Bắt quân', defense: 'Phòng thủ', endgame: 'Tàn cuộc' };
 
 class PuzzleError extends Error {}
-fs.mkdirSync(DATA_DIR, { recursive: true });
 
 let puzzles = [];
-try {
-  puzzles = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-} catch (err) {
-  if (err.code !== 'ENOENT') console.error('Không đọc được bài tập:', err.message);
+
+// Nạp khi khởi động server
+async function init() {
+  const loaded = await storage.loadPuzzles();
+  if (Array.isArray(loaded)) {
+    puzzles = loaded;
+    return;
+  }
   try {
     const seed = JSON.parse(fs.readFileSync(path.join(__dirname, 'puzzles-seed.json'), 'utf8'));
     const now = Date.now();
@@ -30,9 +35,7 @@ try {
 function newId() { return crypto.randomBytes(5).toString('hex'); }
 
 function save() {
-  const tmp = FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(puzzles, null, 1));
-  fs.renameSync(tmp, FILE);
+  Promise.resolve(storage.savePuzzles(puzzles)).catch((err) => console.error('Không lưu được cờ thế:', err.message));
 }
 
 // Kiểm tra & làm sạch dữ liệu bài tập do quản trị viên gửi lên
@@ -41,6 +44,7 @@ function clean(input) {
   if (title.length < 2) throw new PuzzleError('Tiêu đề quá ngắn.');
   const description = String(input.description || '').trim().slice(0, 500);
   const difficulty = DIFFICULTIES.includes(input.difficulty) ? input.difficulty : 'easy';
+  const topic = TOPICS[input.topic] ? input.topic : 'mate';
   const side = input.side === 'b' ? 'b' : 'r';
   const board = input.board;
   const err = X.validatePosition(board, side);
@@ -56,7 +60,7 @@ function clean(input) {
     turn = X.other(turn);
   }
   return {
-    title, description, difficulty, side,
+    title, description, difficulty, topic, side,
     board: board.map((row) => row.map((p) => p || null)),
     solution: solution.map((m) => ({ from: [m.from[0], m.from[1]], to: [m.to[0], m.to[1]] })),
     published: input.published !== false,
@@ -126,4 +130,4 @@ function countSolve(id) {
   if (p) { p.solvedBy++; save(); }
 }
 
-module.exports = { PuzzleError, DIFFICULTIES, list, get, create, update, setPublished, remove, checkSolution, countSolve };
+module.exports = { init, PuzzleError, DIFFICULTIES, TOPICS, list, get, create, update, setPublished, remove, checkSolution, countSolve };

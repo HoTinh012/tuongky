@@ -380,6 +380,15 @@ const LEVELS = {
   easy: { maxDepth: 2, timeMs: 400, noise: 150 },
   medium: { maxDepth: 4, timeMs: 1200, noise: 25 },
   hard: { maxDepth: 30, timeMs: 3000, noise: 0 },
+  // 8 cấp độ của trang Đấu máy (cấp 2 ≈ Dễ, cấp 4 ≈ Vừa, cấp 7 ≈ Khó)
+  l1: { maxDepth: 1, timeMs: 250, noise: 320 },
+  l2: { maxDepth: 2, timeMs: 400, noise: 150 },
+  l3: { maxDepth: 3, timeMs: 700, noise: 70 },
+  l4: { maxDepth: 4, timeMs: 1200, noise: 25 },
+  l5: { maxDepth: 6, timeMs: 1600, noise: 10 },
+  l6: { maxDepth: 8, timeMs: 2200, noise: 0 },
+  l7: { maxDepth: 30, timeMs: 3000, noise: 0 },
+  l8: { maxDepth: 30, timeMs: 5000, noise: 0 },
 };
 
 function prepare() {

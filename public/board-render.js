@@ -26,7 +26,19 @@
     pieces: { style: 'wood', font: 'kai', red: '#c42d24', black: '#2a2622' },
   };
 
-  const PIECE_STYLES = { wood: 'Gỗ khắc', classic: 'Cổ điển', jade: 'Ngọc bích', modern: 'Hiện đại' };
+  const PIECE_STYLES = {
+    wood: 'Gỗ khắc', classic: 'Cổ điển', jade: 'Ngọc bích', modern: 'Hiện đại',
+    ebony: 'Gỗ Mun', whitejade: 'Ngọc Trắng', redjade: 'Xích Ngọc', royal: 'Hoàng Gia',
+  };
+  // Bảng màu cho bàn cờ vẽ (type 'classic'): nền (3 điểm gradient), nét kẻ, chữ "sông", viền ngoài
+  const PALETTES = {
+    classic: { name: 'Cổ điển', bg: ['#e9c98f', '#d9a95f', '#cf9d52'], line: '#5a3a1a', text: '#6b4423' },
+    thidau: { name: 'Thi Đấu', bg: ['#fbf6ec', '#f3eadb', '#ece0cc'], line: '#3d2f24', text: '#8a7a68' },
+    tram: { name: 'Gỗ Trầm', bg: ['#8a5a36', '#6e4426', '#5b371e'], line: '#f1d9b5', text: '#f6dcb2', frame: '#2f1a0d' },
+    truc: { name: 'Trúc Thanh', bg: ['#e4ecc8', '#d3e0ad', '#c2d396'], line: '#3f5a2a', text: '#55703a' },
+    ngoc: { name: 'Ngọc Sáng', bg: ['#e8f6ef', '#cfeadc', '#b6dcc8'], line: '#24604a', text: '#2f7a5c' },
+    devuong: { name: 'Đế Vương', bg: ['#a82020', '#8f1717', '#741010'], line: '#f2cf72', text: '#f7d98a', frame: '#f2cf72' },
+  };
   const FONTS = {
     kai: { name: 'Khải (thư pháp)', family: '"LXGW WenKai TC", "Kaiti TC", "Kaiti SC", "STKaiti", "KaiTi", "BiauKai", serif', size: 60 },
     song: { name: 'Tống (chân phương)', family: '"Noto Serif TC", "Songti TC", "Songti SC", "SimSun", serif', size: 54 },
@@ -59,14 +71,24 @@
     };
   }
 
-  function defs(svg) {
+  // Mỗi SVG có bộ id gradient riêng (nhiều bàn cờ trên cùng trang, có bàn đang bị ẩn)
+  let svgCount = 0;
+  const svgUid = (node) => {
+    const svg = node.ownerSVGElement || node;
+    if (!svg.dataset.brId) svg.dataset.brId = String(++svgCount);
+    return svg.dataset.brId;
+  };
+  const ref = (node, id) => `url(#${id}-${svgUid(node)})`;
+
+  function defs(svg, palette) {
+    const u = svgUid(svg);
     const d = el('defs', {}, svg);
     const radial = (id, stops, attrs = {}) => {
-      const g = el('radialGradient', { id, ...attrs }, d);
+      const g = el('radialGradient', { id: `${id}-${u}`, ...attrs }, d);
       for (const [o, c] of stops) el('stop', { offset: o, 'stop-color': c }, g);
     };
     const linear = (id, stops) => {
-      const g = el('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 }, d);
+      const g = el('linearGradient', { id: `${id}-${u}`, x1: 0, y1: 0, x2: 0, y2: 1 }, d);
       for (const [o, c] of stops) el('stop', { offset: o, 'stop-color': c }, g);
     };
     radial('br-shadow', [['0%', 'rgba(40,20,5,0.45)'], ['70%', 'rgba(40,20,5,0.18)'], ['100%', 'rgba(40,20,5,0)']]);
@@ -75,17 +97,28 @@
     radial('br-classic-face', [['0%', '#fdf0d5'], ['100%', '#e2bc7e']], { cx: '35%', cy: '30%', r: '75%' });
     radial('br-jade-face', [['0%', '#f1fbf4'], ['50%', '#b9e2c8'], ['100%', '#6fb38e']], { cx: '38%', cy: '30%', r: '75%' });
     linear('br-jade-edge', [['0%', '#4f9a72'], ['100%', '#24523a']]);
-    const classicBg = el('linearGradient', { id: 'br-classic-bg', x1: 0, y1: 0, x2: 1, y2: 1 }, d);
-    for (const [o, c] of [['0%', '#e9c98f'], ['55%', '#d9a95f'], ['100%', '#cf9d52']]) el('stop', { offset: o, 'stop-color': c }, classicBg);
-    const grain = el('pattern', { id: 'br-grain', patternUnits: 'userSpaceOnUse', width: 92, height: 26 }, d);
+    radial('br-ebony-face', [['0%', '#5a4636'], ['55%', '#3a2a1f'], ['100%', '#1f1610']], { cx: '38%', cy: '30%', r: '75%' });
+    linear('br-ebony-edge', [['0%', '#2a1d14'], ['100%', '#0f0a06']]);
+    radial('br-whitejade-face', [['0%', '#ffffff'], ['55%', '#f1f1ec'], ['100%', '#d6d8cf']], { cx: '38%', cy: '30%', r: '75%' });
+    linear('br-whitejade-edge', [['0%', '#c9cbc1'], ['100%', '#9a9c92']]);
+    radial('br-redjade-face', [['0%', '#ffe2d8'], ['50%', '#f2a28f'], ['100%', '#c4503b']], { cx: '38%', cy: '30%', r: '75%' });
+    linear('br-redjade-edge', [['0%', '#a63a28'], ['100%', '#6b1d12']]);
+    radial('br-royal-face', [['0%', '#fff6cf'], ['50%', '#f3d27a'], ['100%', '#c9952f']], { cx: '38%', cy: '30%', r: '75%' });
+    linear('br-royal-edge', [['0%', '#b8862b'], ['100%', '#7a5513']]);
+    const classicBg = el('linearGradient', { id: `br-classic-bg-${u}`, x1: 0, y1: 0, x2: 1, y2: 1 }, d);
+    const pal = PALETTES[palette] || PALETTES.classic;
+    pal.bg.forEach((c, i) => el('stop', { offset: ['0%', '55%', '100%'][i], 'stop-color': c }, classicBg));
+    const grain = el('pattern', { id: `br-grain-${u}`, patternUnits: 'userSpaceOnUse', width: 92, height: 26 }, d);
     for (const [y, w] of [[4, 1.2], [11, 0.8], [17, 1.4], [23, 0.7]]) {
       el('path', { d: `M0 ${y} Q23 ${y - 3} 46 ${y + 1} T92 ${y}`, fill: 'none', stroke: 'rgba(150,95,45,0.13)', 'stroke-width': w }, grain);
     }
   }
 
-  function drawClassicBoard(svg, flipped) {
-    el('rect', { x: 0, y: 0, width: 900, height: 1000, fill: 'url(#br-classic-bg)' }, svg);
-    const g = el('g', { stroke: '#5a3a1a', 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'square' }, svg);
+  function drawClassicBoard(svg, flipped, palette) {
+    const pal = PALETTES[palette] || PALETTES.classic;
+    el('rect', { x: 0, y: 0, width: 900, height: 1000, fill: ref(svg, 'br-classic-bg') }, svg);
+    if (pal.frame) el('rect', { x: 14, y: 14, width: 872, height: 972, fill: 'none', stroke: pal.frame, 'stroke-width': 6, opacity: 0.7 }, svg);
+    const g = el('g', { stroke: pal.line, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'square' }, svg);
     const pos = (v) => 50 + v * 100;
     el('rect', { x: 50, y: 50, width: 800, height: 900, 'stroke-width': 6 }, g);
     for (let r = 0; r < 10; r++) el('line', { x1: 50, y1: pos(r), x2: 850, y2: pos(r) }, g);
@@ -107,7 +140,7 @@
         }
       }
     }
-    const text = { 'font-family': FONTS.kai.family, 'font-size': 56, fill: '#6b4423', opacity: 0.75, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'letter-spacing': 12 };
+    const text = { 'font-family': FONTS.kai.family, 'font-size': 56, fill: pal.text, opacity: 0.75, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'letter-spacing': 12 };
     el('text', { x: 250, y: 500, ...text }, svg).textContent = flipped ? '漢 界' : '楚 河';
     el('text', { x: 650, y: 500, ...text }, svg).textContent = flipped ? '楚 河' : '漢 界';
   }
@@ -117,14 +150,14 @@
     const geo = geometry(theme);
     svg.innerHTML = '';
     svg.setAttribute('viewBox', geo.viewBox.join(' '));
-    defs(svg);
     const b = theme.board;
+    defs(svg, b.palette);
     if (b.type === 'image') {
       const [x, y, w, h] = geo.viewBox;
       el('rect', { x, y, width: w, height: h, fill: b.bg || '#e9c98f' }, svg);
       el('image', { href: b.src, x: 0, y: 0, width: b.width, height: b.height, preserveAspectRatio: 'none' }, svg);
     } else {
-      drawClassicBoard(svg, flipped);
+      drawClassicBoard(svg, flipped, b.palette);
     }
     return geo;
   }
@@ -151,18 +184,33 @@
       case 'classic':
         el('circle', { cx: 2, cy: 12, r: 46, fill: 'rgba(0,0,0,0.35)' }, g);
         el('circle', { cy: 6, r: 46, fill: '#9a6a32', stroke: '#6e4520', 'stroke-width': 2 }, g);
-        el('circle', { r: 46, fill: 'url(#br-classic-face)', stroke: '#7a4e22', 'stroke-width': 3 }, g);
+        el('circle', { r: 46, fill: ref(parent, 'br-classic-face'), stroke: '#7a4e22', 'stroke-width': 3 }, g);
         el('circle', { r: 39, fill: 'none', stroke: ink, 'stroke-width': 2.5 }, g);
         text({ y: 1 }, ink);
         break;
       case 'jade':
-        el('circle', { cx: 4, cy: 10, r: 53, fill: 'url(#br-shadow)' }, g);
-        el('circle', { cy: 6, r: 46, fill: 'url(#br-jade-edge)' }, g);
-        el('circle', { r: 46, fill: 'url(#br-jade-face)', stroke: 'rgba(30,80,55,0.45)', 'stroke-width': 1 }, g);
+        el('circle', { cx: 4, cy: 10, r: 53, fill: ref(parent, 'br-shadow') }, g);
+        el('circle', { cy: 6, r: 46, fill: ref(parent, 'br-jade-edge') }, g);
+        el('circle', { r: 46, fill: ref(parent, 'br-jade-face'), stroke: 'rgba(30,80,55,0.45)', 'stroke-width': 1 }, g);
         el('circle', { r: 38, fill: 'none', stroke: 'rgba(255,255,255,0.75)', 'stroke-width': 2 }, g);
         text({ x: 1.2, y: 2.6 }, 'rgba(255,255,255,0.7)');
         text({ y: 1 }, ink);
         break;
+      case 'ebony':
+      case 'whitejade':
+      case 'redjade':
+      case 'royal': {
+        el('circle', { cx: 4, cy: 10, r: 53, fill: ref(parent, 'br-shadow') }, g);
+        el('circle', { cy: 6, r: 46, fill: ref(parent, `br-${ps.style}-edge`) }, g);
+        el('circle', { r: 46, fill: ref(parent, `br-${ps.style}-face`), stroke: 'rgba(0,0,0,0.25)', 'stroke-width': 1 }, g);
+        const ring = { ebony: 'rgba(240,210,150,0.7)', whitejade: 'rgba(150,150,140,0.6)', redjade: 'rgba(255,240,230,0.8)', royal: 'rgba(120,80,10,0.55)' }[ps.style];
+        el('circle', { r: 38, fill: 'none', stroke: ring, 'stroke-width': 2 }, g);
+        // Gỗ mun: chữ sáng màu để đọc được trên nền tối
+        const fill = ps.style === 'ebony' ? (side === 'r' ? '#ff8a73' : '#f3e6cf') : ps.style === 'redjade' && side === 'r' ? '#7a1208' : ink;
+        if (ps.style !== 'ebony') text({ x: 1.2, y: 2.6 }, 'rgba(255,255,255,0.65)');
+        text({ y: 1 }, fill);
+        break;
+      }
       case 'modern':
         el('circle', { cy: 6, r: 48, fill: 'rgba(0,0,0,0.25)' }, g);
         el('circle', { r: 46, fill: ink, stroke: 'rgba(0,0,0,0.25)', 'stroke-width': 1 }, g);
@@ -170,10 +218,10 @@
         text({ y: 1 }, '#ffffff');
         break;
       default: // wood — gỗ khắc chữ
-        el('circle', { cx: 4, cy: 10, r: 53, fill: 'url(#br-shadow)' }, g);
-        el('circle', { cy: 6, r: 46, fill: 'url(#br-wood-edge)' }, g);
-        el('circle', { r: 46, fill: 'url(#br-wood-face)', stroke: 'rgba(120,75,35,0.35)', 'stroke-width': 1 }, g);
-        el('circle', { r: 46, fill: 'url(#br-grain)' }, g);
+        el('circle', { cx: 4, cy: 10, r: 53, fill: ref(parent, 'br-shadow') }, g);
+        el('circle', { cy: 6, r: 46, fill: ref(parent, 'br-wood-edge') }, g);
+        el('circle', { r: 46, fill: ref(parent, 'br-wood-face'), stroke: 'rgba(120,75,35,0.35)', 'stroke-width': 1 }, g);
+        el('circle', { r: 46, fill: ref(parent, 'br-grain') }, g);
         el('circle', { cx: 0.8, cy: 1.3, r: 38, fill: 'none', stroke: 'rgba(255,244,222,0.85)', 'stroke-width': 1.4 }, g);
         el('circle', { r: 38, fill: 'none', stroke: 'rgba(140,90,45,0.75)', 'stroke-width': 2 }, g);
         text({ x: 1.3, y: 2.8 }, 'rgba(255,246,228,0.9)');
@@ -187,5 +235,5 @@
   const FONT_CSS = 'https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&family=Noto+Serif+TC:wght@700&family=Noto+Sans+TC:wght@700&display=swap&text='
     + encodeURIComponent('帥仕相馬車炮兵將士象卒楚河漢界');
 
-  return { DEFAULT_THEME, BUILTIN_BOARDS, PIECE_STYLES, FONTS, FONT_CSS, geometry, drawBoard, drawPiece };
+  return { DEFAULT_THEME, BUILTIN_BOARDS, PIECE_STYLES, PALETTES, FONTS, FONT_CSS, geometry, drawBoard, drawPiece };
 });
