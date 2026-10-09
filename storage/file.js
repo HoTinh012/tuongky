@@ -6,7 +6,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const DIRS = { avatars: path.join(DATA_DIR, 'avatars'), uploads: path.join(DATA_DIR, 'uploads') };
 for (const d of [DATA_DIR, ...Object.values(DIRS)]) fs.mkdirSync(d, { recursive: true });
 
-const FILES = { users: 'db.json', puzzles: 'puzzles.json', theme: 'theme.json', tournaments: 'tournaments.json' };
+const FILES = { users: 'db.json', puzzles: 'puzzles.json', theme: 'theme.json', tournaments: 'tournaments.json', economy: 'economy.json' };
 const file = (name) => path.join(DATA_DIR, FILES[name]);
 
 function readJson(name) {
@@ -39,6 +39,8 @@ module.exports = {
   async savePuzzles(list) { writeJson('puzzles', list, true); },
   async loadTheme() { return readJson('theme'); },
   async saveTheme(state) { writeJson('theme', state, true); },
+  async loadEconomy() { return readJson('economy'); },
+  async saveEconomy(value) { writeJson('economy', value, true); },
   async loadTournaments() { return readJson('tournaments') || []; },
   async saveTournaments(list) { writeJson('tournaments', list); },
 

@@ -8,15 +8,23 @@
 
   const ECONOMY = {
     RANKED_FEE: 10, // phí xu mỗi ván xếp hạng (trừ khi bắt đầu ván, không hoàn)
+    RANKED_TC: { totalMin: 15, incSec: 5 }, // nhịp cố định của ván xếp hạng: 15 phút + 5 giây mỗi nước
     STAKES: [50, 100, 200, 500], // mức đặt Tranh xu
     // Nhịp Tranh xu: Cờ chớp & Cờ nhanh ('phút|giây cộng')
     COIN_TCS: [
       { tc: '1|0', group: 'Cờ chớp' }, { tc: '3|0', group: 'Cờ chớp' }, { tc: '3|2', group: 'Cờ chớp' },
       { tc: '5|0', group: 'Cờ nhanh' }, { tc: '10|0', group: 'Cờ nhanh' }, { tc: '10|5', group: 'Cờ nhanh' },
     ],
-    DAILY_BONUS: 20,
-    PUZZLE_REWARD: 5,
+    RANKED_REWARD_PLAY: 10, // xu thưởng khi chơi trọn ván xếp hạng / ghép trận
+    RANKED_REWARD_WIN: 10, // xu thưởng thêm khi thắng ván xếp hạng / ghép trận
+    AI_REWARD_PLAY: 2, // xu thưởng mỗi ván đấu máy
+    AI_REWARD_WIN: 3, // xu thưởng thêm khi thắng máy
+    START_COINS: 1000, // xu tặng khi tạo tài khoản
+    DAILY_BONUS: 20, // xu thưởng đăng nhập mỗi ngày
+    PUZZLE_REWARD: 5, // xu thưởng giải cờ thế lần đầu
   };
+  // Các giá trị trên là mặc định; quản trị viên chỉnh trong trang admin (economy.js trên server
+  // ghi đè vào chính object này, trình duyệt nhận bản mới qua /api/economy.js).
 
   // cat: 'board' | 'pieces' | 'clock'. price 0 = có sẵn cho mọi người.
   // board: { type:'default' } (theo Tượng Kỳ) | { type:'image', src } | { type:'classic', palette }

@@ -58,7 +58,6 @@ class UserError extends Error {}
 const START_RATING = 1200; // điểm Elo khởi đầu
 const START_CREDIT = 1000; // điểm uy tín khởi đầu
 const MAX_CREDIT = 1100;
-const DAILY_BONUS = 20; // xu thưởng đăng nhập mỗi ngày
 const REGIONS = ['Hà Nội', 'TP. Hồ Chí Minh', 'Hải Phòng', 'Đà Nẵng', 'Cần Thơ', 'Miền Bắc', 'Miền Trung',
   'Tây Nguyên', 'Miền Nam', 'Nước ngoài'];
 
@@ -73,7 +72,7 @@ function newPlayerNo() {
 // Bổ sung các trường mới cho tài khoản cũ
 function migrate(acc) {
   const defaults = {
-    rating: START_RATING, credit: START_CREDIT, coins: 0, streak: 0, bestStreak: 0,
+    rating: START_RATING, credit: START_CREDIT, coins: Catalog.ECONOMY.START_COINS, streak: 0, bestStreak: 0, // xu tặng: admin chỉnh được
     region: '', lastBonusDay: null, avatar: null, solvedPuzzles: [],
     // Bạn bè: danh sách bạn, lời mời đến / đã gửi, người đã chặn (mã tài khoản)
     friends: [], friendIn: [], friendOut: [], blocked: [],
@@ -249,7 +248,6 @@ const miniAccount = (acc) => ({
 });
 
 // Giải được cờ thế: lần đầu được 5 xu. Ghi nhật ký luyện tập (thời gian, số lần thử, gợi ý). Trả về số xu được thưởng.
-const PUZZLE_REWARD = Catalog.ECONOMY.PUZZLE_REWARD;
 function markPuzzleSolved(id, puzzleId, info = {}) {
   const acc = db.accounts[id];
   if (!acc) return 0;
@@ -260,8 +258,8 @@ function markPuzzleSolved(id, puzzleId, info = {}) {
   let coins = 0;
   if (!acc.solvedPuzzles.includes(puzzleId)) {
     acc.solvedPuzzles.push(puzzleId);
-    acc.coins += PUZZLE_REWARD;
-    coins = PUZZLE_REWARD;
+    acc.coins += Catalog.ECONOMY.PUZZLE_REWARD;
+    coins = Catalog.ECONOMY.PUZZLE_REWARD;
   }
   save();
   return coins;
@@ -274,9 +272,9 @@ function dailyBonus(id) {
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   if (acc.lastBonusDay === today) return 0;
   acc.lastBonusDay = today;
-  acc.coins += DAILY_BONUS;
+  acc.coins += Catalog.ECONOMY.DAILY_BONUS;
   save();
-  return DAILY_BONUS;
+  return Catalog.ECONOMY.DAILY_BONUS;
 }
 
 // ---------- Góp ý ----------
@@ -358,7 +356,9 @@ function recordGame(record) {
     kind, stake: record.stake || null, tc: record.tc || null, fee: record.fee || null,
     tournament: record.tournament || null,
   };
-  db.games[id] = game;
+  // store: false → chỉ cộng thưởng / thống kê / nhiệm vụ, không ghi vào lịch sử ván (vd đánh với máy)
+  const store = record.store !== false;
+  if (store) db.games[id] = game;
   if (online) db.meta.gamesPlayed++;
 
   const accs = { r: db.accounts[game.players.r.accountId], b: db.accounts[game.players.b.accountId] };
@@ -383,7 +383,7 @@ function recordGame(record) {
     if (s === 0.5) st.draws++;
     else if (s === 1) st.wins++;
     else st.losses++;
-    acc.games.push(id);
+    if (store) acc.games.push(id);
     acc.peakRating = Math.max(acc.peakRating || 0, acc.rating);
     let coins = 0;
     if (kind === 'coin') {
@@ -393,8 +393,8 @@ function recordGame(record) {
       cs.games++;
       if (s === 1) cs.wins++; else if (s === 0) cs.losses++; else cs.draws++;
       cs.net += coins;
-    } else if (kind === 'ranked' || kind === 'match') coins = 10 + (s === 1 ? 10 : 0);
-    else if (kind === 'ai') coins = 2 + (s === 1 ? 3 : 0);
+    } else if (kind === 'ranked' || kind === 'match') coins = Catalog.ECONOMY.RANKED_REWARD_PLAY + (s === 1 ? Catalog.ECONOMY.RANKED_REWARD_WIN : 0);
+    else if (kind === 'ai') coins = Catalog.ECONOMY.AI_REWARD_PLAY + (s === 1 ? Catalog.ECONOMY.AI_REWARD_WIN : 0);
     game.coinChange[c] = coins;
     acc.coins += coins;
     if (online) {
@@ -431,7 +431,7 @@ function gamesOf(accountId, limit = 50) {
   const out = [];
   for (let i = acc.games.length - 1; i >= 0 && out.length < limit; i--) {
     const g = db.games[acc.games[i]];
-    if (!g) continue;
+    if (!g || g.mode === 'ai') continue; // lịch sử đấu chỉ gồm ván với người
     const color = g.players.r.accountId === accountId ? 'r' : 'b';
     const opp = g.players[color === 'r' ? 'b' : 'r'];
     out.push({

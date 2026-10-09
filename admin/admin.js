@@ -1061,7 +1061,7 @@
   // Menu trái: mỗi mục là một trang, ghi vào #hash để tải lại vẫn giữ trang
   const PAGES = {
     overview: 'Tổng quan', rooms: 'Phòng & trận đấu', users: 'Kỳ thủ', user: 'Chi tiết kỳ thủ', ranking: 'Bảng xếp hạng',
-    puzzles: 'Cờ thế', puzzle: 'Soạn cờ thế', feedback: 'Góp ý', theme: 'Bàn cờ & quân cờ',
+    puzzles: 'Cờ thế', puzzle: 'Soạn cờ thế', feedback: 'Góp ý', theme: 'Bàn cờ & quân cờ', economy: 'Chế độ chơi & xu',
     tournaments: 'Giải đấu', tournament: 'Chi tiết giải',
   };
   function route() {
@@ -1083,6 +1083,7 @@
     if (name === 'puzzles') loadPuzzles();
     if (name === 'ranking') loadRanking();
     if (name === 'theme') loadTheme();
+    if (name === 'economy') loadEconomy(true);
     if (name === 'feedback') loadFeedback();
     window.scrollTo(0, 0);
     closeMenu();
@@ -1101,6 +1102,116 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2400);
   }
+
+  // ---------- Chế độ chơi & xu (nhịp, phí, thưởng) ----------
+  const EC = { current: null, defaults: null, draft: null, loading: false };
+  const ecoClone = (o) => JSON.parse(JSON.stringify(o));
+  const ecoGet = (o, k) => k.split('.').reduce((a, p) => (a ? a[p] : undefined), o);
+  const ecoSet = (o, k, v) => { const ps = k.split('.'); const last = ps.pop(); ps.reduce((a, p) => a[p], o)[last] = v; };
+  const ecoNum = (v) => (v === '' ? '' : Number(v));
+
+  async function loadEconomy(force) {
+    if ((EC.current && !force) || EC.loading) return renderEconomy();
+    EC.loading = true;
+    try {
+      const r = await api('GET', '/economy');
+      EC.current = r.current; EC.defaults = r.defaults; EC.draft = ecoClone(r.current);
+      renderEconomy();
+    } catch (err) {
+      // Server đang chạy bản cũ (chưa có API này) → báo rõ cách khắc phục
+      const old = /404|Not Found|Có lỗi xảy ra/.test(err.message);
+      $('eco-status').textContent = old
+        ? 'Server đang chạy bản cũ, chưa có phần cài đặt này — hãy khởi động lại server (Ctrl+C rồi npm start) và tải lại trang.'
+        : err.message;
+      toast(err.message);
+    } finally {
+      EC.loading = false;
+    }
+  }
+
+  function ecoChanged() {
+    const dirty = EC.current && JSON.stringify(EC.draft) !== JSON.stringify(EC.current);
+    $('eco-save').disabled = !dirty;
+    $('eco-undo').disabled = !dirty;
+    $('eco-status').textContent = dirty ? 'Có thay đổi chưa lưu.' : '';
+    const d = EC.draft;
+    const tc = d.RANKED_TC;
+    $('eco-ranked-preview').textContent = `Người chơi thấy: nhịp ${tc.totalMin}p + ${tc.incSec}s · phí ${d.RANKED_FEE} xu · `
+      + `thắng +${Number(d.RANKED_REWARD_PLAY) + Number(d.RANKED_REWARD_WIN)} xu, thua/hoà +${d.RANKED_REWARD_PLAY} xu (chơi trọn ván).`;
+  }
+
+  function renderEconomy() {
+    if (!EC.draft) return;
+    const d = EC.draft;
+    document.querySelectorAll('#page-economy input[data-k]').forEach((inp) => { inp.value = ecoGet(d, inp.dataset.k); });
+    // Nhịp Tranh xu: Nhóm · Phút · Giây cộng · Xoá
+    $('eco-tcs').replaceChildren(
+      h('div', { class: 'eco-tc head' }, h('span', {}, 'Nhóm'), h('span', {}, 'Phút mỗi bên'), h('span', {}, 'Giây cộng'), h('span')),
+      ...d.COIN_TCS.map((t, i) => {
+        const [m, sec] = t.tc.split('|');
+        const upd = (row) => {
+          const mm = row.querySelector('.m').value, ss = row.querySelector('.s').value;
+          d.COIN_TCS[i] = { group: row.querySelector('.g').value, tc: `${mm}|${ss || 0}` };
+          ecoChanged();
+        };
+        const row = h('div', { class: 'eco-tc' },
+          h('input', { class: 'g', value: t.group, maxlength: 20, placeholder: 'Cờ chớp', 'aria-label': 'Nhóm' }),
+          h('input', { class: 'm', type: 'number', min: 1, max: 180, value: m, 'aria-label': 'Phút' }),
+          h('input', { class: 's', type: 'number', min: 0, max: 60, value: sec, 'aria-label': 'Giây cộng' }),
+          h('button', { class: 'icon-btn', title: 'Xoá nhịp', 'aria-label': 'Xoá nhịp', disabled: d.COIN_TCS.length <= 1 ? true : null,
+            onclick: () => { d.COIN_TCS.splice(i, 1); renderEconomy(); } }, '✕'));
+        row.addEventListener('input', () => upd(row));
+        return row;
+      }));
+    $('eco-add-tc').disabled = d.COIN_TCS.length >= 12;
+    // Mức đặt
+    $('eco-stakes').replaceChildren(...d.STAKES.map((v, i) => {
+      const inp = h('input', { type: 'number', min: 1, step: 1, value: v, 'aria-label': 'Mức đặt' });
+      inp.addEventListener('input', () => { d.STAKES[i] = ecoNum(inp.value); ecoChanged(); });
+      return h('div', { class: 'eco-stake' }, inp, h('span', {}, 'xu'),
+        h('button', { class: 'icon-btn', title: 'Xoá mức', 'aria-label': 'Xoá mức', disabled: d.STAKES.length <= 1 ? true : null,
+          onclick: () => { d.STAKES.splice(i, 1); renderEconomy(); } }, '✕'));
+    }));
+    $('eco-add-stake').disabled = d.STAKES.length >= 10;
+    ecoChanged();
+  }
+
+  document.querySelectorAll('#page-economy input[data-k]').forEach((inp) => inp.addEventListener('input', () => {
+    if (!EC.draft) return;
+    ecoSet(EC.draft, inp.dataset.k, ecoNum(inp.value));
+    ecoChanged();
+  }));
+  $('eco-add-tc').addEventListener('click', () => {
+    const last = EC.draft.COIN_TCS[EC.draft.COIN_TCS.length - 1];
+    EC.draft.COIN_TCS.push({ group: last ? last.group : 'Cờ nhanh', tc: '15|0' });
+    renderEconomy();
+  });
+  $('eco-add-stake').addEventListener('click', () => {
+    EC.draft.STAKES.push((EC.draft.STAKES[EC.draft.STAKES.length - 1] || 50) * 2);
+    renderEconomy();
+  });
+  $('eco-undo').addEventListener('click', () => { EC.draft = ecoClone(EC.current); renderEconomy(); });
+  $('eco-save').addEventListener('click', async () => {
+    $('eco-save').disabled = true;
+    try {
+      const r = await api('PUT', '/economy', EC.draft);
+      EC.current = r.current; EC.draft = ecoClone(r.current);
+      renderEconomy();
+      toast('Đã lưu — trang chơi cập nhật ngay.');
+    } catch (err) {
+      $('eco-status').textContent = err.message;
+      $('eco-save').disabled = false;
+    }
+  });
+  $('eco-reset').addEventListener('click', async () => {
+    if (!confirm('Khôi phục toàn bộ cài đặt chế độ chơi & xu về mặc định?')) return;
+    try {
+      const r = await api('POST', '/economy/reset');
+      EC.current = r.current; EC.draft = ecoClone(r.current);
+      renderEconomy();
+      toast('Đã khôi phục mặc định.');
+    } catch (err) { toast(err.message); }
+  });
 
   // ---------- Bàn cờ & quân cờ mặc định ----------
   const T = { current: null, library: [], draft: null, pendingFile: null, pendingUrl: null, loading: false };

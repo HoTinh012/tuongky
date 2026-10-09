@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&family=Noto+Serif+TC:wght@700&family=Noto+Sans+TC:wght@700&display=swap&text=%E5%B8%A5%E4%BB%95%E7%9B%B8%E9%A6%AC%E8%BB%8A%E7%82%AE%E5%85%B5%E5%B0%87%E5%A3%AB%E8%B1%A1%E5%8D%92%E6%A5%9A%E6%B2%B3%E6%BC%A2%E7%95%8C">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -72,6 +73,41 @@
       <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
       <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 4 4 3-3 4 4"/></symbol>
       <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 12h16M12 4v16M4 8h16M4 16h16M8 4v16M16 4v16"/></symbol>
+      <!-- Hình minh hoạ trang Chơi nhanh -->
+      <linearGradient id="p2-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe8a3"/><stop offset=".45" stop-color="#e2a93b"/><stop offset="1" stop-color="#8f5a12"/></linearGradient>
+      <radialGradient id="p2-glow" cx=".5" cy=".45" r=".5"><stop offset="0" stop-color="#ffcf6b" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf6b" stop-opacity="0"/></radialGradient>
+      <symbol id="p2-trophy" viewBox="0 0 220 210">
+        <circle cx="110" cy="90" r="100" fill="url(#p2-glow)"/>
+        <path d="M58 40c-30 0-36 46 6 62M162 40c30 0 36 46-6 62" fill="none" stroke="url(#p2-gold)" stroke-width="9" stroke-linecap="round"/>
+        <path d="M54 26h112c0 62-20 96-56 104-36-8-56-42-56-104z" fill="url(#p2-gold)" stroke="#7a4a0e" stroke-width="2"/>
+        <circle cx="110" cy="74" r="30" fill="#f4e2bd" stroke="#8f5a12" stroke-width="4"/>
+        <circle cx="110" cy="74" r="23" fill="none" stroke="#b5813a" stroke-width="2"/>
+        <text x="110" y="86" text-anchor="middle" font-size="34" font-weight="700" fill="#2b1a10" font-family="'LXGW WenKai TC','Noto Serif TC',serif">將</text>
+        <rect x="98" y="130" width="24" height="22" fill="url(#p2-gold)"/>
+        <path d="M74 152h72l8 22H66z" fill="url(#p2-gold)" stroke="#7a4a0e" stroke-width="2"/>
+        <rect x="58" y="174" width="104" height="18" rx="3" fill="#3a241a" stroke="#c99a45" stroke-width="2"/>
+        <g fill="#fff3cf" opacity=".9"><path d="M40 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path d="M180 60l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g>
+      </symbol>
+      <symbol id="p2-coin-scene" viewBox="0 0 260 90">
+        <path d="M0 70c30-20 50-6 70-18s40-20 70-6 50 10 70-4 40-8 50 0v48H0z" fill="#ead8b6"/>
+        <path d="M0 80c40-14 60 0 90-10s50-12 80 0 60 6 90-6v26H0z" fill="#e2c995"/>
+        <g transform="translate(130 58)"><ellipse cx="0" cy="10" rx="44" ry="12" fill="#b77a2c"/><ellipse cx="0" cy="2" rx="44" ry="13" fill="#e8b25a" stroke="#9c6421" stroke-width="2"/><ellipse cx="0" cy="2" rx="33" ry="9" fill="none" stroke="#9c6421" stroke-width="1.5"/>
+          <text x="0" y="9" text-anchor="middle" font-size="20" font-weight="700" fill="#9c2a12" font-family="'LXGW WenKai TC','Noto Serif TC',serif" transform="scale(1 .62) translate(0 2)">將</text></g>
+      </symbol>
+      <symbol id="p2-friend-scene" viewBox="0 0 240 150">
+        <circle cx="168" cy="44" r="24" fill="#e8835a" opacity=".85"/>
+        <path d="M0 96c30-30 60-36 90-20s50-30 80-28 50 22 70 16v86H0z" fill="#d8cbb4" opacity=".7"/>
+        <path d="M0 116c40-20 70-10 100-18s60-6 90 4 40 0 50-4v52H0z" fill="#c4b393" opacity=".6"/>
+        <path d="M20 70c6-20 4-40 0-60M20 40c-8-6-14-6-20-4M20 30c8-8 16-8 24-6" stroke="#3b2d25" stroke-width="3" fill="none"/>
+        <rect x="88" y="104" width="64" height="8" rx="2" fill="#6b4a33"/><rect x="94" y="112" width="6" height="22" fill="#6b4a33"/><rect x="140" y="112" width="6" height="22" fill="#6b4a33"/>
+        <rect x="100" y="98" width="40" height="7" rx="1" fill="#d9a35a" stroke="#8a5a2b"/>
+        <g transform="translate(70 70)"><circle cx="0" cy="0" r="9" fill="#2c211b"/><path d="M-14 44c0-20 6-32 14-34s16 12 16 34z" fill="#8a1f17"/><path d="M8 20l22 12" stroke="#8a1f17" stroke-width="6" stroke-linecap="round"/></g>
+        <g transform="translate(170 70)"><circle cx="0" cy="0" r="9" fill="#2c211b"/><path d="M14 44c0-20-6-32-14-34s-16 12-16 34z" fill="#4c5a52"/><path d="M-8 20l-22 12" stroke="#4c5a52" stroke-width="6" stroke-linecap="round"/></g>
+      </symbol>
+      <symbol id="p2-trophy-sm" viewBox="0 0 64 64"><path d="M18 10h28c0 20-5 30-14 32-9-2-14-12-14-32z" fill="#f2c25c" stroke="#8f5a12" stroke-width="2"/><path d="M18 14c-10 0-10 14 2 18M46 14c10 0 10 14-2 18" fill="none" stroke="#f2c25c" stroke-width="3"/><path d="M28 42h8v8h-8zM20 50h24v6H20z" fill="#e2a93b"/><path d="M32 18l2.4 5 5.6.6-4.2 3.7 1.2 5.4-5-2.8-5 2.8 1.2-5.4-4.2-3.7 5.6-.6z" fill="#fff3cf"/></symbol>
+            <symbol id="p2-coins" viewBox="0 0 64 64"><g stroke="#9c6421" stroke-width="1.5"><ellipse cx="24" cy="46" rx="16" ry="6" fill="#d99a3d"/><ellipse cx="24" cy="40" rx="16" ry="6" fill="#e8b25a"/><ellipse cx="24" cy="34" rx="16" ry="6" fill="#f2c56a"/><ellipse cx="42" cy="44" rx="16" ry="6" fill="#d99a3d"/><ellipse cx="42" cy="38" rx="16" ry="6" fill="#e8b25a"/><ellipse cx="38" cy="24" rx="16" ry="6" fill="#f6d27e"/></g></symbol>
+            <symbol id="p2-board" viewBox="0 0 64 64"><rect x="8" y="8" width="48" height="48" rx="6" fill="#e9c98f" stroke="#c99a45" stroke-width="2"/><path d="M14 22h36M14 32h36M14 42h36M24 14v36M32 14v36M40 14v36" stroke="#6b4a33" stroke-width="2"/></symbol>
+            <symbol id="p2-people" viewBox="0 0 64 64"><circle cx="24" cy="22" r="9" fill="#e8a24a"/><path d="M8 52c0-12 7-20 16-20s16 8 16 20z" fill="#e8a24a"/><circle cx="44" cy="24" r="8" fill="#c9852f"/><path d="M34 52c1-10 5-17 10-17s12 7 12 17z" fill="#c9852f"/></symbol>
     </defs>
   </svg>
 
@@ -85,7 +121,7 @@
       <nav class="nav" aria-label="Menu chính">
         <button class="nav-item" data-go="home"><svg class="ico"><use href="#i-home"/></svg><span>Trang chủ</span></button>
         <button class="nav-item" data-go="play"><svg class="ico"><use href="#i-play"/></svg><span>Chơi nhanh</span></button>
-        <button class="nav-item" data-go="ai"><svg class="ico"><use href="#i-ai"/></svg><span>Đấu máy</span></button>
+        <button class="nav-item" data-go="ai"><svg class="ico"><use href="#i-ai"/></svg><span>AI</span></button>
         <button class="nav-item" data-go="ranking"><svg class="ico"><use href="#i-rank"/></svg><span>Xếp hạng</span></button>
         <button class="nav-item" data-go="tournaments"><svg class="ico"><use href="#i-trophy"/></svg><span>Giải đấu</span></button>
         <button class="nav-item" data-go="friends"><svg class="ico"><use href="#i-users"/></svg><span>Bạn bè</span></button>
@@ -98,6 +134,7 @@
         <p>Tạo phòng riêng và gửi link — bạn bè vào chơi ngay, không cần tài khoản.</p>
         <a href="#/room">Tạo phòng mời <svg class="ico sm"><use href="#i-chev"/></svg></a>
       </div>
+      <div class="sb-user" id="sb-user"></div>
       <div class="sb-foot">
         <a href="#/rules">Luật chơi</a><span>·</span><button class="link" id="sb-help">Góp ý</button>
         <small>© 2026 Tượng Kỳ · Cờ tướng Việt</small>
@@ -106,9 +143,48 @@
     <div class="sb-backdrop" id="sb-backdrop"></div>
 
     <div class="main">
+      <!-- Tranh thuỷ mặc nền (mọi trang trừ bàn cờ đang chơi) -->
+      <div class="ink-scene" aria-hidden="true">
+        <svg class="ink-svg" viewBox="0 0 760 300" preserveAspectRatio="xMaxYMin slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="p2-mtn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d8172" stop-opacity=".55"/><stop offset="1" stop-color="#8d8172" stop-opacity="0"/></linearGradient>
+              <linearGradient id="p2-mtn2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d5248" stop-opacity=".5"/><stop offset="1" stop-color="#5d5248" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path d="M120 230 C190 150 230 160 270 120 C310 85 340 110 380 70 C420 35 460 80 500 60 C560 30 600 90 650 70 L760 60 L760 300 L120 300Z" fill="url(#p2-mtn)"/>
+            <path d="M230 260 C300 200 340 215 390 175 C430 145 470 170 520 140 C580 105 640 160 700 135 L760 130 L760 300 L230 300Z" fill="url(#p2-mtn2)"/>
+            <!-- chùa -->
+            <g fill="#4a3f37" opacity=".55" transform="translate(560 95)">
+              <path d="M-46 22h92l-14-10h-64z"/><rect x="-30" y="22" width="60" height="16"/>
+              <path d="M-38 6h76l-12-9h-52z"/><rect x="-22" y="6" width="44" height="10"/>
+              <path d="M-28 -10h56l-10-8h-36z"/><rect x="-14" y="-10" width="28" height="9"/>
+              <path d="M-2 -30h4v12h-4z"/><rect x="-60" y="38" width="120" height="4"/>
+            </g>
+            <g fill="#4a3f37" opacity=".35" transform="translate(470 150) scale(.6)">
+              <path d="M-46 22h92l-14-10h-64z"/><rect x="-30" y="22" width="60" height="16"/><path d="M-38 6h76l-12-9h-52z"/><rect x="-22" y="6" width="44" height="10"/>
+            </g>
+            <!-- chim -->
+            <g fill="none" stroke="#3b332d" stroke-width="1.6" stroke-linecap="round" opacity=".6">
+              <path d="M330 60q6-6 12 0q6-6 12 0"/><path d="M372 82q5-5 10 0q5-5 10 0"/><path d="M300 92q4-4 8 0q4-4 8 0"/><path d="M410 52q4-4 8 0q4-4 8 0"/>
+            </g>
+            <!-- cành mai -->
+            <g transform="translate(760 0)">
+              <path d="M0 40 C-60 60 -110 40 -170 70 C-210 90 -250 80 -290 100" fill="none" stroke="#3a2a22" stroke-width="7" stroke-linecap="round"/>
+              <path d="M-120 52 C-140 20 -170 15 -200 8" fill="none" stroke="#3a2a22" stroke-width="4" stroke-linecap="round"/>
+              <path d="M-200 82 C-215 110 -240 125 -260 140" fill="none" stroke="#3a2a22" stroke-width="3.5" stroke-linecap="round"/>
+              <g fill="#c8261f">
+                <circle cx="-60" cy="52" r="7"/><circle cx="-92" cy="44" r="6"/><circle cx="-140" cy="30" r="6.5"/><circle cx="-185" cy="12" r="6"/>
+                <circle cx="-165" cy="68" r="7"/><circle cx="-220" cy="92" r="6"/><circle cx="-248" cy="130" r="5.5"/><circle cx="-282" cy="100" r="6"/>
+                <circle cx="-30" cy="62" r="5"/><circle cx="-112" cy="64" r="5"/>
+              </g>
+              <g fill="#f3c46b"><circle cx="-60" cy="52" r="2"/><circle cx="-140" cy="30" r="2"/><circle cx="-165" cy="68" r="2"/><circle cx="-220" cy="92" r="2"/></g>
+            </g>
+          </svg>
+        <div class="ink-vtext" aria-hidden="true">以棋會友<i></i></div>
+      </div>
       <header class="topbar">
         <button class="icon-btn menu-btn" id="sb-menu-btn" aria-label="Mở menu" aria-controls="sidebar"><svg class="ico"><use href="#i-menu"/></svg></button>
         <a class="topbar-brand" href="#/" aria-label="Tượng Kỳ"><img class="brand-mark sm" src="assets/logo-mark.png" alt="" width="160" height="153"><b>Tượng Kỳ</b></a>
+        <button class="top-back hidden" id="top-back" title="Quay lại" aria-label="Quay lại"><svg class="ico"><use href="#i-prev"/></svg><span>Quay lại</span></button>
         <nav class="crumbs" id="crumbs" aria-label="Vị trí"></nav>
         <div class="top-right" id="auth-bar"></div>
       </header>
@@ -131,14 +207,14 @@
             <p class="hero-meta"><span><i class="dot green"></i><b id="hero-online">—</b> người đang online</span><span><b id="hero-playing">—</b> ván đang diễn ra</span></p>
             <div class="hero-actions">
               <a class="btn primary" href="#/play"><svg class="ico"><use href="#i-play"/></svg>Chơi nhanh</a>
-              <a class="btn light" href="#/ai">Đấu máy</a>
+              <a class="btn light" href="#/ai/play">Đấu máy</a>
             </div>
           </div>
           <div class="hero-art"><img src="assets/tuong-ky-logo.png" alt="Biểu tượng Tượng Kỳ — quân Tượng chữ 象 đỏ" width="480" height="460"></div>
         </div>
         <div class="quick-grid">
           <a class="quick-card" href="#/play"><span class="qc-ico"><svg class="ico"><use href="#i-play"/></svg></span><b>Chơi nhanh</b><p>Xếp hạng Elo, chơi với bạn, xem trận hot.</p><span class="more">Vào chơi <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
-          <a class="quick-card" href="#/ai"><span class="qc-ico"><svg class="ico"><use href="#i-ai"/></svg></span><b>Đấu máy</b><p>8 cấp độ AI, có gợi ý và đi lại.</p><span class="more">Luyện ngay <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
+          <a class="quick-card" href="#/ai/play"><span class="qc-ico"><svg class="ico"><use href="#i-ai"/></svg></span><b>Đấu máy</b><p>9 cấp độ AI, có gợi ý và đi lại.</p><span class="more">Luyện ngay <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
           <a class="quick-card" href="#/puzzles"><span class="qc-ico"><svg class="ico"><use href="#i-puzzle"/></svg></span><b>Cờ thế</b><p id="home-pz-desc">Giải thế cờ theo độ khó, nhận xu thưởng.</p><span class="more">Giải thế cờ <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
           <a class="quick-card" href="#/ranking"><span class="qc-ico"><svg class="ico"><use href="#i-rank"/></svg></span><b>Xếp hạng</b><p>Bảng Elo, chuỗi thắng và cờ thế.</p><span class="more">Xem bảng <svg class="ico sm"><use href="#i-chev"/></svg></span></a>
         </div>
@@ -156,65 +232,166 @@
         </div>
       </section>
 
-      <!-- Q01 · Chơi nhanh -->
-      <section id="page-play" class="screen page hidden">
-        <header class="page-head">
-          <div>
-            <p class="eyebrow">Chơi nhanh</p>
-            <h1>Chọn nhịp chơi của bạn.</h1>
-            <p class="lead">Thi đấu xếp hạng, chơi cùng bạn bè hoặc xem những ván đang hot.</p>
-          </div>
+      <!-- Q01 · Chơi nhanh: 4 lối vào, mỗi thẻ mở một trang riêng -->
+      <section id="page-play" class="screen page hidden play2">
+        <header class="p2-head">
+          <p class="p2-eyebrow">Chơi nhanh <i></i></p>
+          <h1>Chọn cách vào bàn cờ</h1>
+          <p class="p2-lead">Xếp hạng, tranh xu, vào bàn đấu hoặc tạo trận với bạn bè.</p>
         </header>
-        <div class="cols">
-          <div class="col-main">
-            <div class="tc-grid" id="tc-grid" role="radiogroup" aria-label="Nhịp chơi">
-              <button class="tc-card" data-tc="5|0" role="radio"><span class="tc-top"><span>Cờ chớp</span><svg class="ico"><use href="#i-play"/></svg></span><b>5+0</b><small>5 phút mỗi bên</small><em>Nhịp nhanh, phản xạ cao</em></button>
-              <button class="tc-card" data-tc="10|0" role="radio"><span class="tc-top"><span>Cờ nhanh</span><svg class="ico"><use href="#i-clock"/></svg></span><b>10+0</b><small>10 phút mỗi bên</small><em>Nhịp chính · khuyên dùng</em></button>
-              <button class="tc-card" data-tc="15|10" role="radio"><span class="tc-top"><span>Tiêu chuẩn</span><svg class="ico"><use href="#i-target"/></svg></span><b>15+10</b><small>15 phút, +10 giây mỗi nước</small><em>Có thời gian suy tính</em></button>
+
+        <div class="p2-grid">
+          <!-- 1. Xếp hạng -->
+          <a class="p2-card p2-ranked p2-entry" href="#/ranked">
+            <div class="p2-card-head">
+              <svg class="p2-head-ico" viewBox="0 0 64 64" aria-hidden="true"><use href="#p2-trophy-sm"/></svg>
+              <div><h2>Xếp hạng</h2><p>Đấu xếp hạng ELO · ghép trận tự động</p></div>
             </div>
-            <div class="card ranked-card">
-              <div class="card-head">
-                <div><h3>Sẵn sàng cho một ván xếp hạng?</h3><p id="play-elo-line">Elo khởi đầu 1.200 · ghép đối thủ ±100 Elo</p></div>
-                <span class="tag" id="ranked-fee-tag">Xếp hạng</span>
+            <div class="p2-trophy" aria-hidden="true"><svg viewBox="0 0 220 210"><use href="#p2-trophy"/></svg></div>
+            <div class="p2-time"><small>Thời gian mỗi ván</small><b class="js-ranked-tc">15p + 5s</b></div>
+            <ul class="p2-points light">
+              <li>Bậc của bạn: <b class="js-rank">—</b></li>
+              <li>Ghép đối thủ cùng trình độ (±100 Elo)</li>
+              <li class="js-ranked-reward">Thắng +20 xu, chơi trọn ván +10 xu</li>
+            </ul>
+            <span class="p2-btn gold">Vào xếp hạng <svg class="ico"><use href="#i-chev"/></svg></span>
+            <p class="p2-foot"><span><i class="dot green"></i><b class="js-online">—</b> người đang online</span></p>
+          </a>
+
+          <!-- 2. Tranh xu -->
+          <a class="p2-card p2-coin p2-entry" href="#/coin">
+            <div class="p2-card-head">
+              <svg class="p2-head-ico" viewBox="0 0 64 64" aria-hidden="true"><use href="#p2-coins"/></svg>
+              <div><h2>Tranh xu</h2><p>Tuỳ chọn nhịp chơi và mức đặt theo sở thích của bạn.</p></div>
+            </div>
+            <div class="p2-balance"><svg class="ico sm"><use href="#i-coin"/></svg>Số dư: <b class="js-coins">—</b></div>
+            <div class="p2-opts js-coin-groups"></div>
+            <div class="p2-opt static"><svg class="p2-opt-ico" viewBox="0 0 64 64"><use href="#p2-coins"/></svg><span class="p2-opt-text"><b>Mức đặt</b><small class="js-stakes">50 – 500 xu</small></span></div>
+            <span class="p2-btn red">Vào bàn tranh xu <svg class="ico"><use href="#i-chev"/></svg></span>
+            <p class="p2-foot dark"><svg class="ico sm"><use href="#i-users"/></svg><span class="js-coin-waiting">— bàn tranh xu đang chờ</span></p>
+            <svg class="p2-coin-art" viewBox="0 0 260 90" aria-hidden="true"><use href="#p2-coin-scene"/></svg>
+          </a>
+
+          <!-- 3. Bàn đấu -->
+          <a class="p2-card p2-tables p2-entry" href="#/tables">
+            <div class="p2-card-head">
+              <svg class="p2-head-ico" viewBox="0 0 64 64" aria-hidden="true"><use href="#p2-board"/></svg>
+              <div><h2>Bàn đấu</h2><p>Xem các ván đang diễn ra trong cộng đồng.</p></div>
+            </div>
+            <div class="p2-table-list" id="play-preview"></div>
+            <span class="p2-btn dark">Xem tất cả bàn đấu <svg class="ico"><use href="#i-chev"/></svg></span>
+            <p class="p2-foot light"><svg class="ico sm"><use href="#i-users"/></svg><span class="js-playing">—</span></p>
+          </a>
+
+          <!-- 4. Đánh với bạn -->
+          <a class="p2-card p2-friend p2-entry" href="#/room">
+            <div class="p2-card-head">
+              <svg class="p2-head-ico" viewBox="0 0 64 64" aria-hidden="true"><use href="#p2-people"/></svg>
+              <div><h2>Đánh với bạn</h2><p>Tạo phòng và mời bạn bè cùng so tài.</p></div>
+            </div>
+            <svg class="p2-friend-art" viewBox="0 0 240 150" aria-hidden="true"><use href="#p2-friend-scene"/></svg>
+            <ul class="p2-points">
+              <li>Phòng riêng, gửi link là vào chơi</li>
+              <li>Tự chọn nhịp, màu quân, cho đi lại</li>
+              <li>Không tính Elo, không mất xu</li>
+            </ul>
+            <span class="p2-btn red"><svg class="ico"><use href="#i-plus"/></svg>Tạo phòng <svg class="ico"><use href="#i-chev"/></svg></span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Q01a · Xếp hạng -->
+      <section id="page-ranked" class="screen page hidden play2">
+        <header class="p2-head">
+          <p class="p2-eyebrow">Chơi nhanh · Xếp hạng <i></i></p>
+          <h1>Đấu xếp hạng ELO</h1>
+          <p class="p2-lead">Mọi ván xếp hạng chơi nhịp <span class="js-ranked-tc-long">15 phút + 5 giây</span>. Vào hàng chờ — hệ thống tự ghép đối thủ cùng trình độ.</p>
+        </header>
+        <div class="p2-detail">
+          <div class="p2-panel p2-ranked-panel">
+            <div class="p2-panel-art" aria-hidden="true"><svg viewBox="0 0 220 210"><use href="#p2-trophy"/></svg></div>
+            <div class="p2-panel-body">
+              <div class="p2-rankcard" id="rank-card">
+                <div class="p2-rank-badge" id="rank-badge"><span id="rank-badge-char">兵</span></div>
+                <div class="p2-rank-info">
+                  <small>Bậc hiện tại</small>
+                  <b id="rank-name">—</b>
+                  <span class="p2-rank-stars" id="rank-stars"></span>
+                </div>
+                <div class="p2-rank-elo"><small>Elo</small><b id="rank-elo">—</b></div>
+                <div class="p2-rank-next">
+                  <div class="p2-rank-bar"><i id="rank-bar"></i></div>
+                  <small id="rank-next">—</small>
+                </div>
               </div>
-              <label class="field name-field"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
-              <button id="quick-match" class="btn primary lg block"><svg class="ico"><use href="#i-swords"/></svg>Tìm đối thủ · <span id="qm-tc">10+0</span></button>
-              <p class="note">Elo chỉ thay đổi khi cả hai bên đều đăng nhập. Rời bàn giữa ván bị xử thua.</p>
-            </div>
-            <div class="card coin-card" id="coin-card">
-              <div class="card-head">
-                <div><h3>Tranh xu</h3><p>Hai bên cùng đặt xu — thắng nhận mức đặt của đối thủ. Không tính Elo.</p></div>
-                <span class="tag gold"><svg class="ico sm"><use href="#i-coin"/></svg><span id="coin-balance">0 xu</span></span>
-              </div>
-              <div class="field"><span>Nhịp chơi</span><div class="chips" id="coin-tc"></div></div>
-              <div class="field"><span>Mức đặt</span><div class="chips" id="coin-stakes"></div></div>
-              <ul class="rule-list">
-                <li><b>Thắng</b> +mức đặt · <b>Thua</b> −mức đặt · <b>Hoà</b> hoàn nguyên</li>
-                <li><b>Bỏ trận</b> hoặc mất kết nối quá 90 giây bị xử thua</li>
-                <li>Xu chỉ dùng trong Tượng Kỳ (vật phẩm, tranh xu), không quy đổi tiền thật</li>
-              </ul>
-              <button id="coin-match" class="btn primary lg block"><svg class="ico"><use href="#i-coin"/></svg><span>Chọn mức xu &amp; tìm trận</span></button>
-            </div>
-            <h3 class="section-title">Nhiều cách chơi khác</h3>
-            <div class="mode-grid">
-              <a class="mode-row" href="#/room"><span class="mr-ico"><svg class="ico"><use href="#i-users"/></svg></span><span><b>Chơi với bạn</b><small>Tạo phòng hoặc nhập mã phòng</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
-              <a class="mode-row" href="#/tournaments"><span class="mr-ico gold"><svg class="ico"><use href="#i-trophy"/></svg></span><span><b>Giải đấu</b><small>Đăng ký, check-in và tranh giải</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
-              <a class="mode-row" href="#/ai"><span class="mr-ico"><svg class="ico"><use href="#i-ai"/></svg></span><span><b>Đấu máy</b><small>8 cấp độ AI để luyện tập</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
-              <a class="mode-row" href="#/puzzles"><span class="mr-ico"><svg class="ico"><use href="#i-puzzle"/></svg></span><span><b>Cờ thế</b><small>Giải thế cờ, nhận xu thưởng</small></span><svg class="ico chev"><use href="#i-chev"/></svg></a>
+              <div class="p2-time"><small>Thời gian mỗi ván · cố định</small><b class="js-ranked-tc">15p + 5s</b><span class="js-ranked-tc-desc">15 phút mỗi bên, cộng 5 giây sau mỗi nước</span></div>
+              <p class="p2-elo" id="play-elo-line">Đấu xếp hạng ELO · ghép trận tự động</p>
+              <label class="field name-field p2-guest"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
+              <button id="quick-match" class="p2-btn gold">Vào hàng chờ <svg class="ico"><use href="#i-chev"/></svg></button>
+              <p class="p2-foot"><span><i class="dot green"></i><b class="js-online">—</b> người đang online</span><span><svg class="ico sm"><use href="#i-clock"/></svg><span class="js-wait">Ước tính: &lt; 1 phút</span></span><span class="tag p2-fee" id="ranked-fee-tag">Xếp hạng</span></p>
             </div>
           </div>
-          <aside class="col-side">
+          <aside class="p2-aside">
             <div class="card">
-              <div class="card-head"><div><h3 id="play-board-title">Bàn cờ đang chờ</h3><p id="play-board-sub">Mỗi ván cờ là một cuộc gặp.</p></div></div>
-              <div class="mini-board"><svg id="play-board" role="img" aria-label="Bàn cờ minh hoạ"></svg></div>
-              <p class="note" id="play-stats"></p>
-            </div>
-            <div class="card">
-              <div class="card-head"><div><h3>Trận đấu hot</h3><p>Bấm để vào xem trực tiếp</p></div></div>
-              <div class="live-list" id="play-live"></div>
+              <h3>Luật xếp hạng</h3>
+              <ul class="rule-list">
+                <li><b>Phí</b> <span class="js-ranked-fee">10</span> xu mỗi ván, trừ khi ván bắt đầu</li>
+                <li><b>Thưởng</b> +<span class="js-reward-play">10</span> xu khi chơi trọn ván, thắng thêm +<span class="js-reward-win">10</span> xu</li>
+                <li><b>Elo</b> chỉ tính khi cả hai bên đều đăng nhập</li>
+                <li><b>Ghép trận</b> ±100 Elo, nới dần mỗi 5 giây chờ</li>
+                <li><b>Rời bàn</b> giữa ván hoặc mất kết nối quá 90 giây bị xử thua</li>
+              </ul>
             </div>
           </aside>
         </div>
+      </section>
+
+      <!-- Q01b · Tranh xu -->
+      <section id="page-coin" class="screen page hidden play2">
+        <header class="p2-head">
+          <p class="p2-eyebrow">Chơi nhanh · Tranh xu <i></i></p>
+          <h1>Thiết lập ván tranh xu</h1>
+          <p class="p2-lead">Hai bên cùng đặt xu — thắng nhận mức đặt của đối thủ. Không tính Elo.</p>
+        </header>
+        <div class="p2-detail" id="coin-card">
+          <div class="p2-panel p2-coin-panel">
+            <div class="p2-panel-body">
+              <div class="p2-row-between"><h3>Nhịp chơi</h3><div class="p2-balance"><svg class="ico sm"><use href="#i-coin"/></svg>Số dư: <b id="coin-balance">0 xu</b></div></div>
+              <div class="p2-opts" id="coin-tc" role="radiogroup" aria-label="Nhịp tranh xu"></div>
+              <h3>Mức đặt</h3>
+              <div class="p2-stakes" id="coin-stakes"></div>
+              <button id="coin-match" class="p2-btn red"><span>Vào bàn</span> <svg class="ico"><use href="#i-chev"/></svg></button>
+              <p class="p2-note">Có bàn đang chờ cùng nhịp &amp; mức đặt thì vào ngồi ngay; chưa có thì tự tạo bàn mới và chờ đối thủ.</p>
+              <p class="p2-foot"><svg class="ico sm"><use href="#i-users"/></svg><span class="js-coin-waiting">— bàn tranh xu đang chờ</span></p>
+            </div>
+            <svg class="p2-coin-art" viewBox="0 0 260 90" aria-hidden="true"><use href="#p2-coin-scene"/></svg>
+          </div>
+          <aside class="p2-aside">
+            <div class="card">
+              <div class="card-head plain"><h3>Bàn đang chờ</h3><span class="muted js-coin-waiting-n"></span></div>
+              <div class="p2-waiting" id="coin-waiting"></div>
+            </div>
+            <div class="card">
+              <h3>Luật tranh xu</h3>
+              <ul class="rule-list">
+                <li><b>Thắng</b> +mức đặt · <b>Thua</b> −mức đặt · <b>Hoà</b> hoàn nguyên</li>
+                <li>Chỉ chọn được mức đặt không vượt quá số dư</li>
+                <li><b>Bỏ trận</b> hoặc mất kết nối quá 90 giây bị xử thua</li>
+                <li>Xu chỉ dùng trong Tượng Kỳ (vật phẩm, tranh xu), không quy đổi tiền thật</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Q01c · Bàn đấu -->
+      <section id="page-tables" class="screen page hidden play2">
+        <header class="p2-head">
+          <p class="p2-eyebrow">Chơi nhanh · Bàn đấu <i></i></p>
+          <h1>Các bàn đang thi đấu</h1>
+          <p class="p2-lead" id="play-stats">Bấm "Vào xem" để theo dõi trực tiếp.</p>
+        </header>
+        <div class="p2-tables-page" id="play-live"></div>
       </section>
 
       <!-- Q02 · Tìm đối thủ -->
@@ -336,12 +513,13 @@
       <section id="page-ai" class="screen page hidden">
         <header class="page-head">
           <div>
-            <p class="eyebrow">Đấu máy</p>
-            <h1>Rèn kỹ nghệ, theo nhịp của bạn.</h1>
-            <p class="lead">Chọn cấp độ AI phù hợp, luyện cờ thế và xem lại các ván đã luyện.</p>
+            <p class="eyebrow">AI</p>
+            <h1>Rèn kỹ nghệ cùng AI.</h1>
+            <p class="lead">Phân tích thế cờ bằng engine, đấu với AI theo cấp độ, luyện cờ thế và xem lại các ván đã luyện.</p>
           </div>
         </header>
         <div class="tabs" role="tablist" id="ai-tabs">
+          <button class="tab" data-ai-tab="analysis" role="tab">Phân tích</button>
           <button class="tab" data-ai-tab="ai" role="tab">Đấu với AI</button>
           <button class="tab" data-ai-tab="puzzles" role="tab">Cờ thế</button>
           <button class="tab" data-ai-tab="history" role="tab">Lịch sử luyện tập</button>
@@ -395,9 +573,11 @@
           <div id="pz-grid" class="pz-grid"></div>
         </div>
 
+        <div class="ai-panel hidden" id="ai-panel-analysis"></div>
+
         <div class="ai-panel hidden" id="ai-panel-history">
           <div class="card">
-            <div class="card-head"><div><h3>Lịch sử luyện tập</h3><p>Ván đấu máy và cờ thế bạn đã giải gần đây</p></div></div>
+            <div class="card-head"><div><h3>Lịch sử luyện tập</h3><p>Thế cờ phân tích đã lưu và cờ thế bạn đã giải</p></div></div>
             <div id="ai-history"></div>
           </div>
         </div>
@@ -751,6 +931,22 @@
               </div>
             </div>
 
+            <div class="card eval-card hidden" id="eval-card">
+              <div class="card-head plain">
+                <div>
+                  <h3>Máy phân tích</h3>
+                  <p id="eval-sub"></p>
+                </div>
+                <input type="checkbox" id="eval-on" class="toggle" aria-label="Bật máy phân tích">
+              </div>
+              <div id="eval-body" class="eval-body">
+                <div class="eval-score"><b id="eval-num">…</b><span id="eval-text">Đang tính…</span></div>
+                <div class="eval-bar" title="Thanh thế trận: phần đỏ là phía bạn"><i id="eval-fill"></i></div>
+                <ol id="eval-lines" class="eval-lines"></ol>
+                <small id="eval-meta" class="eval-meta"></small>
+              </div>
+            </div>
+
             <div class="card chat-card" id="chat-card">
               <div class="card-head"><h3>Trò chuyện</h3><span class="muted" id="chat-count"></span></div>
               <div id="chat-log" aria-live="polite"></div>
@@ -918,8 +1114,10 @@
   <script src="xiangqi.js"></script>
   <script src="board-render.js"></script>
   <script src="board-ui.js"></script>
+  <script src="analysis.js"></script>
   <script src="ranks.js"></script>
   <script src="catalog.js"></script>
+  <script src="/api/economy.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

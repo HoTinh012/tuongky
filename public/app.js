@@ -114,7 +114,6 @@
   // 'tổng phút|giây cộng mỗi nước'
   const TC_LABEL = { '5|0': '5+0', '10|0': '10+0', '15|10': '15+10', '30|0': '30+0', '0|0': 'Không giới hạn' };
   const parseTc = (v) => { const [totalMin, incSec] = v.split('|').map(Number); return { totalMin, incSec }; };
-  let playTc = ['5|0', '10|0', '15|10'].includes(store.get('tk-play-tc')) ? store.get('tk-play-tc') : '10|0';
   let roomTc = TC_LABEL[store.get('tk-room-tc')] ? store.get('tk-room-tc') : '10|0';
 
   function tcText(st) {
@@ -128,11 +127,8 @@
 
   function setupTcPickers() {
     const paint = () => {
-      document.querySelectorAll('#tc-grid .tc-card').forEach((b) => { b.classList.toggle('active', b.dataset.tc === playTc); b.setAttribute('aria-checked', b.dataset.tc === playTc); });
       document.querySelectorAll('#room-tc .chip').forEach((b) => b.classList.toggle('active', b.dataset.tc === roomTc));
-      $('qm-tc').textContent = TC_LABEL[playTc];
     };
-    document.querySelectorAll('#tc-grid .tc-card').forEach((b) => b.addEventListener('click', () => { playTc = b.dataset.tc; store.set('tk-play-tc', playTc); paint(); }));
     document.querySelectorAll('#room-tc .chip').forEach((b) => b.addEventListener('click', () => { roomTc = b.dataset.tc; store.set('tk-room-tc', roomTc); paint(); }));
     const saved = store.get('tk-room-move');
     if (saved !== null && [...$('room-move').options].some((o) => o.value === saved)) $('room-move').value = saved;
@@ -184,6 +180,11 @@
     const code = $('code').value.trim().toUpperCase();
     if (!code) return showLobbyError('Vui lòng nhập mã phòng.');
     socket.emit('join', { roomId: code, name: getName(), token, uid, session });
+  });
+
+  socket.on('economy', (e) => {
+    Object.assign(ECON, e);
+    if (['play', 'ranked', 'coin', 'tables'].includes(currentScreen)) renderPlay();
   });
 
   function watchRoom(id) {
@@ -241,7 +242,8 @@
     $('mm-opp-tag').textContent = 'Đang chờ ghép…';
   }
 
-  $('quick-match').addEventListener('click', () => startMatchmaking({ ...parseTc(playTc), moveSec: 0 }, 'ranked'));
+  // Xếp hạng: nhịp cố định 15+5 (server cũng ép nhịp này)
+  $('quick-match').addEventListener('click', () => startMatchmaking({ ...ECON.RANKED_TC, moveSec: 0 }, 'ranked'));
 
   function stopMM() {
     mm.active = false;
@@ -330,63 +332,113 @@
   let coinTc = ECON.COIN_TCS.some((x) => x.tc === store.get('tk-coin-tc')) ? store.get('tk-coin-tc') : '5|0';
   let coinStake = ECON.STAKES.includes(Number(store.get('tk-coin-stake'))) ? Number(store.get('tk-coin-stake')) : ECON.STAKES[0];
   function renderCoinCard() {
+    if (!ECON.COIN_TCS.some((x) => x.tc === coinTc)) coinTc = ECON.COIN_TCS[0].tc;
+    if (!ECON.STAKES.includes(coinStake)) coinStake = ECON.STAKES[0];
     const coins = me ? me.coins : 0;
     $('coin-balance').textContent = me ? `${fmt(coins)} xu` : 'Cần đăng nhập';
-    $('coin-tc').replaceChildren(...ECON.COIN_TCS.map((x) => h('button', {
-      class: 'chip' + (x.tc === coinTc ? ' active' : ''), onclick: () => { coinTc = x.tc; store.set('tk-coin-tc', coinTc); renderCoinCard(); },
-    }, x.tc.replace('|', '+'), h('small', { text: x.group }))));
+    document.querySelectorAll('.js-coins').forEach((e) => { e.textContent = me ? `${fmt(coins)} xu` : 'Cần đăng nhập'; });
+    document.querySelectorAll('.js-stakes').forEach((e) => { e.textContent = `${fmt(ECON.STAKES[0])} – ${fmt(ECON.STAKES[ECON.STAKES.length - 1])} xu`; });
+    const pickTc = (tc) => { coinTc = tc; store.set('tk-coin-tc', coinTc); renderCoinCard(); };
+    const groups = [...new Set(ECON.COIN_TCS.map((x) => x.group))];
+    $('coin-tc').replaceChildren(...groups.map((g, gi) => {
+      const tcs = ECON.COIN_TCS.filter((x) => x.group === g);
+      const on = tcs.some((x) => x.tc === coinTc);
+      return h('div', { class: 'p2-opt' + (on ? ' active' : ''), role: 'radio', 'aria-checked': on, tabindex: 0, onclick: () => { if (!on) pickTc(tcs[0].tc); } },
+        icon(gi === 0 ? 'play' : 'clock', 'p2-opt-ico'),
+        h('span', { class: 'p2-opt-text' }, h('b', { text: g }),
+          h('span', { class: 'p2-tcs' }, ...tcs.map((x) => h('button', {
+            class: 'p2-tcchip' + (x.tc === coinTc ? ' active' : ''), type: 'button',
+            onclick: (e) => { e.stopPropagation(); pickTc(x.tc); },
+          }, x.tc.replace('|', '+'))))),
+        h('i', { class: 'p2-radio' }));
+    }));
     // Chỉ cho chọn mức mà số dư đủ
     if (me && coinStake > coins) coinStake = [...ECON.STAKES].reverse().find((v) => v <= coins) || ECON.STAKES[0];
     $('coin-stakes').replaceChildren(...ECON.STAKES.map((v) => h('button', {
-      class: 'chip gold' + (v === coinStake ? ' active' : ''), disabled: me && v > coins ? true : null,
+      class: 'p2-stake' + (v === coinStake ? ' active' : ''), disabled: me && v > coins ? true : null,
       title: me && v > coins ? 'Không đủ xu' : null,
       onclick: () => { coinStake = v; store.set('tk-coin-stake', String(v)); renderCoinCard(); },
     }, `${v} xu`)));
     const btn = $('coin-match');
     const enough = me && coins >= coinStake;
     btn.disabled = !!me && !enough;
-    btn.querySelector('span').textContent = !me ? 'Đăng nhập để tranh xu' : enough ? `Tìm trận · đặt ${coinStake} xu · ${coinTc.replace('|', '+')}` : 'Không đủ xu';
+    btn.querySelector('span').textContent = !me ? 'Đăng nhập để tranh xu' : enough ? `Vào bàn · đặt ${coinStake} xu · ${coinTc.replace('|', '+')}` : 'Không đủ xu';
   }
-  $('coin-match').addEventListener('click', () => {
-    if (!me) return openAuth('login');
-    startMatchmaking({ ...parseTc(coinTc), moveSec: 0 }, 'coin', coinStake);
-  });
+  $('coin-match').addEventListener('click', () => coinSeat(parseTc(coinTc), coinStake));
+
+  // Tranh xu kiểu bàn chờ: server cho vào bàn đang chờ cùng nhịp & mức đặt, hoặc tạo bàn mới
+  function coinSeat({ totalMin, incSec }, stake) {
+    if (!me) { openAuth('login'); return toast('Tranh xu cần đăng nhập tài khoản.'); }
+    if (me.coins < stake) return toast(`Không đủ xu — cần ${stake} xu, bạn có ${fmt(me.coins)} xu.`);
+    if (inGame() && !leaveGame()) return;
+    if (mm.active) stopMM();
+    spectate = false;
+    toast('Đang tìm bàn tranh xu…');
+    socket.emit('coin-seat', { name: getName(), token, uid, session, totalMin, incSec, stake });
+    // Không có phản hồi (vd server chưa khởi động lại sau khi cập nhật) → báo rõ thay vì im lặng
+    clearTimeout(coinSeat.timer);
+    coinSeat.timer = setTimeout(() => { if (!roomId) toast('Server không phản hồi — thử tải lại trang hoặc khởi động lại server.'); }, 6000);
+  }
+
+  // Danh sách bàn tranh xu đang chờ (trang Tranh xu)
+  function renderCoinWaiting() {
+    const list = live.waiting || [];
+    document.querySelectorAll('.js-coin-waiting-n').forEach((e) => { e.textContent = list.length ? `${list.length} bàn` : ''; });
+    $('coin-waiting').replaceChildren(...(list.length ? list.map((w) => {
+      const tc = `${w.settings.totalMs / 60000}+${(w.settings.incMs || 0) / 1000}`;
+      const mine = me && w.host && w.host.name === me.displayName;
+      return h('div', { class: 'p2-wait-row' },
+        avatarEl({ name: w.host.name, avatar: w.host.avatar }, 'sm'),
+        h('span', { class: 'p2-wait-info' }, h('b', { text: w.host.name }),
+          h('small', { text: `${tc} · ${w.host.rating ? 'Elo ' + fmt(w.host.rating) : 'kỳ thủ'}` })),
+        h('span', { class: 'p2-wait-stake' }, icon('coin', 'sm'), fmt(w.stake)),
+        h('button', {
+          class: 'btn sm primary', text: 'Vào bàn', disabled: mine ? true : null,
+          onclick: () => coinSeat({ totalMin: w.settings.totalMs / 60000, incSec: (w.settings.incMs || 0) / 1000 }, w.stake),
+        }));
+    }) : [h('p', { class: 'muted p2-wait-empty', text: 'Chưa có bàn nào đang chờ — bấm "Vào bàn" để mở bàn đầu tiên.' })]));
+  }
 
   // ---------- Điều hướng ----------
   const SCREENS = {
-    home: 'lobby', play: 'page-play', search: 'page-search', room: 'page-room', ai: 'page-ai', puzzle: 'page-puzzle',
+    home: 'lobby', play: 'page-play', ranked: 'page-ranked', coin: 'page-coin', tables: 'page-tables', search: 'page-search', room: 'page-room', ai: 'page-ai', puzzle: 'page-puzzle',
     ranking: 'page-ranking', tournaments: 'page-tournaments', tournament: 'page-tournament', friends: 'page-friends', inventory: 'page-inventory',
     rules: 'page-rules', profile: 'profile', game: 'game',
   };
   const PAGE_TITLE = {
-    home: 'Trang chủ', play: 'Chơi nhanh', search: 'Tìm đối thủ', room: 'Chơi với bạn', ai: 'Đấu máy', puzzle: 'Cờ thế',
+    home: 'Trang chủ', play: 'Chơi nhanh', ranked: 'Xếp hạng', coin: 'Tranh xu', tables: 'Bàn đấu', search: 'Tìm đối thủ', room: 'Chơi với bạn', ai: 'AI', puzzle: 'Cờ thế',
     ranking: 'Xếp hạng', tournaments: 'Giải đấu', tournament: 'Giải đấu', friends: 'Bạn bè', inventory: 'Túi đồ', rules: 'Luật chơi', profile: 'Hồ sơ kỳ thủ', game: 'Bàn cờ',
   };
   let lastPage = 'home';
   let currentScreen = 'home';
+  let backTarget = null; // đích của nút Quay lại (góc trên bên trái)
 
   const KIND_NAMES = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Tranh xu', room: 'Phòng riêng', tournament: 'Giải đấu', ai: 'Đấu máy' };
   const KIND_TITLE = { ranked: 'Bàn xếp hạng', match: 'Bàn ghép trận', coin: 'Bàn tranh xu', room: 'Phòng riêng', tournament: 'Bàn giải đấu' };
   // Mục menu trái & breadcrumb của màn hiện tại
   function navOf(name) {
-    if (name === 'search' || name === 'room') return 'play';
+    if (['search', 'room', 'ranked', 'coin', 'tables'].includes(name)) return 'play';
     if (name === 'puzzle') return 'ai';
     if (name === 'tournament') return 'tournaments';
     if (name === 'game') return state && state.review ? 'profile' : (state && state.ai) ? 'ai' : state && state.tournament ? 'tournaments' : 'play';
     return name;
   }
   function crumbsOf(name) {
-    const play = ['Chơi nhanh', '#/play'], aiC = ['Đấu máy', '#/ai'];
+    const play = ['Chơi nhanh', '#/play'], aiC = ['AI', '#/ai'];
     switch (name) {
       case 'search': return [play, ['Tìm đối thủ']];
+      case 'ranked': return [play, ['Xếp hạng']];
+      case 'coin': return [play, ['Tranh xu']];
+      case 'tables': return [play, ['Bàn đấu']];
       case 'room': return [play, ['Chơi với bạn']];
-      case 'ai': return aiTab === 'puzzles' ? [aiC, ['Cờ thế']] : aiTab === 'history' ? [aiC, ['Lịch sử luyện tập']] : [['Đấu máy']];
+      case 'ai': return aiTab === 'puzzles' ? [aiC, ['Cờ thế']] : aiTab === 'history' ? [aiC, ['Lịch sử luyện tập']]
+        : aiTab === 'ai' ? [aiC, ['Đấu với AI']] : [['AI']];
       case 'puzzle': return [aiC, ['Cờ thế', '#/puzzles'], [pz.cur ? pz.cur.title : '…']];
       case 'inventory': return invMode === 'shop' ? [['Túi đồ', '#/inventory'], ['Cửa hàng']] : [['Túi đồ']];
       case 'tournament': return [['Giải đấu', '#/tournaments'], [tour.cur ? tour.cur.name : '…']];
       case 'game':
         if (state && state.review) return [[state.publicReplay ? 'Xem lại' : 'Hồ sơ kỳ thủ', state.publicReplay ? null : '#/profile'], ['Xem lại ván']];
-        if (state && state.ai) return [aiC, ['Bàn luyện tập']];
+        if (state && state.ai) return [['AI', '#/ai/play'], ['Bàn luyện tập']];
         if (state && state.tournament) return [['Giải đấu', '#/tournaments'], [state.tournament.name, '#/tournament/' + state.tournament.id], [`Vòng ${state.tournament.round}`]];
         return [play, [KIND_TITLE[state && state.kind] || 'Bàn cờ online']];
       default: return [[PAGE_TITLE[name] || 'Trang chủ']];
@@ -402,7 +454,27 @@
     }));
     document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.go === navOf(currentScreen)));
     document.title = `${items[items.length - 1][0]} · Tượng Kỳ`;
+    // Nút Quay lại (góc trên bên trái): về mục cha gần nhất trên đường dẫn; trang chủ thì ẩn
+    const parent = items.slice(0, -1).reverse().find(([, href]) => href);
+    backTarget = currentScreen === 'home' ? null : parent ? parent[1] : '#/';
+    $('top-back').classList.toggle('hidden', !backTarget);
+    placeBackButton();
+    $('top-back').title = backTarget ? `Quay lại ${!parent || parent[1] === '#/' ? 'Trang chủ' : parent[0]}` : '';
   }
+  // Đặt nút Quay lại ở đầu nội dung trang đang xem (ngay trước dòng chữ đỏ phía trên tiêu đề);
+  // trang không có dòng đó thì để trên thanh trên cùng.
+  function placeBackButton() {
+    const btn = $('top-back');
+    const screen = $(SCREENS[currentScreen]);
+    const host = screen && screen.querySelector(':scope > header .eyebrow, :scope > header .p2-eyebrow');
+    if (host) { if (btn.nextElementSibling !== host) host.before(btn); btn.classList.add('in-page'); }
+    else { $('crumbs').before(btn); btn.classList.remove('in-page'); }
+  }
+  $('top-back').addEventListener('click', () => {
+    if (currentScreen === 'game') return $('btn-leave').click(); // đang ở bàn cờ: như nút Rời bàn (có hỏi xác nhận)
+    if (!backTarget) return;
+    navigate(backTarget === '#/' ? 'home' : backTarget.replace(/^#\//, ''));
+  });
 
   function showScreen(name) {
     if (name === 'lobby' || !SCREENS[name]) name = 'home';
@@ -410,9 +482,10 @@
     $('sidebar').classList.remove('open');
     if (name !== 'game' && name !== 'search') lastPage = name;
     currentScreen = name;
+    document.body.dataset.screen = name; // CSS: ẩn tranh nền khi đang ở bàn cờ
     updateCrumbs();
     window.scrollTo(0, 0);
-    if (name === 'home' || name === 'play') refreshLive();
+    if (['home', 'play', 'ranked', 'coin', 'tables'].includes(name)) refreshLive();
     $('notif-panel').classList.add('hidden');
   }
 
@@ -433,7 +506,8 @@
     if (name === 'online') name = 'play';
     if (name === 'join') name = 'room';
     if (name === 'puzzles') return openAi('puzzles');
-    if (name === 'ai') return openAi(arg === 'history' ? 'history' : 'ai');
+    if (name === 'ai') return openAi(arg === 'history' ? 'history' : arg === 'play' ? 'ai' : 'analysis');
+    window.AnalysisBoard.close(); // rời trang Đấu máy → dừng engine phân tích
     if (name === 'puzzle' && arg) return openPuzzle(arg);
     if (name === 'profile') return openProfile();
     if (name === 'ranking') return openRanking();
@@ -446,10 +520,12 @@
     if (name === 'search') name = 'play';
     showScreen(name);
     if (name === 'home') renderHome();
-    if (name === 'play') renderPlay();
+    if (['play', 'ranked', 'coin', 'tables'].includes(name)) renderPlay();
     if (name === 'room') renderInviteList();
   }
   window.addEventListener('hashchange', route);
+  // Tên mục hiện khi rê chuột (menu thu gọn thành biểu tượng lúc đang ở bàn cờ)
+  document.querySelectorAll('.nav-item').forEach((b) => { if (!b.title) b.title = b.textContent.trim(); });
   document.querySelectorAll('.nav-item').forEach((b) => b.addEventListener('click', () => {
     $('sidebar').classList.remove('open');
     navigate(b.dataset.go);
@@ -644,6 +720,7 @@
     theme = effectiveTheme();
     dynLayer = null;
     if (pz.ui) { pz.ui.theme = theme; pz.ui.render(); setPzFrame(); }
+    window.AnalysisBoard.setTheme();
     if (pz.list.length && aiTab === 'puzzles') renderPuzzleGrid();
     renderMinis();
     if (state) render();
@@ -791,6 +868,8 @@
   }
 
   function renderHeader() {
+    // Loại ván đang chơi (CSS: ván tranh xu ẩn lịch sử nước đi); hết ván thì bỏ để còn xem lại / phân tích
+    $('game').dataset.live = state.result ? '' : state.ai ? 'ai' : state.review ? 'review' : state.kind || 'room';
     const title = $('game-title');
     if (state.result && !analysisMode) return; // tiêu đề kết quả do renderResult đặt
     if (state.review) title.textContent = 'Nhìn lại ván đã chơi.';
@@ -888,7 +967,7 @@
       main.replaceChildren(icon('play'), 'Ván mới');
     } else if (state.matchmaking) {
       // Chơi tiếp = tìm trận mới đúng chế độ & thiết lập vừa chơi (doc §10.3)
-      main.replaceChildren(icon('swords'), state.kind === 'coin' ? `Tìm trận mới · ${state.stake} xu` : 'Tìm trận mới');
+      main.replaceChildren(icon('swords'), state.kind === 'coin' ? `Vào bàn mới · ${state.stake} xu` : 'Tìm trận mới');
     } else if (opponentGone) {
       main.classList.add('hidden');
     } else {
@@ -1040,7 +1119,8 @@
       const mode = state.kind === 'coin' ? 'coin' : 'ranked', stake = state.stake;
       socket.emit('leave');
       resetToLobby();
-      startMatchmaking(settings, mode, stake);
+      if (mode === 'coin') coinSeat(settings, stake);
+      else startMatchmaking(settings, mode, stake);
       return;
     }
     socket.emit('rematch');
@@ -1432,6 +1512,7 @@
     $('btn-draw').classList.toggle('hidden', !playing || !!state.ai);
     $('btn-undo').classList.toggle('hidden', !(state.ai && ai.assist && playing && aiCanUndo()));
     $('btn-hint').classList.toggle('hidden', !(state.ai && ai.assist && playing && state.turn === myColor));
+    renderEval(playing);
     $('btn-resign').classList.toggle('hidden', !playing);
     $('btn-draw').disabled = state.drawOffer === myColor;
     $('btn-draw').querySelector('span').textContent = state.drawOffer === myColor ? 'Đã xin hoà' : 'Xin hoà';
@@ -1500,7 +1581,8 @@
     analysisMode = false;
     spectate = false;
     $('game').classList.remove('ended');
-    history.replaceState(null, '', location.pathname + (lastPage === 'home' ? '' : '#/' + (lastPage === 'ai' && aiTab === 'puzzles' ? 'puzzles' : lastPage)));
+    const aiPath = aiTab === 'puzzles' ? 'puzzles' : aiTab === 'ai' ? 'ai/play' : aiTab === 'history' ? 'ai/history' : 'ai';
+    history.replaceState(null, '', location.pathname + (lastPage === 'home' ? '' : '#/' + (lastPage === 'ai' ? aiPath : lastPage)));
     showScreen(lastPage);
     if (lastPage === 'home') renderHome();
     if (lastPage === 'play') renderPlay();
@@ -1512,6 +1594,7 @@
     { id: 'l3', name: 'Kỳ hữu', elo: 1200 }, { id: 'l4', name: 'Trung cấp', elo: 1400 },
     { id: 'l5', name: 'Cao cấp', elo: 1600 }, { id: 'l6', name: 'Kiện tướng', elo: 1800 },
     { id: 'l7', name: 'Đại kiện tướng', elo: 2000 }, { id: 'l8', name: 'Kỳ vương', elo: 2200 },
+    { id: 'l9', name: 'Vô đối', elo: 3000, boss: true }, // Pikafish hết sức (engine-pro.js)
   ];
   const LEVEL_LABEL = { easy: 'Dễ', medium: 'Vừa', hard: 'Khó' };
   AI_LEVELS.forEach((l, i) => { LEVEL_LABEL[l.id] = `Cấp ${i + 1} · ${l.name}`; });
@@ -1527,7 +1610,7 @@
 
   function aiWorker() {
     if (!ai.worker) {
-      ai.worker = new Worker('engine.js');
+      ai.worker = new Worker('engine-pro.js');
       ai.worker.onmessage = (e) => onAiMove(e.data);
       ai.worker.onerror = () => toast('Máy gặp lỗi khi tính nước đi.');
     }
@@ -1537,13 +1620,14 @@
   function renderLevels() {
     const grid = $('level-grid');
     grid.replaceChildren(...AI_LEVELS.map((l, i) => h('button', {
-      class: 'level' + (l.id === ai.level ? ' active' : ''), role: 'radio', 'aria-checked': l.id === ai.level,
+      class: 'level' + (l.boss ? ' boss' : '') + (l.id === ai.level ? ' active' : ''), role: 'radio', 'aria-checked': l.id === ai.level,
       onclick: () => { ai.level = l.id; store.set('tk-ai-level', l.id); renderLevels(); },
-    }, h('small', { text: `Cấp ${i + 1}` }), h('b', { text: l.name }), h('em', { text: `~${fmt(l.elo)} Elo` }))));
+    }, h('small', { text: `Cấp ${i + 1}` }), h('b', { text: l.name }), h('em', { text: l.boss ? `${fmt(l.elo)}+ Elo · Pikafish` : `~${fmt(l.elo)} Elo` }))));
     const idx = AI_LEVELS.findIndex((l) => l.id === ai.level);
     $('level-note').textContent = idx < 3 ? 'Cấp 1–3 phù hợp người mới: máy thỉnh thoảng đi nước chưa tối ưu.'
       : idx < 5 ? 'Cấp 4–5: máy tính trước nhiều nước, hợp với người đã quen khai cuộc.'
-        : 'Từ cấp 6 máy tính rất sâu và không nương tay — chuẩn bị tinh thần!';
+        : idx < 8 ? 'Từ cấp 6 máy tính rất sâu và không nương tay — chuẩn bị tinh thần!'
+          : 'Cấp 9 dùng engine Pikafish mạnh hết sức, vượt xa đại kiện tướng — gần như không thể thắng.';
     renderAiPreview();
   }
 
@@ -1551,7 +1635,7 @@
     const pick = document.querySelector('input[name="ai-color"]:checked').value;
     const l = AI_LEVELS.find((x) => x.id === ai.level);
     const idx = AI_LEVELS.indexOf(l);
-    $('ai-preview-sub').textContent = `Cấp ${idx + 1} · ${l.name} — ước tính ~${fmt(l.elo)} Elo`;
+    $('ai-preview-sub').textContent = `Cấp ${idx + 1} · ${l.name} — ước tính ${l.boss ? fmt(l.elo) + '+' : '~' + fmt(l.elo)} Elo`;
     $('ai-tags').replaceChildren(
       h('span', { class: 'tag', text: `Cấp ${idx + 1} · ${l.name}` }),
       h('span', { class: 'tag soft', text: pick === 'r' ? 'Quân Đỏ' : pick === 'b' ? 'Quân Đen' : 'Màu ngẫu nhiên' }),
@@ -1689,12 +1773,12 @@
     syncAi();
   });
 
-  // Gợi ý: máy (cấp 5) tính nước tốt cho người chơi, vẽ mũi tên xanh dương
+  // Gợi ý: engine mạnh nhất có được (Pikafish trên server) tính nước tốt cho người chơi, vẽ mũi tên xanh dương
   const hint = { worker: null, reqId: 0 };
   $('btn-hint').addEventListener('click', () => {
     if (!state || !state.ai || state.result || state.turn !== myColor) return;
     if (!hint.worker) {
-      hint.worker = new Worker('engine.js');
+      hint.worker = new Worker('engine-pro.js');
       hint.worker.onmessage = (e) => {
         if (e.data.id !== hint.reqId || !state || !state.ai || !e.data.move) return;
         hintMove = e.data.move;
@@ -1705,8 +1789,105 @@
     const g = ai.game;
     $('btn-hint').disabled = true;
     setTimeout(() => { $('btn-hint').disabled = false; }, 2500);
-    hint.worker.postMessage({ id: ++hint.reqId, board: g.board, side: ai.human, level: 'l5', boards: X.replay(g.history).boards });
+    hint.worker.postMessage({ id: ++hint.reqId, board: g.board, side: ai.human, level: 'hint', boards: X.replay(g.history).boards });
   });
+
+  // Máy phân tích (đấu máy, khi bật Gợi ý & đi lại): 3 nước tốt nhất kèm điểm và diễn biến tiếp theo.
+  // Dùng worker riêng để không phải chờ lượt máy tính nước đi.
+  const evalPanel = { worker: null, reqId: 0, key: null, busy: false, data: null, on: store.get('tk-ai-eval') !== '0' };
+  $('eval-on').checked = evalPanel.on;
+  $('eval-on').addEventListener('change', () => {
+    evalPanel.on = $('eval-on').checked;
+    store.set('tk-ai-eval', evalPanel.on ? '1' : '0');
+    evalPanel.key = null;
+    if (state) renderActions();
+  });
+
+  const evalKey = () => state.history.map((m) => m.from.join('') + m.to.join('')).join(',');
+  function requestEval() {
+    if (!evalPanel.worker) {
+      evalPanel.worker = new Worker('engine-pro.js');
+      evalPanel.worker.onmessage = (e) => {
+        if (e.data.id !== evalPanel.reqId) return;
+        evalPanel.busy = false;
+        evalPanel.data = e.data.result ? { ...e.data.result, key: evalPanel.sentKey, turn: evalPanel.sentTurn } : null;
+        if (state) renderActions(); // gửi tiếp nếu thế cờ đã đổi trong lúc chờ
+      };
+    }
+    evalPanel.busy = true;
+    evalPanel.sentKey = evalPanel.key;
+    evalPanel.sentTurn = state.turn;
+    evalPanel.worker.postMessage({ type: 'lines', id: ++evalPanel.reqId, board: state.board, side: state.turn, boards: X.replay(state.history).boards });
+  }
+
+  // Điểm theo góc nhìn người chơi: "+1.2" (đơn vị tốt) hoặc "Bí 3" (chiếu bí sau 3 nước)
+  function evalLabel(score) {
+    if (Math.abs(score) > MATE_NEAR) {
+      const n = Math.ceil((30000 - Math.abs(score)) / 2);
+      return { num: (score > 0 ? '+' : '−') + 'Bí ' + n, text: score > 0 ? `Bạn chiếu bí được sau ${n} nước` : `Máy chiếu bí sau ${n} nước` };
+    }
+    const v = score / 100;
+    const text = v > 3 ? 'Bạn đang thắng thế' : v > 0.8 ? 'Bạn đang ưu thế' : v >= -0.8 ? 'Thế cờ cân bằng'
+      : v >= -3 ? 'Máy đang ưu thế' : 'Máy đang thắng thế';
+    return { num: (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1), text };
+  }
+  const MATE_NEAR = 29000;
+
+  // Ký hiệu một chuỗi nước đi (P2-5 M8.7 …) tính từ thế cờ b
+  function pvNotation(b, pv, max) {
+    const out = [];
+    for (const m of pv.slice(0, max)) {
+      if (!b[m.from[0]] || !b[m.from[0]][m.from[1]]) break;
+      out.push(X.notation(b, m.from, m.to));
+      b = X.applyMove(b, m.from, m.to);
+    }
+    return out;
+  }
+
+  function renderEval(playing) {
+    const show = !!(state.ai && ai.assist && playing && !isReviewing());
+    $('eval-card').classList.toggle('hidden', !show);
+    if (!show) return;
+    $('eval-body').classList.toggle('hidden', !evalPanel.on);
+    if (!evalPanel.on) { $('eval-sub').textContent = 'Bật để xem nước tốt nhất và điểm thế cờ'; return; }
+    const key = evalKey();
+    if (key !== evalPanel.key) {
+      evalPanel.key = key;
+      if (!evalPanel.busy) requestEval();
+    } else if (!evalPanel.busy && (!evalPanel.data || evalPanel.data.key !== key)) requestEval();
+
+    const d = evalPanel.data && evalPanel.data.key === key ? evalPanel.data : null;
+    const mine = state.turn === myColor;
+    $('eval-sub').textContent = mine ? 'Các nước tốt cho bạn — bấm để xem mũi tên' : 'Máy đang cân nhắc các nước sau';
+    if (!d || !d.lines.length) {
+      $('eval-num').textContent = '…';
+      $('eval-text').textContent = evalPanel.busy || !evalPanel.data ? 'Đang tính…' : 'Không có engine mạnh để phân tích';
+      $('eval-lines').replaceChildren();
+      $('eval-meta').textContent = '';
+      return;
+    }
+    const persp = (s) => (d.turn === myColor ? s : -s); // đổi sang góc nhìn người chơi
+    const top = evalLabel(persp(d.lines[0].score));
+    $('eval-num').textContent = top.num;
+    $('eval-num').className = persp(d.lines[0].score) > 80 ? 'up' : persp(d.lines[0].score) < -80 ? 'down' : '';
+    $('eval-text').textContent = top.text;
+    const s = persp(d.lines[0].score);
+    $('eval-fill').style.width = `${Math.round(50 + 50 * Math.tanh((Math.abs(s) > MATE_NEAR ? Math.sign(s) * 3000 : s) / 600))}%`;
+    $('eval-lines').replaceChildren(...d.lines.map((l, i) => {
+      const names = pvNotation(state.board, l.pv.length ? l.pv : [l.move], 7);
+      const lb = evalLabel(persp(l.score));
+      const active = hintMove && l.move && hintMove.from.join() === l.move.from.join() && hintMove.to.join() === l.move.to.join();
+      return h('li', {
+        class: 'eval-line' + (mine ? ' clickable' : '') + (active ? ' active' : ''),
+        onclick: mine && l.move ? () => { hintMove = active ? null : l.move; render(); } : null,
+      },
+      h('span', { class: 'el-rank', text: String(i + 1) }),
+      h('b', { class: 'el-move', text: names[0] || '—' }),
+      h('span', { class: 'el-score' + (persp(l.score) > 80 ? ' up' : persp(l.score) < -80 ? ' down' : ''), text: lb.num }),
+      h('small', { class: 'el-pv', text: names.slice(1).join('  ') }));
+    }));
+    $('eval-meta').textContent = `${d.engine === 'pikafish' ? 'Pikafish' : 'Fairy-Stockfish'} · độ sâu ${d.depth}`;
+  }
 
   function aiResign() {
     ai.reqId++;
@@ -1728,18 +1909,25 @@
   }
 
   // ---------- Trang Đấu máy: tab AI / Cờ thế / Lịch sử ----------
-  let aiTab = 'ai';
+  let aiTab = 'analysis';
   function openAi(tab) {
     aiTab = tab;
     document.querySelectorAll('#ai-tabs .tab').forEach((t) => t.classList.toggle('active', t.dataset.aiTab === tab));
-    for (const p of ['ai', 'puzzles', 'history']) $('ai-panel-' + p).classList.toggle('hidden', p !== tab);
+    for (const p of ['ai', 'puzzles', 'history', 'analysis']) $('ai-panel-' + p).classList.toggle('hidden', p !== tab);
+    if (tab !== 'analysis') window.AnalysisBoard.close();
     showScreen('ai');
     if (tab === 'ai') renderLevels();
     if (tab === 'puzzles') openPuzzles();
     if (tab === 'history') renderAiHistory();
+    if (tab === 'analysis') {
+      const deps = { getTheme: () => theme, toast };
+      if (pendingAnalysis) { window.AnalysisBoard.openSaved($('ai-panel-analysis'), deps, pendingAnalysis); pendingAnalysis = null; }
+      else window.AnalysisBoard.open($('ai-panel-analysis'), deps);
+    }
   }
   document.querySelectorAll('#ai-tabs .tab').forEach((t) => t.addEventListener('click', () => {
-    navigate(t.dataset.aiTab === 'puzzles' ? 'puzzles' : t.dataset.aiTab === 'history' ? 'ai/history' : 'ai');
+    const tab = t.dataset.aiTab;
+    navigate(tab === 'puzzles' ? 'puzzles' : tab === 'history' ? 'ai/history' : tab === 'ai' ? 'ai/play' : 'ai');
   }));
 
   // Ô trống kèm nút đăng nhập (cho khách)
@@ -1751,19 +1939,38 @@
     return games;
   }
 
+  // Thế cờ đã lưu từ tab Phân tích (nút "Lưu vào lịch sử")
+  let pendingAnalysis = null;
+  function savedAnalysisSection() {
+    const list = window.AnalysisBoard.saved();
+    const head = h('div', { class: 'card-head pad' }, h('div', {}, h('h3', { text: 'Thế cờ phân tích đã lưu' }),
+      h('p', { text: list.length ? `${list.length} thế cờ · lưu trên trình duyệt này` : 'Bấm "Lưu vào lịch sử" ở tab Phân tích để lưu thế cờ' })));
+    if (!list.length) return [head, h('div', { class: 'empty' }, h('a', { class: 'btn', href: '#/ai', text: 'Mở tab Phân tích' }))];
+    return [head, h('table', { class: 'table' },
+      h('thead', {}, h('tr', {}, h('th', { text: 'Thế cờ' }), h('th', { class: 'num', text: 'Số nước' }), h('th', { class: 'num hide-sm', text: 'Đánh giá' }), h('th'))),
+      h('tbody', {}, list.map((x) => h('tr', {},
+        h('td', {}, h('b', { text: x.title }), h('small', { class: 'muted sub', text: fmtDateTime(x.savedAt) })),
+        h('td', { class: 'num', text: String((x.moves || []).length) }),
+        h('td', { class: 'num hide-sm', text: x.score === null || x.score === undefined ? '—' : window.AnalysisBoard.scoreText(x.score) }),
+        h('td', { class: 'num' }, h('div', { class: 'row-actions' },
+          h('button', { class: 'btn sm primary', text: 'Mở', onclick: () => { pendingAnalysis = x; navigate('ai'); } }),
+          h('button', { class: 'btn sm', text: 'Xoá', onclick: () => { window.AnalysisBoard.removeSaved(x.id); renderAiHistory(); } })))))))];
+  }
+
   async function renderAiHistory() {
     const box = $('ai-history');
-    if (!session) return box.replaceChildren(loginEmpty('Đăng nhập để lưu và xem lại các ván đấu máy.'));
+    if (!session) return fill(box, savedAnalysisSection(), h('div', { class: 'card-head pad' }, h('h3', { text: 'Cờ thế đã giải' })),
+      loginEmpty('Đăng nhập để lưu lịch sử giải cờ thế.'));
     box.replaceChildren(h('div', { class: 'empty', text: 'Đang tải…' }));
     try {
-      const [all, sum, list] = await Promise.all([myGames(), accountApi('GET', '/summary').catch(() => null),
+      // Ván đánh với máy không lưu vào lịch sử (chỉ ván với người mới lưu) → ở đây chỉ còn thế cờ đã lưu & cờ thế
+      const [sum, list] = await Promise.all([accountApi('GET', '/summary').catch(() => null),
         pz.list.length ? null : fetchJson('/api/puzzles').catch(() => null)]);
       if (list) pz.list = list.puzzles;
-      const games = all.filter((g) => g.mode === 'ai');
       const log = sum ? sum.summary.puzzleLog : [];
       const pzTitle = (id) => (pz.list.find((p) => p.id === id) || {}).title || 'Bài cờ thế';
       fill(box,
-        games.length ? gamesTable(games, { ai: true }) : h('div', { class: 'empty', text: 'Chưa có ván đấu máy nào được lưu.' }),
+        savedAnalysisSection(),
         h('div', { class: 'card-head pad' }, h('div', {}, h('h3', { text: 'Cờ thế đã giải' }), h('p', { text: log.length ? `${log.length} lần giải gần nhất` : 'Giải cờ thế để luyện chiến thuật' }))),
         log.length ? h('table', { class: 'table' },
           h('thead', {}, h('tr', {}, h('th', { text: 'Bài' }), h('th', { class: 'num', text: 'Thời gian' }), h('th', { class: 'num', text: 'Số lần thử' }), h('th', { class: 'num hide-sm', text: 'Gợi ý' }), h('th'))),
@@ -1866,9 +2073,19 @@
         h('button', { class: 'btn primary', text: 'Đăng ký', onclick: () => openAuth('register') }),
       );
     }
+    $('sb-user').replaceChildren(...(me ? [
+      h('button', { class: 'sb-user-main', onclick: () => navigate('profile'), title: 'Hồ sơ kỳ thủ' },
+        avatarEl(me), h('span', {}, h('b', { text: me.displayName }), h('small', { text: rankOf(me.rating).name })), icon('chev', 'sm')),
+      h('div', { class: 'sb-user-stats' },
+        h('a', { class: 'sb-coin', href: '#/shop', title: 'Xu — bấm để mở Cửa hàng' }, icon('coin', 'sm'), fmt(me.coins)),
+        h('span', { class: 'sb-elo', title: 'Elo' }, icon('rank', 'sm'), fmt(me.rating))),
+    ] : [
+      h('p', { text: 'Đăng nhập để lưu Elo, xu và lịch sử ván.' }),
+      h('button', { class: 'btn primary block', text: 'Đăng nhập', onclick: () => openAuth('login') }),
+    ]));
     document.querySelectorAll('.name-field').forEach((f) => f.classList.toggle('hidden', !!me));
     if (currentScreen === 'home') renderHome();
-    if (currentScreen === 'play') renderPlay();
+    if (['play', 'ranked', 'coin', 'tables'].includes(currentScreen)) renderPlay();
     if (currentScreen === 'ai' && aiTab === 'ai') renderAiPreview();
     if (currentScreen === 'inventory' && !invBusy) renderInventory();
   }
@@ -2111,7 +2328,7 @@
       live = await fetchJson('/api/live');
       renderLiveLists();
     } catch { /* bỏ qua */ }
-    liveTimer = setTimeout(() => { if (currentScreen === 'home' || currentScreen === 'play') refreshLive(); }, 10000);
+    liveTimer = setTimeout(() => { if (['home', 'play', 'ranked', 'coin', 'tables'].includes(currentScreen)) refreshLive(); }, 10000);
   }
 
   function liveItem(m) {
@@ -2124,42 +2341,113 @@
 
   function renderLiveLists() {
     const empty = () => h('div', { class: 'live-empty' }, 'Chưa có ván nào đang diễn ra — ', h('a', { href: '#/play', text: 'mở màn ngay' }));
-    for (const [id, limit] of [['home-live', 3], ['play-live', 5]]) {
-      const box = $(id);
-      box.replaceChildren(...(live.matches.length ? live.matches.slice(0, limit).map(liveItem) : [empty()]));
-    }
+    $('home-live').replaceChildren(...(live.matches.length ? live.matches.slice(0, 3).map(liveItem) : [empty()]));
     $('hero-online').textContent = live.online === null ? '—' : fmt(live.online);
     $('hero-playing').textContent = live.playing === null ? '—' : fmt(live.playing);
-    $('play-stats').textContent = live.online === null ? '' : `${fmt(live.online)} người đang online · ${fmt(live.playing)} ván đang diễn ra · ${fmt(live.searching)} người đang tìm trận`;
-    if (currentScreen === 'play') renderPlayBoard();
+    const known = live.online !== null;
+    const setAll = (cls, text) => document.querySelectorAll(cls).forEach((e) => { e.textContent = text; });
+    setAll('.js-online', known ? fmt(live.online) : '—');
+    setAll('.js-searching', known ? `${fmt(live.searching)} người đang tìm trận` : '— người đang tìm trận');
+    setAll('.js-coin-waiting', known ? `${fmt((live.waiting || []).length)} bàn tranh xu đang chờ` : '— bàn tranh xu đang chờ');
+    if (currentScreen === 'coin') renderCoinWaiting();
+    setAll('.js-wait', live.searching ? `${fmt(live.searching)} người đang chờ ghép` : 'Ước tính: < 1 phút');
+    setAll('.js-playing', known ? `${fmt(live.playing)} bàn đấu đang hoạt động` : '—');
+    $('play-stats').textContent = known ? `${fmt(live.playing)} bàn đang đấu · ${fmt(live.online)} người online — bấm "Vào xem" để theo dõi trực tiếp.` : 'Bấm "Vào xem" để theo dõi trực tiếp.';
+    if (['play', 'tables'].includes(currentScreen)) renderPlayBoard();
+  }
+
+  // Một bàn đang diễn ra (thẻ Bàn đấu ở trang Chơi nhanh)
+  function liveTable(m, i, preview) {
+    const board = h('div', { class: 'p2-thumb' });
+    const svgB = svgEl('svg', { role: 'img', 'aria-label': 'Bàn cờ' });
+    board.appendChild(svgB);
+    const pl = (c) => h('div', { class: 'p2-pl' }, h('i', { class: 'p2-side ' + c, text: c === 'r' ? '帥' : '將' }),
+      h('span', { text: m.players[c].name }), m.players[c].rating ? h('em', { text: fmt(m.players[c].rating) }) : null);
+    const node = h('div', { class: 'p2-table' }, board,
+      h('div', { class: 'p2-tinfo' },
+        h('div', { class: 'p2-trow' }, h('b', { text: `Bàn ${String(i + 1).padStart(2, '0')}` }),
+          h('span', { class: 'p2-count' }, icon('eye', 'sm'), String(m.spectators)),
+          h('span', { class: 'p2-live' }, h('i'), 'Đang đấu')),
+        pl('r'), pl('b'),
+        h('small', { class: 'p2-tmeta', text: `Nước ${m.moveCount} · ${tcShort(m.settings)}` })),
+      preview ? null : h('button', { class: 'p2-watch', onclick: () => watchRoom(m.roomId) }, icon('eye', 'sm'), 'Vào xem'));
+    miniBoard(svgB, m.board, { lastMove: m.lastMove });
+    return node;
   }
 
   // ---------- Q01 Chơi nhanh ----------
+  // Thẻ bậc rank ở trang Xếp hạng: huy hiệu, sao, Elo, tiến độ lên bậc sau
+  const RANK_CHAR = { 'Đồng': '兵', 'Bạc': '炮', 'Vàng': '馬', 'Bạch kim': '車', 'Kim cương': '相', 'Cao thủ': '帥' };
+  function renderRankCard() {
+    const rating = me ? me.rating : 1200;
+    const rank = rankOf(rating);
+    const tiers = window.Ranks.TIERS;
+    const next = tiers.find(([base]) => base > rating);
+    $('rank-card').style.setProperty('--rank', rank.color);
+    $('rank-badge-char').textContent = RANK_CHAR[rank.name] || '兵';
+    $('rank-name').textContent = me ? rank.name : 'Chưa xếp hạng';
+    $('rank-stars').replaceChildren(...[1, 2, 3, 4, 5].map((i) => h('i', { class: i <= rank.stars && me ? 'on' : '', text: '★' })));
+    $('rank-elo').textContent = me ? fmt(rating) : '—';
+    if (!me) {
+      $('rank-bar').style.width = '0%';
+      $('rank-next').textContent = 'Đăng nhập để có Elo và bậc rank (khởi đầu 1.200 · Bạc).';
+    } else if (next) {
+      const idx = tiers.indexOf(next);
+      const lo = idx - 1 === 0 ? 700 : tiers[idx - 1][0];
+      $('rank-bar').style.width = `${Math.max(3, Math.min(100, ((rating - lo) / (next[0] - lo)) * 100))}%`;
+      $('rank-next').textContent = `Còn ${fmt(next[0] - rating)} Elo để lên ${next[1]}`;
+    } else {
+      $('rank-bar').style.width = '100%';
+      $('rank-next').textContent = 'Bạn đang ở bậc cao nhất — giữ vững phong độ!';
+    }
+    document.querySelectorAll('.js-rank').forEach((e) => { e.textContent = me ? `${rank.label} · Elo ${fmt(rating)}` : 'Đăng nhập để xếp hạng'; });
+  }
+
+  // Điền các con số theo cài đặt admin (nhịp xếp hạng, phí, thưởng, nhịp tranh xu)
+  function renderEconomyTexts() {
+    const { totalMin, incSec } = ECON.RANKED_TC;
+    const setAll = (cls, text) => document.querySelectorAll(cls).forEach((e) => { e.textContent = text; });
+    setAll('.js-ranked-tc', `${totalMin}p + ${incSec}s`);
+    setAll('.js-ranked-tc-long', `${totalMin} phút + ${incSec} giây`);
+    setAll('.js-ranked-tc-desc', incSec ? `${totalMin} phút mỗi bên, cộng ${incSec} giây sau mỗi nước` : `${totalMin} phút mỗi bên, không cộng giờ`);
+    setAll('.js-ranked-fee', fmt(ECON.RANKED_FEE));
+    setAll('.js-reward-play', fmt(ECON.RANKED_REWARD_PLAY));
+    setAll('.js-reward-win', fmt(ECON.RANKED_REWARD_WIN));
+    setAll('.js-ranked-reward', `Thắng +${fmt(ECON.RANKED_REWARD_PLAY + ECON.RANKED_REWARD_WIN)} xu, chơi trọn ván +${fmt(ECON.RANKED_REWARD_PLAY)} xu`);
+    const groups = [...new Set(ECON.COIN_TCS.map((x) => x.group))];
+    document.querySelectorAll('.js-coin-groups').forEach((box) => box.replaceChildren(...groups.map((g, gi) => h('div', { class: 'p2-opt static' },
+      icon(gi === 0 ? 'play' : 'clock', 'p2-opt-ico'),
+      h('span', { class: 'p2-opt-text' }, h('b', { text: g }),
+        h('small', { text: ECON.COIN_TCS.filter((x) => x.group === g).map((x) => x.tc.replace('|', '+')).join(' · ') }))))));
+  }
+
   function renderPlay() {
+    renderEconomyTexts();
+    renderRankCard();
     if (me) {
-      const rank = rankOf(me.rating);
-      $('play-elo-line').textContent = `Elo của bạn: ${fmt(me.rating)} · ${rank.label} · phí ${ECON.RANKED_FEE} xu/ván (thắng +20, thua +10 xu thưởng)`;
+      $('play-elo-line').textContent = `Thắng +${fmt(ECON.RANKED_REWARD_PLAY + ECON.RANKED_REWARD_WIN)} xu, chơi trọn ván +${fmt(ECON.RANKED_REWARD_PLAY)} xu · Elo thay đổi sau mỗi ván với tài khoản khác`;
       $('ranked-fee-tag').textContent = `Phí ${ECON.RANKED_FEE} xu`;
       $('quick-match').disabled = me.coins < ECON.RANKED_FEE;
     } else {
-      $('play-elo-line').textContent = 'Bạn đang chơi với tư cách khách — ghép trận không tính Elo. Đăng nhập để chơi xếp hạng.';
+      $('play-elo-line').textContent = 'Đấu xếp hạng ELO · ghép trận tự động. Khách chơi không tính Elo.';
       $('ranked-fee-tag').textContent = 'Xếp hạng';
       $('quick-match').disabled = false;
     }
     renderCoinCard();
     renderPlayBoard();
+    if (currentScreen === 'coin') renderCoinWaiting();
   }
+  // Danh sách bàn đang đấu (vẽ lại khi có dữ liệu mới hoặc đổi giao diện bàn cờ)
   function renderPlayBoard() {
-    const top = live.matches[0];
-    if (top) {
-      $('play-board-title').textContent = 'Trận nổi bật';
-      $('play-board-sub').textContent = `${top.players.r.name} vs ${top.players.b.name} · nước ${top.moveCount}`;
-      miniBoard($('play-board'), top.board, { lastMove: top.lastMove });
-    } else {
-      $('play-board-title').textContent = 'Bàn cờ đang chờ';
-      $('play-board-sub').textContent = 'Mỗi ván cờ là một cuộc gặp.';
-      miniBoard($('play-board'), X.initialBoard());
-    }
+    const empty = () => {
+      const e = h('div', { class: 'p2-empty' }, svgEl('svg', { viewBox: '0 0 64 64', class: 'p2-empty-ico' }),
+        h('b', { text: 'Chưa có bàn nào đang đấu' }), h('span', { text: 'Vào hàng chờ xếp hạng hoặc tạo phòng để mở màn.' }));
+      e.querySelector('.p2-empty-ico').innerHTML = '<use href="#p2-board"/>';
+      return e;
+    };
+    const list = live.matches;
+    $('play-preview').replaceChildren(...(list.length ? list.slice(0, 2).map((m, i) => liveTable(m, i, true)) : [empty()]));
+    $('play-live').replaceChildren(...(list.length ? list.map((m, i) => liveTable(m, i, false)) : [empty()]));
   }
 
   // Vẽ lại các bàn cờ nhỏ đang hiện (khi đổi giao diện)
@@ -3550,7 +3838,7 @@
 
   function anWorker() {
     if (!an.worker) {
-      an.worker = new Worker('engine.js');
+      an.worker = new Worker('engine-pro.js');
       an.worker.onmessage = (e) => {
         const job = an.job;
         if (!job || e.data.id !== job.id) return;

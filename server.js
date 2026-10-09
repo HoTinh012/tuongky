@@ -13,8 +13,10 @@ const theme = require('./theme.js');
 const puzzles = require('./puzzles.js');
 const storage = require('./storage');
 const tournaments = require('./tournaments.js');
+const engineServer = require('./engine-server.js');
 const Catalog = require('./public/catalog.js');
-const { RANKED_FEE, STAKES } = Catalog.ECONOMY;
+const economy = require('./economy.js');
+const E = Catalog.ECONOMY; // cài đặt chế độ chơi (admin chỉnh được) — luôn đọc E.X để thấy giá trị mới nhất
 
 const PORT = process.env.PORT || 3000;
 const ROOM_TTL_MS = 30 * 60 * 1000; // xoá phòng trống sau 30 phút
@@ -27,7 +29,18 @@ const ABANDON_MS = (Number(process.env.ABANDON_SECONDS) || 90) * 1000;
 const ACCEPT_MS = 12000; // thời gian xác nhận khi ghép được đối thủ
 
 const app = express();
+// Fairy-Stockfish (WebAssembly đa luồng) cần trang được "cách ly" để dùng SharedArrayBuffer.
+// 'credentialless' vẫn cho tải ảnh/font từ nơi khác (Google Fonts, Supabase Storage). Tắt bằng ENGINE_BROWSER=0.
+if (process.env.ENGINE_BROWSER !== '0') {
+  app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    next();
+  });
+}
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/vendor/fairy-stockfish', express.static(path.join(__dirname, 'node_modules', 'fairy-stockfish-nnue.wasm'), { maxAge: '7d' }));
+engineServer.setup(app, express);
 // Ảnh lưu trên máy (khi dùng Supabase, ảnh nằm trong Storage và có link công khai riêng)
 if (storage.DIRS) {
   app.use('/uploads', express.static(storage.DIRS.uploads, { maxAge: '30d', immutable: true }));
@@ -91,7 +104,11 @@ app.get('/api/live', (req, res) => {
   const score = (m) => m.spectators * 400 + ((m.players.r.rating || 1000) + (m.players.b.rating || 1000)) / 2 + m.moveCount * 2;
   live.sort((a, b) => score(b) - score(a));
   res.set('Cache-Control', 'no-store');
-  res.json({ online: onlineInfo().total, playing: live.length, searching: queue.size, matches: live.slice(0, 12) });
+  const waiting = waitingCoinTables().sort((a, b) => a.createdAt - b.createdAt).slice(0, 30).map((room) => {
+    const host = room.players.r || room.players.b;
+    return { roomId: room.id, stake: room.stake, settings: room.settings, since: room.createdAt, host: { name: host.name, rating: host.rating || null, avatar: host.avatar || null } };
+  });
+  res.json({ online: onlineInfo().total, playing: live.length, searching: queue.size, matches: live.slice(0, 12), waiting });
 });
 
 // ---------- Bảng xếp hạng ----------
@@ -138,7 +155,12 @@ app.get('/api/replay/:id', (req, res) => {
 
 // Cấu hình kinh tế & vật phẩm cho trình duyệt
 app.get('/api/config', (req, res) => {
-  res.json({ economy: Catalog.ECONOMY, abandonMs: ABANDON_MS, acceptMs: ACCEPT_MS });
+  res.json({ economy: economy.current(), abandonMs: ABANDON_MS, acceptMs: ACCEPT_MS });
+});
+// Cài đặt chế độ chơi cho trình duyệt (nạp ngay sau catalog.js để không phải chờ tải dữ liệu)
+app.get('/api/economy.js', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.type('application/javascript').send(economy.browserScript());
 });
 
 // ---------- Giải đấu (người chơi) ----------
@@ -630,7 +652,26 @@ setupAdmin(app, {
   rooms, users, theme, puzzles, tournaments, onlineInfo, kickUser, renameUser, closeRoom,
   queueSize: () => queue.size,
   onThemeChange: (current) => io.emit('theme', current), // cập nhật ngay cho mọi người đang chơi
+  economy, onEconomyChange: (current) => io.emit('economy', current),
 });
+
+// Bàn tranh xu đang chờ: đúng nhịp & mức đặt, mới có 1 người (không phải mình), chưa bắt đầu
+function waitingCoinTables() {
+  return [...rooms.values()].filter((room) => {
+    if (!room.coinTable || room.game.startedAt || room.game.history.length) return false;
+    const seated = ['r', 'b'].filter((c) => room.players[c]);
+    return seated.length === 1 && room.players[seated[0]].online;
+  });
+}
+function findCoinTable(settings, stake, accountId) {
+  return waitingCoinTables()
+    .filter((room) => room.stake === stake && room.settings.totalMs === settings.totalMs && (room.settings.incMs || 0) === (settings.incMs || 0)
+      && !['r', 'b'].some((c) => room.players[c] && room.players[c].accountId === accountId))
+    .sort((a, b) => a.createdAt - b.createdAt)[0] || null;
+}
+
+// Nhịp do admin cài (Xếp hạng / Tranh xu) — đã kiểm tra ở economy.js nên không giới hạn theo danh sách phòng riêng
+const tcSettings = (totalMin, incSec) => ({ totalMs: totalMin * 60000, moveMs: null, incMs: incSec ? incSec * 1000 : null });
 
 function parseSettings(totalMin, moveSec, incSec) {
   const totalMs = TIME_TOTAL_MIN.includes(totalMin) && totalMin ? totalMin * 60 * 1000 : null;
@@ -657,6 +698,7 @@ function createRoom(settings, opts = {}) {
     reserved: opts.reserved || null,
     tournament: opts.tournament || null,
     matchmaking: !!opts.matchmaking,
+    coinTable: !!opts.coinTable, // bàn tranh xu kiểu "bàn chờ"
     clockTimer: null,
     game: newGame(settings),
     players: { r: null, b: null },
@@ -733,7 +775,7 @@ function proposeMatch(a, b) {
   for (const [me, opp] of [[a, b], [b, a]]) {
     me.socket.emit('mm-found', {
       matchId: id, opponent: opp.name, rating: opp.rating, rated, mode: a.mode, stake: a.stake || null,
-      fee: rated ? RANKED_FEE : 0, deadline: m.deadline, now: Date.now(),
+      fee: rated ? E.RANKED_FEE : 0, deadline: m.deadline, now: Date.now(),
     });
   }
 }
@@ -776,7 +818,7 @@ function startMatch(a, b) {
   const accA = a.accountId ? users.get(a.accountId) : null, accB = b.accountId ? users.get(b.accountId) : null;
   let kind = a.mode === 'coin' ? 'coin' : accA && accB ? 'ranked' : 'match';
   // Kiểm tra lại xu ngay trước khi vào ván
-  const need = kind === 'coin' ? a.stake : kind === 'ranked' ? RANKED_FEE : 0;
+  const need = kind === 'coin' ? a.stake : kind === 'ranked' ? E.RANKED_FEE : 0;
   for (const [e, acc] of [[a, accA], [b, accB]]) {
     if (need && (!acc || acc.coins < need)) {
       const other = e === a ? b : a;
@@ -788,16 +830,16 @@ function startMatch(a, b) {
   }
   let fee = null;
   if (kind === 'ranked') {
-    users.spendCoins(accA.id, RANKED_FEE);
-    users.spendCoins(accB.id, RANKED_FEE);
-    fee = RANKED_FEE;
+    users.spendCoins(accA.id, E.RANKED_FEE);
+    users.spendCoins(accB.id, E.RANKED_FEE);
+    fee = E.RANKED_FEE;
   }
   const room = createRoom(a.settings, { kind, matchmaking: true, stake: kind === 'coin' ? a.stake : null, fee, rules: { spectators: true, takeback: false } });
   const colorA = Math.random() < 0.5 ? 'r' : 'b';
   room.players[colorA] = { token: a.token, uid: a.identity, accountId: a.accountId, name: a.name, online: true };
   joinRoom(a.socket, room, a.name, a.token);
   joinRoom(b.socket, room, b.name, b.token);
-  systemMsg(room, kind === 'ranked' ? `Ván xếp hạng — có tính Elo, đã trừ ${RANKED_FEE} xu phí mỗi bên.`
+  systemMsg(room, kind === 'ranked' ? `Ván xếp hạng — có tính Elo, đã trừ ${E.RANKED_FEE} xu phí mỗi bên.`
     : kind === 'coin' ? `Tranh xu ${a.stake} xu — thắng nhận ${a.stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`
       : 'Ván được ghép tự động — không tính Elo (có khách tham gia).');
   broadcast(room);
@@ -885,7 +927,14 @@ io.on('connection', (socket) => {
     if (!wouldSit && !colorOf(room, token) && !reservedSeat && !room.rules.spectators) {
       return socket.emit('error-msg', 'Phòng này không cho người xem.');
     }
-    if (wouldSit) {
+    if (wouldSit && room.kind === 'coin') {
+      const acc = accId ? users.get(accId) : null;
+      if (!acc || acc.coins < room.stake) {
+        spectate = true;
+        note = `Bàn tranh xu ${room.stake} xu cần tài khoản có đủ xu — bạn đang xem.`;
+      }
+    }
+    if (wouldSit && !spectate) {
       const found = seatOf(socket.data.identity);
       if (found && found.room === room) {
         spectate = true; // đã ngồi ở phòng này ở tab khác → chỉ xem
@@ -895,6 +944,38 @@ io.on('connection', (socket) => {
       }
     }
     joinRoom(socket, room, name, token, { spectate, note });
+  });
+
+  // Tranh xu theo kiểu bàn chờ: có bàn cùng nhịp & mức đặt đang chờ thì vào ngồi (ván bắt đầu ngay),
+  // không có thì tự tạo bàn mới và chờ đối thủ.
+  socket.on('coin-seat', ({ name, token, uid, session, totalMin, incSec, stake } = {}) => {
+    mmLeave(socket);
+    token = cleanToken(token);
+    if (!token) return socket.emit('error-msg', 'Thiếu mã định danh.');
+    name = identify(socket, uid, name, session);
+    if (!name) return;
+    const acc = socket.data.accountId ? users.get(socket.data.accountId) : null;
+    stake = Number(stake);
+    const tc = `${Number(totalMin)}|${Number(incSec) || 0}`;
+    if (!acc) return socket.emit('error-msg', 'Tranh xu cần đăng nhập tài khoản.');
+    if (!E.STAKES.includes(stake)) return socket.emit('error-msg', 'Mức đặt xu này hiện không mở — tải lại trang để xem mức mới.');
+    if (!E.COIN_TCS.some((x) => x.tc === tc)) return socket.emit('error-msg', 'Nhịp Tranh xu này hiện không mở — tải lại trang để xem nhịp mới.');
+    if (acc.coins < stake) return socket.emit('error-msg', `Không đủ xu — cần ${stake} xu, bạn có ${acc.coins} xu.`);
+    if (socket.data.roomId) leaveRoom(socket, { explicit: true });
+    if (!ensureOneRoom(socket, socket.data.identity)) return;
+    const settings = tcSettings(Number(totalMin), Number(incSec) || 0);
+    const room = findCoinTable(settings, stake, acc.id);
+    if (room) {
+      joinRoom(socket, room, name, token);
+      systemMsg(room, `Tranh xu ${stake} xu — thắng nhận ${stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`);
+      return broadcast(room);
+    }
+    const table = createRoom(settings, { kind: 'coin', matchmaking: true, coinTable: true, stake, rules: { spectators: true, takeback: false } });
+    const color = Math.random() < 0.5 ? 'r' : 'b';
+    table.players[color] = { token, uid: socket.data.identity, accountId: acc.id, name, online: true };
+    joinRoom(socket, table, name, token);
+    systemMsg(table, `Bàn tranh xu ${stake} xu · ${tc.replace('|', '+')} — đang chờ đối thủ vào bàn.`);
+    broadcast(table);
   });
 
   socket.on('leave', () => leaveRoom(socket, { explicit: true }));
@@ -1060,11 +1141,19 @@ io.on('connection', (socket) => {
     const accNow = socket.data.accountId ? users.get(socket.data.accountId) : null;
     if (mode === 'coin') {
       stake = Number(stake);
-      if (!STAKES.includes(stake)) return socket.emit('error-msg', 'Mức đặt xu không hợp lệ.');
+      if (!E.STAKES.includes(stake)) return socket.emit('error-msg', 'Mức đặt xu không hợp lệ.');
       if (!accNow) return socket.emit('error-msg', 'Tranh xu cần đăng nhập tài khoản.');
       if (accNow.coins < stake) return socket.emit('error-msg', `Không đủ xu — cần ${stake} xu, bạn có ${accNow.coins} xu.`);
-    } else if (accNow && accNow.coins < RANKED_FEE) {
-      return socket.emit('error-msg', `Không đủ xu — ván xếp hạng cần ${RANKED_FEE} xu phí. Làm nhiệm vụ hoặc giải cờ thế để nhận xu.`);
+    } else if (accNow && accNow.coins < E.RANKED_FEE) {
+      return socket.emit('error-msg', `Không đủ xu — ván xếp hạng cần ${E.RANKED_FEE} xu phí. Làm nhiệm vụ hoặc giải cờ thế để nhận xu.`);
+    }
+    // Nhịp: Xếp hạng luôn theo cài đặt (không theo trình duyệt gửi lên); Tranh xu phải là một nhịp admin đã mở
+    let mmSettings;
+    if (mode === 'ranked') mmSettings = tcSettings(E.RANKED_TC.totalMin, E.RANKED_TC.incSec);
+    else {
+      const tc = `${Number(totalMin)}|${Number(incSec) || 0}`;
+      if (!E.COIN_TCS.some((x) => x.tc === tc)) return socket.emit('error-msg', 'Nhịp Tranh xu này hiện không mở — tải lại trang để xem nhịp mới.');
+      mmSettings = tcSettings(Number(totalMin), Number(incSec) || 0);
     }
     if (socket.data.roomId) leaveRoom(socket, { explicit: true });
     if (!ensureOneRoom(socket, socket.data.identity)) return;
@@ -1075,7 +1164,8 @@ io.on('connection', (socket) => {
     const acc = socket.data.accountId ? users.get(socket.data.accountId) : null;
     queue.set(socket.id, {
       socket, token, name, identity: socket.data.identity, accountId: socket.data.accountId || null,
-      rating: acc ? acc.rating : 1200, settings: parseSettings(totalMin, moveSec, incSec), since: Date.now(),
+      rating: acc ? acc.rating : 1200, since: Date.now(),
+      settings: mmSettings,
       mode, stake: mode === 'coin' ? stake : null,
     });
     runMatchmaker();
@@ -1106,7 +1196,7 @@ setInterval(() => {
 (async () => {
   try {
     if (storage.check) await storage.check();
-    await Promise.all([users.init(), puzzles.init(), theme.init(), tournaments.init()]);
+    await Promise.all([users.init(), puzzles.init(), theme.init(), tournaments.init(), economy.init()]);
   } catch (err) {
     console.error('Không nạp được dữ liệu:', err.message);
     process.exit(1);

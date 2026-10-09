@@ -4,7 +4,7 @@ const X = require('./public/xiangqi.js');
 
 // Mức máy: 3 mức cũ (ván đã lưu trước đây) + 8 cấp độ của trang Đấu máy
 const LEVEL_NAMES = { easy: 'Dễ', medium: 'Vừa', hard: 'Khó' };
-for (let i = 1; i <= 8; i++) LEVEL_NAMES['l' + i] = 'Cấp ' + i;
+for (let i = 1; i <= 9; i++) LEVEL_NAMES['l' + i] = 'Cấp ' + i;
 
 module.exports = function setupAccount(app, { users, presenceOf, onAccountChange }) {
   const api = express.Router();
@@ -135,8 +135,9 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
         [humanColor]: { name: req.account.displayName, accountId: req.account.id },
         [X.other(humanColor)]: { name: `Máy (${LEVEL_NAMES[level]})`, accountId: null },
       };
-      const game = users.recordGame({ mode: 'ai', kind: 'ai', level, players, result, moves });
-      res.json({ id: game.id, account: users.publicAccount(req.account) });
+      // Đánh với máy: không lưu vào lịch sử đấu, chỉ cộng xu thưởng / thống kê / nhiệm vụ
+      users.recordGame({ mode: 'ai', kind: 'ai', level, players, result, moves, store: false });
+      res.json({ id: null, account: users.publicAccount(req.account) });
     } catch (err) { fail(res, err); }
   });
 

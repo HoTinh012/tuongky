@@ -60,6 +60,9 @@ async function moveImage(src) {
     await sb.saveTheme(theme);
   }
 
+  const economy = await file.loadEconomy();
+  if (economy) { console.log('Cài đặt chế độ chơi & xu'); await sb.saveEconomy(economy); }
+
   const st = sb.status();
   if (st.lastError) { console.error('Có lỗi khi ghi:', st.lastError); process.exit(1); }
   console.log('Xong! Dữ liệu đã nằm trên Supabase. Đặt .env rồi chạy npm start.');

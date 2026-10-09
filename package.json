@@ -6,14 +6,17 @@
   "scripts": {
     "start": "node server.js",
     "test": "node test.js",
-    "migrate:supabase": "node scripts/migrate-to-supabase.js"
+    "migrate:supabase": "node scripts/migrate-to-supabase.js",
+    "setup:engine": "node scripts/setup-pikafish.js"
   },
   "engines": {
     "node": ">=20.12"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
+    "7zip-bin": "5.2.0",
     "express": "^4.21.2",
+    "fairy-stockfish-nnue.wasm": "1.1.12",
     "socket.io": "^4.8.1"
   }
 }

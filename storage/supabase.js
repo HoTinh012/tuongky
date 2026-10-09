@@ -160,7 +160,9 @@ function serial(task) {
   return run;
 }
 
-let usersDb = null, puzzleList = null, themeState = null, tournamentList = null;
+let usersDb = null, puzzleList = null, tournamentList = null;
+// Mọi dòng của bảng settings ({ khoá: giá trị }): luôn ghi đủ, vì đồng bộ sẽ xoá các khoá không được gửi lên
+let settingsState = null, settingsLoading = null;
 const pushUsers = serial(async () => {
   const db = usersDb;
   await sync.accounts.push(Object.values(db.accounts).map(accToRow));
@@ -170,7 +172,17 @@ const pushUsers = serial(async () => {
   await sync.meta.push([{ key: 'meta', value: db.meta }]);
 });
 const pushPuzzles = serial(() => sync.puzzles.push(puzzleList.map(puzzleToRow)));
-const pushTheme = serial(() => sync.settings.push([{ key: 'theme', value: themeState }]));
+const pushSettings = serial(() => sync.settings.push(Object.entries(settingsState).filter(([, v]) => v != null).map(([key, value]) => ({ key, value }))));
+function loadSettings() {
+  if (!settingsLoading) {
+    settingsLoading = selectAll(T.settings).then((rows) => {
+      sync.settings.prime(rows.map((r) => ({ key: r.key, value: r.value })));
+      settingsState = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+      return settingsState;
+    });
+  }
+  return settingsLoading;
+}
 const pushTournaments = serial(() => sync.tournaments.push(tournamentList.map((t) => ({ id: t.id, data: t, updated_at: t.updatedAt || Date.now() }))));
 
 module.exports = {
@@ -207,13 +219,11 @@ module.exports = {
   },
   savePuzzles(list) { puzzleList = list; return pushPuzzles(); },
 
-  async loadTheme() {
-    const rows = await selectAll(T.settings);
-    sync.settings.prime(rows.map((r) => ({ key: r.key, value: r.value })));
-    const row = rows.find((r) => r.key === 'theme');
-    return row ? row.value : null;
-  },
-  saveTheme(state) { themeState = state; return pushTheme(); },
+  async loadTheme() { return (await loadSettings()).theme || null; },
+  saveTheme(state) { settingsState.theme = state; return pushSettings(); },
+  // Cài đặt chế độ chơi (nhịp, xu) — trang quản trị
+  async loadEconomy() { return (await loadSettings()).economy || null; },
+  saveEconomy(value) { settingsState.economy = value; return pushSettings(); },
 
   async loadTournaments() {
     const rows = await selectAll(T.tournaments);

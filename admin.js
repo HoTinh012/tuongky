@@ -238,6 +238,25 @@ module.exports = function setupAdmin(app, game) {
     res.json({ ok: true });
   });
 
+  // ---------- Cài đặt chế độ chơi: nhịp & xu (Xếp hạng, Tranh xu, thưởng) ----------
+  const economy = game.economy;
+  api.get('/economy', (req, res) => res.json({ current: economy.current(), defaults: economy.defaults() }));
+  api.put('/economy', (req, res) => {
+    try {
+      const current = economy.update(req.body || {});
+      game.onEconomyChange(current);
+      res.json({ current, defaults: economy.defaults() });
+    } catch (err) {
+      if (!(err instanceof economy.EconomyError)) console.error(err);
+      res.status(400).json({ error: err instanceof economy.EconomyError ? err.message : 'Không lưu được cài đặt.' });
+    }
+  });
+  api.post('/economy/reset', (req, res) => {
+    const current = economy.reset();
+    game.onEconomyChange(current);
+    res.json({ current, defaults: economy.defaults() });
+  });
+
   // ---------- Giao diện bàn cờ & quân cờ ----------
   const theme = game.theme;
 

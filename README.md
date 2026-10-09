@@ -5,13 +5,20 @@ Nền tảng cờ tướng online thời gian thực (Node.js + Socket.io): xế
 ## Giao diện (theo Figma + tài liệu "Tượng Kỳ – Product UX")
 Tông kem / đỏ son `#C61D1D` / ngà `#F2D7A6` / đen nâu `#1B1612`, logo quân Tượng (象). Menu trái gồm:
 - **Trang chủ**: lời chào, banner, lối vào nhanh, nhiệm vụ hằng ngày, giải đang diễn ra, cửa hàng, trận đấu hot, phong độ cá nhân
-- **Chơi nhanh**: chọn nhịp → **Xếp hạng** (phí 10 xu, bước xác nhận 12 giây khi tìm thấy đối thủ); **Tranh xu**
-  (đặt 50/100/200/500 xu); **Chơi với bạn** (phòng riêng mã 6 ký tự, tuỳ chọn cho đi lại / cho xem, nút Sẵn sàng);
+- **Chơi nhanh**: **Xếp hạng** (nhịp cố định 15+5, hiện Elo & bậc rank hiện tại, phí 10 xu, bước xác nhận 12 giây khi tìm thấy đối thủ); **Tranh xu**
+  (bàn chờ: chọn nhịp & mức đặt → vào bàn đang chờ cùng thiết lập, chưa có thì tự tạo bàn và chờ đối thủ;
+  trang Tranh xu có danh sách "Bàn đang chờ"); **Chơi với bạn** (phòng riêng mã 6 ký tự, tuỳ chọn cho đi lại / cho xem, nút Sẵn sàng);
   **Trận đấu hot** (`/api/live`) — bấm để vào xem trực tiếp
 - **Bàn cờ online**: người chơi trên/dưới bàn cờ kèm đồng hồ; cột phải: lịch sử nước đi, trò chuyện, xin hoà / đầu hàng
 - **Kết thúc ván**: bàn cờ thu nhỏ sang phải; kết quả, tỉ số, Elo/xu thay đổi, thống kê, biểu đồ 6 chỉ số
   (khai cuộc, trung cuộc, tàn cuộc, chính xác, chiến thuật, quản lý thời gian — do máy chấm), Chơi tiếp / Phân tích / Chia sẻ
-- **Đấu máy**: 8 cấp độ AI, chọn màu quân, gợi ý & đi lại; tab **Cờ thế** và **Lịch sử luyện tập**
+- **Đấu máy**: 9 cấp độ AI, chọn màu quân, gợi ý & đi lại, thẻ **Máy phân tích** (3 nước tốt nhất + điểm) trong ván;
+  tab **Cờ thế**, **Lịch sử luyện tập** và **Phân tích** (`#/ai/analysis`, `public/analysis.js`): bàn cờ tự do đi quân cho
+  cả hai bên, engine phân tích liên tục (Pikafish trên server qua `POST /api/engine/stream`, hoặc Fairy-Stockfish trên
+  trình duyệt), 1–10 phương án hoặc **tất cả nước** — mỗi nước có nhãn (★ Tốt nhất / ✓ Tốt / ?! Không chính xác /
+  ? Sai lầm / ?? Sai lầm nặng), thanh mạnh/yếu (tỉ lệ thắng), điểm và diễn biến mẫu; chọn một quân thì điểm từng nước
+  hiện ngay trên bàn cờ; độ sâu / số nút / tốc độ, thanh thế trận, mũi tên nước tốt nhất, bấm phương án để đi,
+  biên bản tua lại & rẽ nhánh (← →), lật bàn, bày thế cờ, nhập / xuất FEN
 - **Xếp hạng** (`/api/leaderboard`): Elo, Bạn bè, Danh vọng mùa, chuỗi thắng, Tranh xu, cờ thế; vị trí của bạn
 - **Giải đấu**: danh sách theo trạng thái (mở đăng ký / check-in / đang đấu / kết thúc), trang giải có nhánh đấu
   hoặc bảng điểm, lịch các vòng, đăng ký / rút lui / check-in / **Vào bàn**
@@ -22,11 +29,13 @@ Tông kem / đỏ son `#C61D1D` / ngà `#F2D7A6` / đen nâu `#1B1612`, logo qu�
   bộ trang bị, lịch sử đấu (loại ván, nhịp, Elo & xu thay đổi, link xem lại)
 
 ## Quy tắc xu & Elo (các câu hỏi để ngỏ ở mục 25 của tài liệu — giá trị đang dùng)
-Đổi trong `public/catalog.js` (`ECONOMY`) và `users.js` (`recordGame`).
+Chỉnh trong trang quản trị → **Chế độ chơi & xu** (giá trị mặc định ở `public/catalog.js` → `ECONOMY`).
 - Xu chỉ dùng trong game, không quy đổi tiền thật. Vật phẩm chỉ đổi giao diện.
-- **Xếp hạng**: phí 10 xu/ván, trừ khi ván bắt đầu, không hoàn. Thưởng +10 xu khi chơi trọn ván, thắng thêm +10. Tính Elo.
+- Tài khoản mới được tặng **1000 xu** (`START_COINS` trong `users.js`); tài khoản đã có giữ nguyên số xu.
+- **Xếp hạng**: nhịp cố định 15 phút + 5 giây/nước (`RANKED_TC` trong `public/catalog.js`, server ép nhịp này). Phí 10 xu/ván, trừ khi ván bắt đầu, không hoàn. Thưởng +10 xu khi chơi trọn ván, thắng thêm +10. Tính Elo.
 - **Tranh xu**: mức đặt 50 / 100 / 200 / 500, người thắng nhận mức đặt của người thua, hoà hoàn 100%,
-  hệ thống không lấy phí, **không tính Elo**. Nhịp Cờ chớp / Cờ nhanh.
+  hệ thống không lấy phí, **không tính Elo**. Nhịp Cờ chớp / Cờ nhanh. Không ghép trận: người chơi vào **bàn chờ**
+  (server `coin-seat`: tìm bàn cùng nhịp & mức đặt, không có thì tạo bàn mới). Chỉ tài khoản đủ xu mới ngồi được bàn tranh xu.
 - **Phòng riêng**: không xu, không Elo.
 - **Giải đấu**: tính Elo (giữa 2 tài khoản), lệ phí tuỳ giải (hoàn nếu rút lui / giải huỷ), top 3 nhận xu + huy hiệu.
 - **Đấu máy**: +2 xu/ván, thắng thêm +3. Cờ thế: +5 xu lần đầu giải. Đăng nhập mỗi ngày +20 xu.
@@ -49,8 +58,11 @@ Tông kem / đỏ son `#C61D1D` / ngà `#F2D7A6` / đen nâu `#1B1612`, logo qu�
 - **Cờ thế** (giải thế cờ, trong trang Đấu máy): danh sách có lọc độ khó, giải từng nước (máy tự đáp trả), gợi ý, xem lời giải;
   tài khoản giải lần đầu +5 xu. Quản trị viên soạn bài trong admin: bày thế cờ, ghi lời giải bằng cách đi quân,
   server kiểm tra thế cờ & lời giải hợp lệ. Dữ liệu ở `data/puzzles.json` (bài mẫu ban đầu từ `puzzles-seed.json`)
-- **Chơi với máy** 8 cấp độ (Tập sự → Kỳ vương), có Gợi ý và Đi lại. Máy tính nước ngay trên trình duyệt
-  (Web Worker, `public/engine.js`: alpha-beta + quiescence + bảng chuyển vị), không tốn tài nguyên server
+- **Chơi với máy** 9 cấp độ (Tập sự → Kỳ vương → Vô đối), có Gợi ý và Đi lại (`public/engine-pro.js`):
+  - Cấp 1–8: **Fairy-Stockfish** (WebAssembly) chạy ngay trên trình duyệt, giới hạn Elo theo cấp (800 → 2200)
+  - Cấp 9 "Vô đối", Gợi ý và Phân tích ván: **Pikafish** (engine cờ tướng mạnh nhất, NNUE) chạy trên server (`engine-server.js`)
+  - Dự phòng: trình duyệt không chạy được WebAssembly đa luồng (vd Safari) → dùng Pikafish trên server;
+    server chưa cài Pikafish → dùng engine cũ `public/engine.js` (alpha-beta + quiescence + bảng chuyển vị)
 - Chọn màu quân Đỏ / Đen / Ngẫu nhiên; người thứ 3 trở đi vào xem
 - Server kiểm tra đầy đủ luật: cản chân mã, cản mắt tượng, pháo ngòi, tốt qua sông, cung tướng, lộ mặt tướng, không được tự để tướng bị chiếu
 - Tự phát hiện chiếu, chiếu bí, hết nước đi (bên hết nước thua)
@@ -78,9 +90,20 @@ Tông kem / đỏ son `#C61D1D` / ngà `#F2D7A6` / đen nâu `#1B1612`, logo qu�
 ## Chạy trên máy
 ```bash
 npm install
+npm run setup:engine
 npm start
 ```
 Mở http://localhost:3000. Muốn thử một mình thì mở 2 tab.
+
+`npm run setup:engine` tải Pikafish (~51 MB, bản phát hành chính thức trên GitHub) về `engines/pikafish/`
+(không đưa lên git). Bỏ qua bước này thì web vẫn chạy, chỉ là cấp 9 / gợi ý / phân tích dùng engine yếu hơn.
+Biến môi trường tuỳ chọn: `PIKAFISH_POOL` (số tiến trình Pikafish chạy song song, mặc định ≤ 4),
+`PIKAFISH_HASH_MB` (mặc định 64), `PIKAFISH_DIR`, `ENGINE_BROWSER=0` (tắt header COOP/COEP → không chạy
+Fairy-Stockfish trên trình duyệt, mọi nước đi do Pikafish trên server tính).
+
+Fairy-Stockfish và Pikafish dùng giấy phép **GPL-3.0** (mã nguồn: https://github.com/fairy-stockfish/fairy-stockfish.wasm,
+https://github.com/official-pikafish/Pikafish). Web gửi file Fairy-Stockfish xuống trình duyệt nên giữ nguyên
+file giấy phép đi kèm và ghi nguồn như trên.
 
 Chơi với người cùng mạng Wi‑Fi: gửi họ địa chỉ `http://<IP-máy-bạn>:3000`
 (xem IP bằng `ipconfig getifaddr en0` trên macOS).
@@ -103,6 +126,9 @@ Mở http://localhost:3000/admin
   - **Bảng xếp hạng**: Elo, Danh vọng mùa, chuỗi thắng, Tranh xu, cờ thế — giống trang Xếp hạng của người chơi
   - **Cờ thế**: bày thế cờ, ghi lời giải bằng cách đi quân (server kiểm tra hợp lệ), chọn độ khó & chủ đề, ẩn/hiện, xoá
   - **Góp ý**: góp ý và **báo cáo kỳ thủ** (lọc riêng, có link tới tài khoản bị báo cáo)
+  - **Chế độ chơi & xu**: nhịp cố định & phí / thưởng của Xếp hạng; các nhịp (theo nhóm Cờ chớp, Cờ nhanh…) và mức đặt
+    của Tranh xu; xu tặng khi tạo tài khoản, thưởng đăng nhập, cờ thế, đấu máy. Lưu là áp dụng ngay cho ván mới và trang
+    chơi của mọi người (không cần tải lại); lưu ở `data/economy.json` hoặc khoá `economy` trong bảng settings của Supabase
   - **Bàn cờ & quân cờ**: giao diện mặc định ("Theo Tượng Kỳ" trong Túi đồ) — chọn/tải ảnh bàn cờ (tự nhận diện lưới 9×10),
     kiểu quân, font và màu chữ; lưu là áp dụng ngay. Ảnh lưu trong `data/uploads/`, cấu hình trong `data/theme.json`
 
@@ -132,7 +158,7 @@ Chạy **một** server cho mỗi dự án Supabase (dữ liệu được giữ 
 ## Đưa lên mạng (chơi với bạn ở xa)
 Cần dịch vụ hỗ trợ Node.js + WebSocket, ví dụ Render, Railway, Fly.io:
 1. Đưa thư mục này lên GitHub.
-2. Tạo Web Service mới từ repo, lệnh build `npm install`, lệnh chạy `npm start`.
+2. Tạo Web Service mới từ repo, lệnh build `npm install && npm run setup:engine`, lệnh chạy `npm start`.
 3. Server tự dùng biến môi trường `PORT` do dịch vụ cấp. Đặt thêm `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
    và `ADMIN_PASSWORD` trong phần Environment của dịch vụ (không cần file `.env`).
 
@@ -148,4 +174,6 @@ dữ liệu người chơi nằm trong thư mục `data/` — khi đưa lên m�
 - `storage/` — nơi lưu: `file.js` (data/) hoặc `supabase.js` (khi có SUPABASE_URL); `supabase/schema.sql` — tạo bảng
 - `admin.js` — API trang quản trị; `admin/` — giao diện quản trị
 - `public/xiangqi.js` — luật cờ (dùng chung cho server và trình duyệt)
+- `public/engine-pro.js` — chọn engine cho Đấu máy / Gợi ý / Phân tích; `engine-server.js` — Pikafish trên server
+  (`POST /api/engine`); `scripts/setup-pikafish.js` — tải Pikafish; `public/engine.js` — engine cũ (dự phòng)
 - `public/app.js`, `index.html`, `style.css` — giao diện
