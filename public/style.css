@@ -1745,3 +1745,24 @@ a.p2-tables { color: #f1e7da; }
   position: absolute; bottom: 2px; transform: translateX(-50%); font-size: 9.5px; color: var(--muted); line-height: 1;
   background: rgba(255, 255, 255, 0.7); padding: 0 2px; border-radius: 3px; pointer-events: none;
 }
+.sb-credits { line-height: 1.4; }
+.sb-credits a { color: #a8998a; text-decoration: underline; }
+
+/* Trang Xếp hạng / Tranh xu khi hẹp: cột phụ xuống dưới, cúp nhỏ lại, thẻ rank tự xếp dọc theo bề rộng thật */
+@media (max-width: 1200px) {
+  .p2-detail { grid-template-columns: minmax(0, 1fr); }
+}
+.p2-panel-body { container-type: inline-size; }
+@media (max-width: 1300px) {
+  .p2-panel-art { flex: 0 0 150px; }
+  .p2-panel-art svg { max-width: 150px; }
+}
+@container (max-width: 440px) {
+  .p2-rankcard { grid-template-columns: auto 1fr; grid-template-areas: "badge info" "elo elo" "next next"; }
+  .p2-rank-elo { flex-direction: row; align-items: baseline; gap: 8px; }
+  .p2-rank-elo b { font-size: 28px; }
+  .p2-rank-info b { font-size: 22px; }
+  .p2-ranked-panel .p2-time b { font-size: 30px; }
+}
+.p2-rank-info small { white-space: nowrap; }
+.p2-time b { white-space: nowrap; }

@@ -1128,6 +1128,14 @@
   $('res-alt').addEventListener('click', () => socket.emit('rematch'));
   $('res-leave').addEventListener('click', () => $('btn-leave').click());
   $('res-analysis').addEventListener('click', enterAnalysis);
+  // Đưa ván vừa xem sang bàn phân tích của trang AI (engine sâu, biểu đồ thế trận, lưu vào lịch sử)
+  $('res-board').addEventListener('click', () => {
+    if (!state) return;
+    const moves = viewedGame().history.map((m) => ({ from: m.from, to: m.to }));
+    pendingAnalysis = { pos: { board: X.initialBoard(), side: 'r', moves, ply: moves.length } };
+    if (!leaveGame()) { pendingAnalysis = null; return; }
+    navigate('ai');
+  });
   $('end-analysis').addEventListener('click', enterAnalysis);
   // ---------- Chia sẻ kết quả: thẻ ảnh + link xem lại ----------
   const share = { blob: null, text: '', gameId: null };
@@ -1920,8 +1928,10 @@
     if (tab === 'puzzles') openPuzzles();
     if (tab === 'history') renderAiHistory();
     if (tab === 'analysis') {
-      const deps = { getTheme: () => theme, toast };
-      if (pendingAnalysis) { window.AnalysisBoard.openSaved($('ai-panel-analysis'), deps, pendingAnalysis); pendingAnalysis = null; }
+      const deps = { getTheme: () => theme, toast, saveRemote: (item) => (session ? accountApi('POST', '/analyses', item) : null) };
+      if (pendingAnalysis && pendingAnalysis.pos) window.AnalysisBoard.open($('ai-panel-analysis'), deps, pendingAnalysis.pos);
+      else if (pendingAnalysis) window.AnalysisBoard.openSaved($('ai-panel-analysis'), deps, pendingAnalysis);
+      if (pendingAnalysis) { pendingAnalysis = null; }
       else window.AnalysisBoard.open($('ai-panel-analysis'), deps);
     }
   }
@@ -1941,10 +1951,20 @@
 
   // Thế cờ đã lưu từ tab Phân tích (nút "Lưu vào lịch sử")
   let pendingAnalysis = null;
-  function savedAnalysisSection() {
-    const list = window.AnalysisBoard.saved();
+  // Đã đăng nhập: lấy từ tài khoản (thế cờ đang lưu trên trình duyệt được chuyển lên tài khoản một lần)
+  async function loadAnalyses() {
+    if (!session) return { list: window.AnalysisBoard.saved(), remote: false };
+    const local = window.AnalysisBoard.saved();
+    if (local.length) {
+      for (const x of local.slice().reverse()) await accountApi('POST', '/analyses', x).catch(() => {});
+      window.AnalysisBoard.clearSaved();
+    }
+    const { analyses } = await accountApi('GET', '/analyses');
+    return { list: analyses, remote: true };
+  }
+  function savedAnalysisSection({ list, remote }) {
     const head = h('div', { class: 'card-head pad' }, h('div', {}, h('h3', { text: 'Thế cờ phân tích đã lưu' }),
-      h('p', { text: list.length ? `${list.length} thế cờ · lưu trên trình duyệt này` : 'Bấm "Lưu vào lịch sử" ở tab Phân tích để lưu thế cờ' })));
+      h('p', { text: list.length ? `${list.length} thế cờ · ${remote ? 'lưu theo tài khoản' : 'lưu trên trình duyệt này (đăng nhập để lưu theo tài khoản)'}` : 'Bấm "Lưu" ở tab Phân tích để lưu thế cờ' })));
     if (!list.length) return [head, h('div', { class: 'empty' }, h('a', { class: 'btn', href: '#/ai', text: 'Mở tab Phân tích' }))];
     return [head, h('table', { class: 'table' },
       h('thead', {}, h('tr', {}, h('th', { text: 'Thế cờ' }), h('th', { class: 'num', text: 'Số nước' }), h('th', { class: 'num hide-sm', text: 'Đánh giá' }), h('th'))),
@@ -1954,23 +1974,28 @@
         h('td', { class: 'num hide-sm', text: x.score === null || x.score === undefined ? '—' : window.AnalysisBoard.scoreText(x.score) }),
         h('td', { class: 'num' }, h('div', { class: 'row-actions' },
           h('button', { class: 'btn sm primary', text: 'Mở', onclick: () => { pendingAnalysis = x; navigate('ai'); } }),
-          h('button', { class: 'btn sm', text: 'Xoá', onclick: () => { window.AnalysisBoard.removeSaved(x.id); renderAiHistory(); } })))))))];
+          h('button', { class: 'btn sm', text: 'Xoá', onclick: async () => {
+            if (remote) await accountApi('DELETE', '/analyses/' + encodeURIComponent(x.id)).catch((err) => toast(err.message));
+            else window.AnalysisBoard.removeSaved(x.id);
+            renderAiHistory();
+          } })))))))];
   }
 
   async function renderAiHistory() {
     const box = $('ai-history');
-    if (!session) return fill(box, savedAnalysisSection(), h('div', { class: 'card-head pad' }, h('h3', { text: 'Cờ thế đã giải' })),
+    if (!session) return fill(box, savedAnalysisSection(await loadAnalyses()), h('div', { class: 'card-head pad' }, h('h3', { text: 'Cờ thế đã giải' })),
       loginEmpty('Đăng nhập để lưu lịch sử giải cờ thế.'));
     box.replaceChildren(h('div', { class: 'empty', text: 'Đang tải…' }));
     try {
       // Ván đánh với máy không lưu vào lịch sử (chỉ ván với người mới lưu) → ở đây chỉ còn thế cờ đã lưu & cờ thế
-      const [sum, list] = await Promise.all([accountApi('GET', '/summary').catch(() => null),
-        pz.list.length ? null : fetchJson('/api/puzzles').catch(() => null)]);
+      const [sum, list, saved] = await Promise.all([accountApi('GET', '/summary').catch(() => null),
+        pz.list.length ? null : fetchJson('/api/puzzles').catch(() => null),
+        loadAnalyses().catch(() => ({ list: [], remote: true }))]);
       if (list) pz.list = list.puzzles;
       const log = sum ? sum.summary.puzzleLog : [];
       const pzTitle = (id) => (pz.list.find((p) => p.id === id) || {}).title || 'Bài cờ thế';
       fill(box,
-        savedAnalysisSection(),
+        savedAnalysisSection(saved),
         h('div', { class: 'card-head pad' }, h('div', {}, h('h3', { text: 'Cờ thế đã giải' }), h('p', { text: log.length ? `${log.length} lần giải gần nhất` : 'Giải cờ thế để luyện chiến thuật' }))),
         log.length ? h('table', { class: 'table' },
           h('thead', {}, h('tr', {}, h('th', { text: 'Bài' }), h('th', { class: 'num', text: 'Thời gian' }), h('th', { class: 'num', text: 'Số lần thử' }), h('th', { class: 'num hide-sm', text: 'Gợi ý' }), h('th'))),

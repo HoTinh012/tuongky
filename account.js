@@ -113,6 +113,16 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
     res.json({ game: g });
   });
 
+  // Thế cờ phân tích đã lưu theo tài khoản (tab Phân tích → Lịch sử luyện tập)
+  api.get('/analyses', auth, (req, res) => res.json({ analyses: users.analysesOf(req.account.id) }));
+  api.post('/analyses', auth, (req, res) => {
+    try { res.json({ analysis: users.saveAnalysis(req.account.id, req.body), analyses: users.analysesOf(req.account.id) }); } catch (err) { fail(res, err); }
+  });
+  api.delete('/analyses/:id', auth, (req, res) => {
+    users.removeAnalysis(req.account.id, String(req.params.id));
+    res.json({ analyses: users.analysesOf(req.account.id) });
+  });
+
   // Lưu ván đánh với máy. Server đi lại toàn bộ nước để kiểm tra hợp lệ & xác định kết quả.
   api.post('/ai-games', auth, (req, res) => {
     try {

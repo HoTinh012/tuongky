@@ -81,6 +81,7 @@ function migrate(acc) {
     notifications: [], missions: null,
     coinStats: { games: 0, wins: 0, losses: 0, draws: 0, net: 0 }, // Tranh xu
     puzzleLog: [], badges: [], peakRating: null,
+    analyses: [], // thế cờ đã lưu từ tab Phân tích (mới nhất trước, tối đa 50)
   };
   for (const [k, v] of Object.entries(defaults)) if (acc[k] === undefined) acc[k] = JSON.parse(JSON.stringify(v));
   if (acc.peakRating === null || acc.peakRating < acc.rating) acc.peakRating = acc.rating;
@@ -749,7 +750,38 @@ setInterval(() => {
   if (changed) save();
 }, 60 * 60 * 1000).unref();
 
+// ---------- Thế cờ phân tích đã lưu (tab Phân tích → Lịch sử luyện tập) ----------
+const ANALYSIS_MAX = 50;
+const FEN_RE = /^[rnbakcpRNBAKCP1-9]{1,9}(\/[rnbakcpRNBAKCP1-9]{1,9}){9} [wb]( - - \d+ \d+)?$/;
+const analysesOf = (id) => (db.accounts[id] ? db.accounts[id].analyses : []);
+function saveAnalysis(accountId, input) {
+  const acc = db.accounts[accountId];
+  if (!acc) throw new UserError('Không tìm thấy tài khoản.');
+  const x = input || {};
+  const fen = String(x.fen || '');
+  if (!FEN_RE.test(fen)) throw new UserError('Thế cờ không hợp lệ.');
+  if (!Array.isArray(x.moves) || x.moves.length > 600 || !x.moves.every((m) => typeof m === 'string' && /^[a-i]\d[a-i]\d$/.test(m))) {
+    throw new UserError('Nước đi không hợp lệ.');
+  }
+  const ply = Math.max(0, Math.min(x.moves.length, Number.isInteger(x.ply) ? x.ply : x.moves.length));
+  const item = {
+    id: newId(), title: String(x.title || 'Thế cờ').trim().slice(0, 80) || 'Thế cờ', fen, moves: x.moves, ply,
+    score: Number.isFinite(x.score) ? Math.round(x.score) : null, savedAt: Date.now(),
+  };
+  // Lưu lại đúng thế cờ & nước đi đã có → thay bản cũ, không tạo bản trùng
+  acc.analyses = [item, ...acc.analyses.filter((a) => !(a.fen === fen && a.moves.join() === x.moves.join()))].slice(0, ANALYSIS_MAX);
+  save();
+  return item;
+}
+function removeAnalysis(accountId, id) {
+  const acc = db.accounts[accountId];
+  if (!acc) return;
+  acc.analyses = acc.analyses.filter((a) => a.id !== id);
+  save();
+}
+
 module.exports = {
+  analysesOf, saveAnalysis, removeAnalysis,
   init, hooks, UserError, isValidUid, setAvatar, clearAvatar, REGIONS, dailyBonus,
   addFeedback, listFeedback, removeFeedback, sessionsOf, MAX_CREDIT, markPuzzleSolved,
   register, login, get, list, touch, update, remove, publicAccount, miniAccount, checkPassword,

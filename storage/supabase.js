@@ -17,7 +17,7 @@ const T = {
 
 // Các trường mở rộng của tài khoản lưu chung trong cột profile (jsonb)
 const PROFILE_KEYS = ['friends', 'friendIn', 'friendOut', 'blocked', 'owned', 'equip', 'freshItems', 'notifications',
-  'missions', 'coinStats', 'puzzleLog', 'badges', 'peakRating'];
+  'missions', 'coinStats', 'puzzleLog', 'badges', 'peakRating', 'analyses'];
 // Các trường mở rộng của ván lưu trong cột extra (jsonb)
 const GAME_EXTRA = ['kind', 'stake', 'tc', 'fee', 'tournament'];
 

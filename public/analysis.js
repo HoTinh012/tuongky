@@ -647,15 +647,23 @@
     const names = st.moves.slice(0, 6).map((m, i) => X.notation(boards[i], m.from, m.to));
     const isStart = fen === toFen(X.initialBoard(), 'r');
     const title = names.length ? (isStart ? '' : 'Thế cờ · ') + names.join(' ') + (st.moves.length > 6 ? ' …' : '') : (isStart ? 'Thế cờ ban đầu' : 'Thế cờ tự bày');
-    const list = savedList().filter((x) => !(x.fen === fen && JSON.stringify(x.moves) === JSON.stringify(moves)));
     const info = st.eng.info && st.eng.info.lines[0];
     const side = sideAt(st.ply);
-    list.unshift({
+    const item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, fen, moves, ply: st.ply, savedAt: Date.now(),
       score: info ? (side === 'r' ? info.score : -info.score) : null,
-    });
+    };
+    // Đã đăng nhập → lưu theo tài khoản trên server; khách → lưu trên trình duyệt này
+    const remote = st.deps.saveRemote && st.deps.saveRemote(item); // null khi chưa đăng nhập
+    if (remote) {
+      remote.then(() => st.deps.toast('Đã lưu vào Lịch sử luyện tập (theo tài khoản).'))
+        .catch((err) => st.deps.toast(err.message || 'Không lưu được.'));
+      return;
+    }
+    const list = savedList().filter((x) => !(x.fen === fen && JSON.stringify(x.moves) === JSON.stringify(moves)));
+    list.unshift(item);
     writeSaved(list);
-    st.deps.toast('Đã lưu vào Lịch sử luyện tập.');
+    st.deps.toast('Đã lưu vào Lịch sử luyện tập (trên trình duyệt này — đăng nhập để lưu theo tài khoản).');
   }
   function openSaved(item) {
     const pos = parseFen(item.fen);
@@ -694,6 +702,7 @@
       setTimeout(fillEvals, 300);
     },
     removeSaved(id) { writeSaved(savedList().filter((x) => x.id !== id)); },
+    clearSaved() { writeSaved([]); },
     scoreText,
   };
 })(typeof self !== 'undefined' ? self : this);

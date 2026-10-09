@@ -173,6 +173,22 @@ async function streamSearch(p, fen, moves, { multipv, movetime }, emit, isClosed
   }
 }
 
+// ---------- Giới hạn tải theo IP (Pikafish dùng CPU server) ----------
+const RATE_PER_MIN = Number(process.env.ENGINE_RATE_PER_MIN) || 150; // yêu cầu engine / phút / IP
+const STREAMS_PER_IP = Number(process.env.ENGINE_STREAMS_PER_IP) || 2; // luồng phân tích liên tục cùng lúc / IP
+const hits = new Map(); // ip -> { count, resetAt }
+const streams = new Map(); // ip -> số luồng đang mở
+const ipOf = (req) => req.ip || (req.socket && req.socket.remoteAddress) || '?';
+function overLimit(req) {
+  const ip = ipOf(req), now = Date.now();
+  let h = hits.get(ip);
+  if (!h || h.resetAt < now) { h = { count: 0, resetAt: now + 60000 }; hits.set(ip, h); }
+  h.count++;
+  return h.count > RATE_PER_MIN;
+}
+setInterval(() => { const now = Date.now(); for (const [ip, h] of hits) if (h.resetAt < now) hits.delete(ip); }, 60000).unref();
+const BUSY = { error: 'Engine đang quá tải — thử lại sau ít giây.' };
+
 function setup(app, express) {
   app.get('/api/engine', (req, res) => res.json({ available: available(), pool: POOL }));
 
@@ -180,6 +196,10 @@ function setup(app, express) {
     if (!available()) return res.status(503).json({ error: 'Chưa cài Pikafish (npm run setup:engine)' });
     const { fen, moves = [], multipv = 3, movetime = 30000 } = req.body || {};
     if (!validPosition(fen, moves)) return res.status(400).json({ error: 'Thế cờ không hợp lệ' });
+    const ip = ipOf(req);
+    if (overLimit(req) || (streams.get(ip) || 0) >= STREAMS_PER_IP) return res.status(429).json(BUSY);
+    streams.set(ip, (streams.get(ip) || 0) + 1);
+    res.on('close', () => { const n = (streams.get(ip) || 1) - 1; if (n > 0) streams.set(ip, n); else streams.delete(ip); });
     let closed = false;
     res.on('close', () => { closed = true; });
     res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' });
@@ -201,6 +221,7 @@ function setup(app, express) {
     if (!available()) return res.status(503).json({ error: 'Chưa cài Pikafish (npm run setup:engine)' });
     const { mode, fen, moves = [], level, played } = req.body || {};
     if (!validPosition(fen, moves)) return res.status(400).json({ error: 'Thế cờ không hợp lệ' });
+    if (overLimit(req)) return res.status(429).json(BUSY);
     try {
       const result = await withEngine(async (p) => {
         if (mode === 'analyze') {
