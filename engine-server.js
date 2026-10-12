@@ -142,7 +142,7 @@ const WEAK = {
 // Các phương án có thể đến từ hai lượt tính khác độ sâu → bỏ phương án trùng nước đầu (giữ cái xếp trên)
 const uniqueLines = (lines) => lines.filter(Boolean).filter((l, i, a) => a.findIndex((x) => x && x.move === l.move) === i);
 // Phân tích liên tục cho tab "Phân tích": gửi dần kết quả (mỗi dòng một JSON) tới khi hết giờ hoặc trình duyệt huỷ.
-const STREAM_MAX_MS = 60000;
+const CFG = require('./config-store.js').values; // giới hạn do admin chỉnh (Cài đặt hệ thống → Engine)
 async function streamSearch(p, fen, moves, { multipv, movetime }, emit, isClosed) {
   p.send('ucinewgame');
   p.send(`setoption name MultiPV value ${multipv}`);
@@ -174,8 +174,9 @@ async function streamSearch(p, fen, moves, { multipv, movetime }, emit, isClosed
 }
 
 // ---------- Giới hạn tải theo IP (Pikafish dùng CPU server) ----------
-const RATE_PER_MIN = Number(process.env.ENGINE_RATE_PER_MIN) || 150; // yêu cầu engine / phút / IP
-const STREAMS_PER_IP = Number(process.env.ENGINE_STREAMS_PER_IP) || 2; // luồng phân tích liên tục cùng lúc / IP
+// Biến môi trường (nếu đặt) được ưu tiên hơn cài đặt trong admin
+const RATE_PER_MIN = () => Number(process.env.ENGINE_RATE_PER_MIN) || CFG.ENGINE_RATE_PER_MIN; // yêu cầu engine / phút / IP
+const STREAMS_PER_IP = () => Number(process.env.ENGINE_STREAMS_PER_IP) || CFG.ENGINE_STREAMS_PER_IP; // luồng phân tích liên tục / IP
 const hits = new Map(); // ip -> { count, resetAt }
 const streams = new Map(); // ip -> số luồng đang mở
 const ipOf = (req) => req.ip || (req.socket && req.socket.remoteAddress) || '?';
@@ -184,7 +185,7 @@ function overLimit(req) {
   let h = hits.get(ip);
   if (!h || h.resetAt < now) { h = { count: 0, resetAt: now + 60000 }; hits.set(ip, h); }
   h.count++;
-  return h.count > RATE_PER_MIN;
+  return h.count > RATE_PER_MIN();
 }
 setInterval(() => { const now = Date.now(); for (const [ip, h] of hits) if (h.resetAt < now) hits.delete(ip); }, 60000).unref();
 const BUSY = { error: 'Engine đang quá tải — thử lại sau ít giây.' };
@@ -197,7 +198,7 @@ function setup(app, express) {
     const { fen, moves = [], multipv = 3, movetime = 30000 } = req.body || {};
     if (!validPosition(fen, moves)) return res.status(400).json({ error: 'Thế cờ không hợp lệ' });
     const ip = ipOf(req);
-    if (overLimit(req) || (streams.get(ip) || 0) >= STREAMS_PER_IP) return res.status(429).json(BUSY);
+    if (overLimit(req) || (streams.get(ip) || 0) >= STREAMS_PER_IP()) return res.status(429).json(BUSY);
     streams.set(ip, (streams.get(ip) || 0) + 1);
     res.on('close', () => { const n = (streams.get(ip) || 1) - 1; if (n > 0) streams.set(ip, n); else streams.delete(ip); });
     let closed = false;
@@ -208,7 +209,7 @@ function setup(app, express) {
         if (closed) return null;
         return streamSearch(p, fen, moves, {
           multipv: Math.max(1, Math.min(128, Number(multipv) || 1)), // 128 = mọi nước hợp lệ
-          movetime: Math.max(500, Math.min(STREAM_MAX_MS, Number(movetime) || 30000)),
+          movetime: Math.max(500, Math.min(CFG.ENGINE_STREAM_MAX_SEC * 1000, Number(movetime) || 30000)),
         }, (obj) => { if (!closed) res.write(JSON.stringify(obj) + '\n'); }, () => closed);
       });
     } catch (err) {

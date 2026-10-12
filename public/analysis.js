@@ -159,7 +159,8 @@
       btn('Đi lại', 'Xoá nước cuối', () => { if (st.moves.length) { st.moves.pop(); st.ply = Math.min(st.ply, st.moves.length); changed(); } }),
       btn('Bàn mới', 'Bắt đầu lại từ thế ban đầu', () => setPosition(X.initialBoard(), 'r')),
       btn('Bày thế cờ', 'Tự xếp quân lên bàn', () => startEdit()),
-      btn('Lưu', 'Lưu thế cờ & các nước đã đi vào Lịch sử luyện tập', () => saveCurrent(), 'btn sm ab-save'));
+      btn('Lưu', 'Lưu thế cờ & các nước đã đi vào Lịch sử luyện tập', () => saveCurrent(), 'btn sm ab-save'),
+      btn('Chia sẻ', 'Chia sẻ thế cờ này lên Cộng đồng ở trang chủ', () => st.deps.share && st.deps.share(currentItem()), 'btn sm'));
 
     // Engine
     E.engOn = h('input', { type: 'checkbox', class: 'toggle', 'aria-label': 'Bật phân tích' });
@@ -639,7 +640,7 @@
     try { const v = JSON.parse(store.get(SAVE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
   }
   function writeSaved(list) { store.set(SAVE_KEY, JSON.stringify(list.slice(0, SAVE_MAX))); }
-  function saveCurrent() {
+  function currentItem() {
     const fen = toFen(st.start, st.startSide);
     const moves = st.moves.map(toUci);
     // Tên tự đặt: các nước đầu theo ký hiệu Việt, hoặc "Thế cờ tự bày"
@@ -649,10 +650,14 @@
     const title = names.length ? (isStart ? '' : 'Thế cờ · ') + names.join(' ') + (st.moves.length > 6 ? ' …' : '') : (isStart ? 'Thế cờ ban đầu' : 'Thế cờ tự bày');
     const info = st.eng.info && st.eng.info.lines[0];
     const side = sideAt(st.ply);
-    const item = {
+    return {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, fen, moves, ply: st.ply, savedAt: Date.now(),
       score: info ? (side === 'r' ? info.score : -info.score) : null,
     };
+  }
+  function saveCurrent() {
+    const item = currentItem();
+    const { fen, moves } = item;
     // Đã đăng nhập → lưu theo tài khoản trên server; khách → lưu trên trình duyệt này
     const remote = st.deps.saveRemote && st.deps.saveRemote(item); // null khi chưa đăng nhập
     if (remote) {
@@ -703,6 +708,18 @@
     },
     removeSaved(id) { writeSaved(savedList().filter((x) => x.id !== id)); },
     clearSaved() { writeSaved([]); },
+    // Bàn cờ tại nước đang xem của một thế cờ đã lưu / chia sẻ ({ fen, moves (UCI), ply }) → { board, lastMove } hoặc null
+    boardAt(item) {
+      const pos = parseFen(item.fen);
+      if (typeof pos === 'string') return null;
+      let b = pos.board, last = null;
+      for (const u of (item.moves || []).slice(0, item.ply ?? item.moves.length)) {
+        const m = fromUci(u);
+        if (!m || !b[m.from[0]][m.from[1]]) break;
+        b = X.applyMove(b, m.from, m.to); last = m;
+      }
+      return { board: b, lastMove: last };
+    },
     scoreText,
   };
 })(typeof self !== 'undefined' ? self : this);

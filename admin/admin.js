@@ -23,6 +23,8 @@
       showLogin();
       throw new Error(json.error || 'Chưa đăng nhập.');
     }
+    // 404 không kèm lỗi = server đang chạy code cũ (chưa có API của trang mới)
+    if (res.status === 404 && !json.error) throw new Error('Server đang chạy bản cũ — hãy khởi động lại server để dùng mục này.');
     if (!res.ok) throw new Error(json.error || 'Có lỗi xảy ra.');
     return json;
   }
@@ -1057,11 +1059,373 @@
     draw();
   }
 
+  // ---------- Cài đặt hệ thống: form dựng tự động từ danh sách mục trong /site-config.js ----------
+  const CF = { saved: null, draft: null, defs: null, loading: false };
+  const cfClone = (o) => JSON.parse(JSON.stringify(o));
+  const cfSame = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  async function loadSiteConfig() {
+    if (CF.loading) return;
+    if (CF.draft && !cfSame(CF.draft, CF.saved)) return renderSiteConfig(); // đang sửa dở → giữ nguyên
+    CF.loading = true;
+    try {
+      setSiteConfig(await api('GET', '/site-config'));
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      CF.loading = false;
+    }
+  }
+  function setSiteConfig(d) {
+    CF.saved = cfClone(d.current);
+    CF.draft = cfClone(d.current);
+    CF.defs = d.defaults;
+    renderSiteConfig();
+  }
+
+  // Ô nhập cho từng kiểu mục
+  function cfInput(f) {
+    const v = CF.draft[f.key];
+    const set = (val) => { CF.draft[f.key] = val; cfState(); };
+    if (f.type === 'int') {
+      return h('div', { class: 'cf-num' }, h('input', { type: 'number', min: f.min, max: f.max, step: 1, value: v,
+        oninput: (e) => set(e.target.value === '' ? '' : Number(e.target.value)) }), f.unit ? h('span', {}, f.unit) : null);
+    }
+    if (f.type === 'text') return h('input', { value: v, maxlength: f.max, oninput: (e) => set(e.target.value) });
+    if (f.type === 'textarea') return h('textarea', { rows: 3, maxlength: f.max, oninput: (e) => set(e.target.value) }, v);
+    if (f.type === 'list') return h('textarea', { rows: 5, oninput: (e) => set(e.target.value.split('\n')) }, v.join('\n'));
+    if (f.type === 'tcs') {
+      // Chip từng nhịp + ô thêm nhịp
+      const box = h('div', { class: 'cf-tcs' });
+      const draw = () => {
+        const list = CF.draft[f.key];
+        const add = h('input', { placeholder: 'vd 3|2', size: 6, onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); push(); } } });
+        const push = () => {
+          const t = add.value.trim().replace(/[+ ]/, '|');
+          if (!/^\d{1,3}\|\d{1,2}$/.test(t)) return toast('Nhập dạng phút|giây, vd 10|5');
+          if (!list.includes(t)) set([...list, t]);
+          draw();
+        };
+        box.replaceChildren(...list.map((t) => h('span', { class: 'cf-chip' }, t === '0|0' ? 'Không giới hạn' : t.replace('|', '+'),
+          h('button', { type: 'button', title: 'Bỏ nhịp này', onclick: () => { set(list.filter((x) => x !== t)); draw(); } }, '×'))),
+        add, h('button', { type: 'button', class: 'btn sm', onclick: push }, 'Thêm'));
+      };
+      draw();
+      return box;
+    }
+    if (f.type === 'missions') {
+      const rows = v.map((m, i) => {
+        const upd = (k, val) => { CF.draft[f.key][i][k] = val; cfState(); };
+        return h('tr', { class: m.on ? '' : 'off' },
+          h('td', {}, h('input', { type: 'checkbox', checked: m.on, title: 'Bật/tắt nhiệm vụ', onchange: (e) => { upd('on', e.target.checked); e.target.closest('tr').classList.toggle('off', !e.target.checked); } })),
+          h('td', {}, h('input', { value: m.name, maxlength: 60, oninput: (e) => upd('name', e.target.value) })),
+          h('td', {}, h('input', { type: 'number', min: 1, max: 100, value: m.goal, oninput: (e) => upd('goal', Number(e.target.value)) })),
+          h('td', {}, h('input', { type: 'number', min: 0, value: m.reward, oninput: (e) => upd('reward', Number(e.target.value)) })));
+      });
+      return h('table', { class: 'cf-missions' }, h('thead', {}, h('tr', {}, h('th', {}, 'Bật'), h('th', {}, 'Tên nhiệm vụ'), h('th', {}, 'Mục tiêu'), h('th', {}, 'Thưởng (xu)'))), h('tbody', {}, ...rows));
+    }
+    return h('span', {}, '—');
+  }
+
+  function renderSiteConfig() {
+    const box = $('cf-groups');
+    if (!CF.draft) { box.replaceChildren(h('div', { class: 'empty' }, 'Đang tải…')); return; }
+    const S = window.SiteConfig;
+    $('cf-nav').replaceChildren(...S.GROUPS.map((g) => h('a', { href: '#site-config', onclick: (e) => { e.preventDefault(); $('cf-g-' + g.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, g.title)));
+    box.replaceChildren(...S.GROUPS.map((g) => h('section', { class: 'card cf-card', id: 'cf-g-' + g.id },
+      h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, g.title), g.desc ? h('p', {}, g.desc) : null)),
+      h('div', { class: 'cf-fields' + (g.fields.some((f) => ['missions', 'tcs'].includes(f.type)) ? ' wide' : '') },
+        ...g.fields.map((f) => h('label', { class: 'field cf-field', 'data-key': f.key },
+          h('span', { class: 'cf-label' }, f.label,
+            h('button', { type: 'button', class: 'cf-def', title: 'Trả về giá trị mặc định', onclick: (e) => { e.preventDefault(); CF.draft[f.key] = cfClone(CF.defs[f.key]); renderSiteConfig(); } }, '↺ mặc định')),
+          cfInput(f),
+          f.hint ? h('small', { class: 'muted' }, f.hint) : null))))));
+    cfState();
+  }
+  // Nút Lưu / Bỏ thay đổi, đánh dấu mục đã đổi & mục khác mặc định
+  function cfState() {
+    if (!CF.draft) return;
+    const dirty = !cfSame(CF.draft, CF.saved);
+    $('cf-save').disabled = !dirty;
+    $('cf-undo').disabled = !dirty;
+    if (dirty) { $('cf-status').textContent = 'Có thay đổi chưa lưu.'; $('cf-status').className = 'eco-status'; }
+    document.querySelectorAll('#cf-groups .cf-field').forEach((el) => {
+      const k = el.dataset.key;
+      el.classList.toggle('changed', !cfSame(CF.draft[k], CF.saved[k]));
+      el.classList.toggle('custom', !cfSame(CF.draft[k], CF.defs[k]));
+    });
+  }
+
+  $('cf-undo').addEventListener('click', () => { CF.draft = cfClone(CF.saved); renderSiteConfig(); $('cf-status').textContent = ''; });
+  $('cf-save').addEventListener('click', async () => {
+    $('cf-save').disabled = true;
+    try {
+      setSiteConfig(await api('PUT', '/site-config', CF.draft));
+      $('cf-status').textContent = '';
+      toast('Đã lưu — áp dụng ngay cho mọi người.');
+    } catch (err) {
+      $('cf-status').textContent = err.message;
+      $('cf-status').className = 'eco-status';
+      $('cf-save').disabled = false;
+    }
+  });
+  $('cf-reset').addEventListener('click', async () => {
+    if (!confirm('Đưa toàn bộ Cài đặt hệ thống về mặc định?')) return;
+    try {
+      setSiteConfig(await api('POST', '/site-config/reset'));
+      toast('Đã khôi phục cài đặt mặc định.');
+    } catch (err) { toast(err.message); }
+  });
+  window.addEventListener('beforeunload', (e) => { if (CF.draft && !cfSame(CF.draft, CF.saved)) { e.preventDefault(); e.returnValue = ''; } });
+
+  // ---------- Chức năng web: bật/tắt từng chức năng, lưu ngay khi gạt ----------
+  let featState = null;
+  async function loadFeatures() {
+    try {
+      featState = (await api('GET', '/features')).current;
+    } catch (err) { toast(err.message); }
+    renderFeatures();
+  }
+  function renderFeatures() {
+    const box = $('ft-grid');
+    const offCount = featState ? Object.values(featState).filter((v) => v === false).length : 0;
+    $('c-features-off').hidden = !offCount;
+    $('c-features-off').textContent = offCount + ' tắt';
+    $('ft-all-on').disabled = !offCount;
+    if (!featState) { box.replaceChildren(h('div', { class: 'empty' }, 'Đang tải…')); return; }
+    box.replaceChildren(...window.Features.GROUPS.map((g) => h('section', { class: 'card ft-card' },
+      h('h3', {}, g.title),
+      ...g.items.map((f) => {
+        const on = featState[f.key] !== false;
+        return h('label', { class: 'ft-row' + (on ? '' : ' off') },
+          h('span', { class: 'ft-text' }, h('b', {}, f.label), h('small', {}, f.desc)),
+          h('span', { class: 'ft-state' }, on ? 'Đang bật' : 'Đã tắt'),
+          h('input', { type: 'checkbox', class: 'ft-switch', checked: on, onchange: (e) => setFeature(f, e.target.checked, e.target) }));
+      }))));
+  }
+  async function setFeature(f, on, input) {
+    if (!on && !confirm(`Tắt "${f.label}"?\nNgười chơi sẽ không thấy và không dùng được chức năng này cho tới khi bạn bật lại.`)) { input.checked = true; return; }
+    input.disabled = true;
+    try {
+      featState = (await api('PUT', '/features', { [f.key]: on })).current;
+      toast(on ? `Đã bật "${f.label}".` : `Đã tắt "${f.label}".`);
+    } catch (err) { toast(err.message); }
+    renderFeatures();
+  }
+  $('ft-all-on').addEventListener('click', async () => {
+    try {
+      featState = (await api('PUT', '/features', window.Features.defaults())).current;
+      toast('Đã bật lại tất cả chức năng.');
+    } catch (err) { toast(err.message); }
+    renderFeatures();
+  });
+  // Hiện số chức năng đang tắt trên menu ngay khi mở trang quản trị
+  setTimeout(() => api('GET', '/features').then((d) => { featState = d.current; renderFeatures(); }).catch(() => {}), 0);
+
+  // ---------- Cửa hàng vật phẩm: mọi bàn cờ, quân cờ, đồng hồ người chơi thấy trong Túi đồ & Cửa hàng ----------
+  const SH = { items: null, saved: null, locked: [], library: [], cat: 'board', loading: false };
+  const SH_CATS = { board: 'Bàn cờ', pieces: 'Quân cờ', clock: 'Đồng hồ' };
+  const CLOCK_NAMES = { classic: 'Cổ điển', minimal: 'Tối giản', digital: 'Điện tử', wood: 'Mộc', cinnabar: 'Đỏ son', tournament: 'Thi đấu' };
+  const shClone = (o) => JSON.parse(JSON.stringify(o));
+
+  async function loadShop() {
+    if (SH.loading) return;
+    if (SH.items && shopDirty()) return renderShop(); // đang sửa dở → giữ nguyên
+    SH.loading = true;
+    try {
+      await getTheme();
+      setShopData(await api('GET', '/shop'));
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      SH.loading = false;
+    }
+  }
+  function setShopData(d) {
+    SH.items = shClone(d.items);
+    SH.saved = shClone(d.items);
+    SH.locked = d.locked || [];
+    SH.library = d.library || [];
+    renderShop();
+  }
+  const shopDirty = () => JSON.stringify(SH.items) !== JSON.stringify(SH.saved);
+
+  // Vật phẩm → cấu hình vẽ (giống trang chơi; "Theo Tượng Kỳ" = giao diện mặc định ở trang Bàn cờ & quân cờ)
+  function shopTheme(it) {
+    const base = themeCache || BR.DEFAULT_THEME;
+    if (it.cat === 'board') {
+      const b = it.board;
+      const board = b.type === 'default' ? base.board
+        : b.type === 'image' ? (b.xs ? b : BR.BUILTIN_BOARDS.find((x) => x.src === b.src) || base.board)
+          : { type: 'classic', name: it.name, palette: b.palette };
+      return { board, pieces: base.pieces };
+    }
+    const style = it.pieces.style === 'default' ? base.pieces.style : it.pieces.style;
+    return { board: { type: 'classic', palette: 'classic' }, pieces: { ...base.pieces, style } };
+  }
+  function shopThumb(it) {
+    if (it.cat === 'clock') {
+      return h('div', { class: 'sh-thumb sh-clock clock-' + it.clock.style }, h('div', { class: 'clock-demo running' }, h('b', {}, '05:00')));
+    }
+    const t = shopTheme(it);
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'sh-thumb');
+    if (it.cat === 'board') {
+      const g = BR.drawBoard(svg, t);
+      const b = XQ.initialBoard();
+      for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) if (b[r][c]) BR.drawPiece(svg, t, g.unit, b[r][c], XQ.CHARS[b[r][c]], g.xs[c], g.ys[r]);
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    } else {
+      BR.drawBoard(svg, t);
+      svg.setAttribute('viewBox', '230 330 440 340');
+      BR.drawPiece(svg, t, 1.1, 'rK', XQ.CHARS.rK, 350, 430);
+      BR.drawPiece(svg, t, 1.1, 'bK', XQ.CHARS.bK, 550, 430);
+      BR.drawPiece(svg, t, 1.1, 'rN', XQ.CHARS.rN, 350, 570);
+      BR.drawPiece(svg, t, 1.1, 'bR', XQ.CHARS.bR, 550, 570);
+    }
+    return svg;
+  }
+  // Mô tả kiểu (để admin biết món này vẽ bằng gì)
+  function shopKind(it) {
+    if (it.cat === 'clock') return 'Kiểu: ' + (CLOCK_NAMES[it.clock.style] || it.clock.style);
+    if (it.cat === 'pieces') return it.pieces.style === 'default' ? 'Theo giao diện mặc định' : 'Kiểu: ' + (BR.PIECE_STYLES[it.pieces.style] || it.pieces.style);
+    const b = it.board;
+    if (b.type === 'default') return 'Theo giao diện mặc định';
+    if (b.type === 'classic') return 'Vẽ · bảng màu ' + ((BR.PALETTES[b.palette] || {}).name || b.palette);
+    return b.xs ? 'Ảnh tải lên' : 'Ảnh có sẵn';
+  }
+
+  function renderShop() {
+    const box = $('sh-grid');
+    if (!SH.items) { box.replaceChildren(h('div', { class: 'empty' }, 'Đang tải…')); return; }
+    document.querySelectorAll('#sh-tabs button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.cat === SH.cat);
+      b.querySelector('em').textContent = SH.items.filter((x) => x.cat === b.dataset.cat).length;
+    });
+    const list = SH.items.filter((x) => x.cat === SH.cat);
+    const move = (it, d) => {
+      const group = SH.items.filter((x) => x.cat === it.cat);
+      const j = group.indexOf(it) + d;
+      if (j < 0 || j >= group.length) return;
+      const a = SH.items.indexOf(it), b = SH.items.indexOf(group[j]);
+      [SH.items[a], SH.items[b]] = [SH.items[b], SH.items[a]];
+      renderShop();
+    };
+    box.replaceChildren(...list.map((it, i) => {
+      const locked = SH.locked.includes(it.id);
+      const upd = (k, v) => { it[k] = v; renderShopState(); };
+      const price = h('input', { type: 'number', min: 0, step: 1, value: it.price, disabled: locked, oninput: (e) => upd('price', e.target.value === '' ? '' : Number(e.target.value)) });
+      const sale = h('label', { class: 'sh-sale' + (it.hidden ? ' off' : ''), title: locked ? 'Món mặc định luôn có' : '' },
+        h('input', { type: 'checkbox', checked: !it.hidden, disabled: locked, onchange: (e) => { it.hidden = !e.target.checked; renderShop(); } }),
+        it.hidden ? 'Đã ẩn khỏi Cửa hàng' : 'Đang bán');
+      return h('div', { class: 'card sh-item' + (it.hidden ? ' is-hidden' : '') },
+        h('div', { class: 'sh-top' }, shopThumb(it),
+          h('div', { class: 'sh-order' },
+            h('button', { class: 'btn sm', title: 'Đưa lên trước', disabled: i === 0, onclick: () => move(it, -1) }, '↑'),
+            h('button', { class: 'btn sm', title: 'Đưa xuống sau', disabled: i === list.length - 1, onclick: () => move(it, 1) }, '↓'),
+            locked ? null : h('button', { class: 'btn sm danger', title: 'Xoá vật phẩm', onclick: () => removeShopItem(it) }, '×'))),
+        h('div', { class: 'sh-kind' }, locked ? h('span', { class: 'tag' }, 'Mặc định') : null, h('small', { class: 'muted' }, shopKind(it))),
+        h('label', { class: 'field' }, h('span', {}, 'Tên'), h('input', { value: it.name, maxlength: 40, oninput: (e) => upd('name', e.target.value) })),
+        h('label', { class: 'field' }, h('span', {}, 'Mô tả'), h('input', { value: it.desc || '', maxlength: 80, oninput: (e) => upd('desc', e.target.value) })),
+        h('div', { class: 'sh-row' }, h('label', { class: 'field' }, h('span', {}, locked ? 'Giá (luôn miễn phí)' : 'Giá (xu, 0 = miễn phí)'), price), sale));
+    }), h('button', { class: 'card sh-add', onclick: () => addShopItem(SH.cat) }, h('b', {}, '+'), `Thêm ${SH_CATS[SH.cat].toLowerCase()}`));
+    renderShopState();
+  }
+  function renderShopState() {
+    const dirty = shopDirty();
+    $('sh-save').disabled = !dirty;
+    $('sh-undo').disabled = !dirty;
+    $('sh-status').textContent = dirty ? 'Có thay đổi chưa lưu — bấm “Lưu thay đổi” để người chơi thấy.' : '';
+  }
+
+  function removeShopItem(it) {
+    if (!confirm(`Xoá "${it.name}"?\nNgười chơi đã mua sẽ mất món này (đang dùng thì tự về món mặc định).\nMuốn ngừng bán nhưng giữ cho người đã mua → bỏ chọn “Đang bán”.`)) return;
+    SH.items = SH.items.filter((x) => x !== it);
+    renderShop();
+  }
+
+  // Thêm vật phẩm mới: chọn kiểu rồi đặt tên, giá
+  function addShopItem(cat) {
+    let sources;
+    if (cat === 'board') {
+      sources = [
+        ...Object.entries(BR.PALETTES).map(([k, p]) => ({ label: 'Vẽ · ' + p.name, name: p.name, board: { type: 'classic', palette: k } })),
+        ...BR.BUILTIN_BOARDS.filter((b) => b.type === 'image').map((b) => ({ label: 'Ảnh · ' + b.name, name: b.name, board: { type: 'image', src: b.src } })),
+        ...SH.library.map((b) => ({ label: 'Ảnh tải lên · ' + b.name, name: b.name, board: { type: 'image', src: b.src, width: b.width, height: b.height, xs: b.xs, ys: b.ys, bg: b.bg } })),
+      ];
+    } else if (cat === 'pieces') {
+      sources = Object.entries(BR.PIECE_STYLES).map(([k, n]) => ({ label: n, name: n, pieces: { style: k } }));
+    } else {
+      sources = Object.entries(CLOCK_NAMES).map(([k, n]) => ({ label: n, name: n, clock: { style: k } }));
+    }
+    let pick = 0;
+    const err = h('p', { class: 'form-err' });
+    const name = h('input', { maxlength: 40, value: sources[0].name });
+    const desc = h('input', { maxlength: 80, placeholder: 'Một dòng giới thiệu ngắn' });
+    const price = h('input', { type: 'number', min: 0, step: 1, value: 100 });
+    const preview = h('div', { class: 'sh-add-preview' });
+    const draft = () => {
+      const { label, ...src } = sources[pick];
+      return { cat, ...src, name: name.value.trim(), desc: desc.value.trim(), price: Number(price.value), hidden: false };
+    };
+    const show = () => preview.replaceChildren(shopThumb(draft()));
+    const select = h('select', { onchange: (e) => {
+      const prev = sources[pick].name;
+      pick = +e.target.value;
+      if (!name.value.trim() || name.value === prev) name.value = sources[pick].name;
+      show();
+    } }, ...sources.map((s, i) => h('option', { value: i }, s.label)));
+    const close = () => modal.remove();
+    const form = h('form', { class: 'ud-form', onsubmit: (e) => {
+      e.preventDefault();
+      const it = draft();
+      if (!it.name) { err.textContent = 'Cần có tên.'; return; }
+      if (!Number.isInteger(it.price) || it.price < 0) { err.textContent = 'Giá phải là số nguyên ≥ 0.'; return; }
+      SH.items.push(it);
+      close();
+      renderShop();
+      toast('Đã thêm — bấm “Lưu thay đổi” để đưa lên Cửa hàng.');
+    } },
+      h('h2', {}, `Thêm ${SH_CATS[cat].toLowerCase()}`),
+      preview,
+      h('label', { class: 'field' }, h('span', {}, 'Kiểu'), select,
+        cat === 'board' ? h('small', { class: 'muted' }, 'Muốn dùng ảnh riêng: tải ảnh lên ở trang “Bàn cờ & quân cờ” trước, ảnh sẽ có trong danh sách này.') : null),
+      h('label', { class: 'field' }, h('span', {}, 'Tên'), name),
+      h('label', { class: 'field' }, h('span', {}, 'Mô tả'), desc),
+      h('label', { class: 'field' }, h('span', {}, 'Giá (xu, 0 = miễn phí)'), price),
+      err,
+      h('div', { class: 'ud-form-acts' }, h('button', { class: 'btn', type: 'button', onclick: close }, 'Huỷ'), h('button', { class: 'btn primary' }, 'Thêm')));
+    const modal = h('div', { class: 'modal', onclick: (e) => { if (e.target === modal) close(); } }, h('div', { class: 'modal-card' }, form));
+    document.body.appendChild(modal);
+    show();
+  }
+
+  document.querySelectorAll('#sh-tabs button').forEach((b) => b.addEventListener('click', () => { SH.cat = b.dataset.cat; renderShop(); }));
+  $('sh-undo').addEventListener('click', () => { SH.items = shClone(SH.saved); renderShop(); });
+  $('sh-save').addEventListener('click', async () => {
+    $('sh-save').disabled = true;
+    try {
+      setShopData(await api('PUT', '/shop', { items: SH.items }));
+      toast('Đã lưu — Cửa hàng của người chơi cập nhật ngay.');
+    } catch (err) {
+      $('sh-status').textContent = err.message;
+      $('sh-save').disabled = false;
+    }
+  });
+  $('sh-reset').addEventListener('click', async () => {
+    if (!confirm('Đưa Cửa hàng về danh sách vật phẩm gốc? Các món đã thêm sẽ bị xoá, tên & giá về như ban đầu.')) return;
+    try {
+      setShopData(await api('POST', '/shop/reset'));
+      toast('Đã khôi phục vật phẩm gốc.');
+    } catch (err) { toast(err.message); }
+  });
+  window.addEventListener('beforeunload', (e) => { if (SH.items && shopDirty()) { e.preventDefault(); e.returnValue = ''; } });
+
   // ---------- Điều hướng ----------
   // Menu trái: mỗi mục là một trang, ghi vào #hash để tải lại vẫn giữ trang
   const PAGES = {
-    overview: 'Tổng quan', rooms: 'Phòng & trận đấu', users: 'Kỳ thủ', user: 'Chi tiết kỳ thủ', ranking: 'Bảng xếp hạng',
-    puzzles: 'Cờ thế', puzzle: 'Soạn cờ thế', feedback: 'Góp ý', theme: 'Bàn cờ & quân cờ', economy: 'Chế độ chơi & xu',
+    overview: 'Tổng quan', features: 'Chức năng web', 'site-config': 'Cài đặt hệ thống', rooms: 'Phòng & trận đấu', users: 'Kỳ thủ', user: 'Chi tiết kỳ thủ', ranking: 'Bảng xếp hạng',
+    puzzles: 'Cờ thế', puzzle: 'Soạn cờ thế', feedback: 'Góp ý', theme: 'Bàn cờ & quân cờ', shop: 'Cửa hàng vật phẩm', economy: 'Chế độ chơi & xu', community: 'Cộng đồng',
     tournaments: 'Giải đấu', tournament: 'Chi tiết giải',
   };
   function route() {
@@ -1083,7 +1447,11 @@
     if (name === 'puzzles') loadPuzzles();
     if (name === 'ranking') loadRanking();
     if (name === 'theme') loadTheme();
+    if (name === 'shop') loadShop();
+    if (name === 'features') loadFeatures();
+    if (name === 'site-config') loadSiteConfig();
     if (name === 'economy') loadEconomy(true);
+    if (name === 'community') loadCommunityAdmin();
     if (name === 'feedback') loadFeedback();
     window.scrollTo(0, 0);
     closeMenu();
@@ -1102,6 +1470,31 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2400);
   }
+
+  // ---------- Cộng đồng: xem & xoá tin nhắn ----------
+  async function loadCommunityAdmin() {
+    const box = $('cm-admin-list');
+    box.replaceChildren(h('div', { class: 'empty' }, 'Đang tải…'));
+    try {
+      const { messages } = await api('GET', '/community');
+      renderCommunityAdmin(messages);
+    } catch (err) { box.replaceChildren(h('div', { class: 'empty' }, err.message)); }
+  }
+  function renderCommunityAdmin(messages) {
+    const box = $('cm-admin-list');
+    if (!messages.length) return box.replaceChildren(h('div', { class: 'empty' }, 'Chưa có tin nhắn nào.'));
+    box.replaceChildren(h('table', { class: 'table' },
+      h('thead', {}, h('tr', {}, h('th', {}, 'Người gửi'), h('th', {}, 'Nội dung'), h('th', {}, 'Thời gian'), h('th'))),
+      h('tbody', {}, messages.map((m) => h('tr', {},
+        h('td', {}, h('b', {}, m.author.name), h('small', { class: 'muted sub' }, '@' + (m.author.username || ''))),
+        h('td', { class: 'cm-admin-text' }, m.text || '', m.position ? h('small', { class: 'muted sub' }, `Đính kèm thế cờ: ${m.position.title} (${m.position.moves.length} nước)`) : null),
+        h('td', {}, new Date(m.at).toLocaleString('vi-VN')),
+        h('td', { class: 'num' }, h('button', { class: 'btn sm danger', onclick: async () => {
+          if (!confirm('Xoá tin nhắn này?')) return;
+          try { renderCommunityAdmin((await api('DELETE', '/community/' + encodeURIComponent(m.id))).messages); toast('Đã xoá tin.'); } catch (err) { toast(err.message); }
+        } }, 'Xoá')))))));
+  }
+  $('cm-reload').addEventListener('click', loadCommunityAdmin);
 
   // ---------- Chế độ chơi & xu (nhịp, phí, thưởng) ----------
   const EC = { current: null, defaults: null, draft: null, loading: false };
@@ -1226,6 +1619,7 @@
   document.fonts && document.fonts.ready.then(() => T.draft && renderTheme());
 
   async function loadTheme() {
+    loadPub();
     if (T.current || T.loading) return;
     T.loading = true;
     try {
@@ -1293,11 +1687,12 @@
     const d = T.draft;
 
     // Danh sách bàn cờ: có sẵn + đã tải lên + ảnh đang chờ lưu
-    const boards = [...BR.BUILTIN_BOARDS, ...T.library];
+    const palettes = Object.entries(BR.PALETTES).map(([palette, p]) => ({ type: 'classic', name: p.name, palette }));
+    const boards = [...BR.BUILTIN_BOARDS.filter((b) => b.type === 'image'), ...palettes, ...T.library];
     if (T.pendingUrl && !boards.some((b) => b.src === T.pendingUrl)) boards.push(d.board);
     $('board-list').replaceChildren(...boards.map((board) => {
-      const active = board.type === d.board.type && (board.type === 'classic' || board.src === d.board.src);
-      const opt = h('div', { class: 'opt' + (active ? ' active' : ''), title: board.name, onclick: () => selectBoard(board) }, boardThumb(board), board.name);
+      const active = board.type === d.board.type && (board.type === 'classic' ? (board.palette || 'classic') === (d.board.palette || 'classic') : board.src === d.board.src);
+      const opt = h('div', { class: 'opt' + (active ? ' active' : ''), title: board.name, onclick: () => selectBoard(board) }, boardThumb(board), board.name, pubBadge('board', boardKey(board)));
       if (board.type === 'image' && board.src.startsWith('/uploads/')) {
         opt.appendChild(h('button', { class: 'del', title: 'Xoá bàn cờ này', onclick: (e) => { e.stopPropagation(); deleteBoard(board); } }, '×'));
       }
@@ -1328,7 +1723,7 @@
       BR.drawPiece(svg, t, 1.1, 'bK', XQ.CHARS.bK, 550, 430);
       BR.drawPiece(svg, t, 1.1, 'rN', XQ.CHARS.rN, 350, 570);
       BR.drawPiece(svg, t, 1.1, 'bR', XQ.CHARS.bR, 550, 570);
-      return h('div', { class: 'opt' + (d.pieces.style === style ? ' active' : ''), onclick: () => { d.pieces.style = style; renderTheme(); } }, svg, name);
+      return h('div', { class: 'opt' + (d.pieces.style === style ? ' active' : ''), onclick: () => { d.pieces.style = style; renderTheme(); } }, svg, name, pubBadge('pieces', style));
     }));
 
     const font = $('pc-font');
@@ -1343,6 +1738,108 @@
     $('theme-dirty').textContent = dirty ? 'Có thay đổi chưa lưu' : 'Đang áp dụng cho mọi người chơi';
     $('theme-save').disabled = !dirty;
     renderPreview();
+    renderPublish();
+  }
+
+  // ---------- Phát hành bàn cờ / kiểu quân cho kỳ thủ: không phát hành · miễn phí (tặng mọi kỳ thủ) · bán bằng xu ----------
+  // Dùng chung danh sách vật phẩm với trang Cửa hàng vật phẩm (/admin/api/shop)
+  const PUB = { items: null, ui: { board: null, pieces: null }, busy: false };
+  async function loadPub() {
+    try { PUB.items = (await api('GET', '/shop')).items; } catch (err) { /* chưa có quyền / server cũ */ }
+    if (T.draft) renderTheme();
+  }
+  const boardKey = (b) => (b.type === 'classic' ? 'c:' + (b.palette || 'classic') : b.type === 'image' ? 'i:' + b.src : 'd');
+  const itemKey = (it) => (it.cat === 'board' ? (it.board.type === 'default' ? 'd' : boardKey(it.board)) : it.cat === 'pieces' ? it.pieces.style : null);
+  const pubItem = (cat, key) => (PUB.items || []).find((it) => it.cat === cat && itemKey(it) === key);
+  const pubMode = (it) => (!it || it.hidden ? 'none' : it.price === 0 ? 'free' : 'sale');
+  function pubBadge(cat, key) {
+    const it = pubItem(cat, key), m = pubMode(it);
+    if (m === 'none') return null;
+    return h('span', { class: 'pub-badge ' + m }, m === 'free' ? 'Miễn phí' : `${fmt(it.price)} xu`);
+  }
+  function renderPublish() {
+    if (!T.draft) return;
+    const d = T.draft;
+    const pendingImg = d.board.type === 'image' && T.pendingUrl && d.board.src === T.pendingUrl;
+    renderPubBox('board', $('pub-board'), boardKey(d.board), d.board.name || 'Bàn cờ', pendingImg);
+    renderPubBox('pieces', $('pub-pieces'), d.pieces.style, BR.PIECE_STYLES[d.pieces.style] || 'Quân cờ', false);
+  }
+  function renderPubBox(cat, box, key, defName, pendingImg) {
+    const it = pubItem(cat, key);
+    // Khởi tạo lại ô nhập khi đổi lựa chọn
+    if (!PUB.ui[cat] || PUB.ui[cat].key !== key) {
+      PUB.ui[cat] = { key, mode: pubMode(it), price: it && it.price ? it.price : 100, name: it ? it.name : defName, desc: it ? it.desc || '' : '' };
+    }
+    const u = PUB.ui[cat];
+    const what = cat === 'board' ? 'bàn cờ' : 'kiểu quân';
+    const status = !PUB.items ? 'Đang tải…'
+      : !it ? `Chưa phát hành — kỳ thủ chưa có ${what} này.`
+        : it.hidden ? 'Đã ngừng phát hành — ai đã có vẫn giữ, không bán thêm.'
+          : it.price === 0 ? 'Đang tặng miễn phí — mọi kỳ thủ đều có trong Túi đồ.'
+            : `Đang bán trong Cửa hàng: ${fmt(it.price)} xu.`;
+    const opt = (m, label, sub) => h('label', { class: 'pub-opt' + (u.mode === m ? ' on' : '') },
+      h('input', { type: 'radio', name: 'pub-' + cat, checked: u.mode === m, onchange: () => { u.mode = m; renderPublish(); } }),
+      h('span', {}, h('b', {}, label), h('small', {}, sub)));
+    box.replaceChildren(
+      h('div', { class: 'pub-head' }, h('b', {}, `Phát hành ${what} cho kỳ thủ`), h('span', { class: 'pub-status ' + pubMode(it) }, status)),
+      h('div', { class: 'pub-opts' },
+        opt('none', 'Không phát hành', 'Không có trong Túi đồ / Cửa hàng'),
+        opt('free', 'Miễn phí', 'Tặng cho mọi kỳ thủ'),
+        opt('sale', 'Bán bằng xu', 'Đưa vào Cửa hàng')),
+      u.mode === 'none' ? null : h('div', { class: 'pub-fields' },
+        h('label', { class: 'field' }, h('span', {}, 'Tên trong Túi đồ'), h('input', { value: u.name, maxlength: 40, oninput: (e) => { u.name = e.target.value; } })),
+        h('label', { class: 'field' }, h('span', {}, 'Mô tả ngắn'), h('input', { value: u.desc, maxlength: 80, placeholder: 'vd Gỗ sẫm màu, ấm', oninput: (e) => { u.desc = e.target.value; } })),
+        u.mode === 'sale' ? h('label', { class: 'field' }, h('span', {}, 'Giá (xu)'), h('input', { type: 'number', min: 1, step: 1, value: u.price, oninput: (e) => { u.price = Number(e.target.value); } })) : null),
+      pendingImg ? h('p', { class: 'muted small' }, 'Ảnh mới sẽ được tải lên khi bấm Lưu phát hành — không đổi bàn cờ mặc định.') : null,
+      h('button', { class: 'btn primary sm', disabled: PUB.busy || !PUB.items, onclick: () => savePub(cat) }, PUB.busy ? 'Đang lưu…' : 'Lưu phát hành'));
+  }
+  async function savePub(cat) {
+    const u = PUB.ui[cat];
+    if (u.mode !== 'none' && !String(u.name || '').trim()) return toast('Cần đặt tên hiển thị.');
+    if (u.mode === 'sale' && !(Number.isInteger(u.price) && u.price > 0)) return toast('Giá phải là số nguyên lớn hơn 0.');
+    PUB.busy = true; renderPublish();
+    try {
+      let spec, key = u.key;
+      if (cat === 'board') {
+        const b = clone(T.draft.board);
+        // Ảnh vừa chọn chưa tải lên: tải lên & đưa vào thư viện (không áp dụng làm mặc định)
+        if (b.type === 'image' && T.pendingFile && b.src === T.pendingUrl) {
+          const res = await fetch('/admin/api/uploads', { method: 'POST', headers: { 'Content-Type': T.pendingFile.type }, body: T.pendingFile, credentials: 'same-origin' });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || 'Tải ảnh lên thất bại.');
+          b.src = json.src;
+          const added = await api('POST', '/boards', { board: b });
+          T.library = added.library;
+          T.draft.board = clone(added.board);
+          clearPending();
+          key = boardKey(added.board);
+          PUB.ui.board.key = key;
+        } else if (b.type === 'image' && !BR.BUILTIN_BOARDS.some((x) => x.src === b.src) && T.library.some((x) => x.src === b.src)) {
+          await api('POST', '/boards', { board: b }); // cập nhật toạ độ lưới mới nhất cho vật phẩm
+        }
+        spec = { board: b.type === 'classic' ? { type: 'classic', palette: b.palette || 'classic' } : { type: 'image', src: T.draft.board.src } };
+      } else {
+        spec = { pieces: { style: key } };
+      }
+      const items = clone(PUB.items);
+      const i = items.findIndex((it) => it.cat === cat && itemKey(it) === key);
+      if (u.mode === 'none') {
+        if (i >= 0) items[i].hidden = true;
+      } else {
+        const fields = { name: u.name.trim(), desc: (u.desc || '').trim(), price: u.mode === 'free' ? 0 : u.price, hidden: false };
+        if (i >= 0) Object.assign(items[i], fields, spec);
+        else items.push({ cat, ...spec, ...fields });
+      }
+      const d = await api('PUT', '/shop', { items });
+      PUB.items = d.items;
+      if (typeof SH !== 'undefined' && SH.items && JSON.stringify(SH.items) === JSON.stringify(SH.saved)) setShopData(d);
+      toast(u.mode === 'none' ? 'Đã ngừng phát hành.' : u.mode === 'free' ? 'Đã tặng miễn phí cho mọi kỳ thủ.' : `Đã đưa vào Cửa hàng với giá ${fmt(u.price)} xu.`);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      PUB.busy = false;
+      renderTheme();
+    }
   }
 
   function selectBoard(board) {

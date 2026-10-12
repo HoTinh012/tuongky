@@ -257,6 +257,99 @@ module.exports = function setupAdmin(app, game) {
     res.json({ current, defaults: economy.defaults() });
   });
 
+  // ---------- Cài đặt hệ thống: Elo, rank, ghép trận, nhiệm vụ, nội dung trang chủ... ----------
+  const config = game.config;
+  api.get('/site-config', (req, res) => res.json({ current: config.values, defaults: config.defaults() }));
+  api.put('/site-config', (req, res) => {
+    try {
+      const current = config.update(req.body || {});
+      game.onConfigChange(current);
+      res.json({ current, defaults: config.defaults() });
+    } catch (err) {
+      if (!(err instanceof config.ConfigError)) console.error(err);
+      res.status(400).json({ error: err instanceof config.ConfigError ? err.message : 'Không lưu được cài đặt.' });
+    }
+  });
+  api.post('/site-config/reset', (req, res) => {
+    const current = config.reset();
+    game.onConfigChange(current);
+    res.json({ current, defaults: config.defaults() });
+  });
+
+  // ---------- Bật/tắt chức năng của web ----------
+  const features = game.features;
+  api.get('/features', (req, res) => res.json({ current: features.current() }));
+  api.put('/features', (req, res) => {
+    const current = features.update(req.body || {});
+    game.onFeaturesChange(current);
+    res.json({ current });
+  });
+
+  // ---------- Cửa hàng vật phẩm: bàn cờ, quân cờ, đồng hồ (Túi đồ & Cửa hàng của người chơi) ----------
+  const shop = game.shop;
+  const shopData = () => ({ items: shop.current(), locked: shop.LOCKED, library: game.theme.library() });
+  api.get('/shop', (req, res) => res.json(shopData()));
+  api.put('/shop', (req, res) => {
+    try {
+      const items = shop.update((req.body || {}).items);
+      game.onShopChange(items);
+      res.json(shopData());
+    } catch (err) {
+      if (!(err instanceof shop.ShopError)) console.error(err);
+      res.status(400).json({ error: err instanceof shop.ShopError ? err.message : 'Không lưu được vật phẩm.' });
+    }
+  });
+  api.post('/shop/reset', (req, res) => {
+    const items = shop.reset();
+    game.onShopChange(items);
+    res.json(shopData());
+  });
+
+  // ---------- Góp ý giao diện (chế độ ?gopy=1 trên trang chơi): ghi chú gắn vào từng phần tử ----------
+  let uiNotes = null;
+  const loadNotes = async () => uiNotes || (uiNotes = (await storage.loadUiNotes()) || []);
+  const saveNotes = () => Promise.resolve(storage.saveUiNotes(uiNotes)).catch((err) => console.error('Không lưu được góp ý giao diện:', err.message));
+  const clip = (v, n) => String(v ?? '').slice(0, n);
+  api.get('/ui-notes', async (req, res) => res.json({ notes: await loadNotes() }));
+  api.post('/ui-notes', async (req, res) => {
+    const x = req.body || {};
+    const text = clip(x.text, 1000).trim();
+    if (!text) return res.status(400).json({ error: 'Ghi chú trống.' });
+    await loadNotes();
+    const note = {
+      id: crypto.randomBytes(5).toString('hex'), at: Date.now(), status: 'open', text,
+      page: clip(x.page, 120), screen: clip(x.screen, 40), selector: clip(x.selector, 400), label: clip(x.label, 160),
+      rect: x.rect && typeof x.rect === 'object' ? { x: Math.round(+x.rect.x || 0), y: Math.round(+x.rect.y || 0), w: Math.round(+x.rect.w || 0), h: Math.round(+x.rect.h || 0) } : null,
+      viewport: clip(x.viewport, 20),
+    };
+    uiNotes.push(note);
+    saveNotes();
+    res.json({ note, notes: uiNotes });
+  });
+  api.put('/ui-notes/:id', async (req, res) => {
+    await loadNotes();
+    const n = uiNotes.find((x) => x.id === req.params.id);
+    if (!n) return res.status(404).json({ error: 'Không tìm thấy ghi chú.' });
+    if (typeof req.body.text === 'string' && req.body.text.trim()) n.text = clip(req.body.text, 1000).trim();
+    if (['open', 'done'].includes(req.body.status)) n.status = req.body.status;
+    saveNotes();
+    res.json({ notes: uiNotes });
+  });
+  api.delete('/ui-notes/:id', async (req, res) => {
+    await loadNotes();
+    uiNotes = uiNotes.filter((x) => x.id !== req.params.id);
+    saveNotes();
+    res.json({ notes: uiNotes });
+  });
+
+  // ---------- Cộng đồng: xem & xoá tin nhắn ----------
+  api.get('/community', (req, res) => res.json({ messages: game.community.all() }));
+  api.delete('/community/:id', (req, res) => {
+    const id = String(req.params.id);
+    if (game.community.remove(id)) game.onCommunityDelete(id);
+    res.json({ messages: game.community.all() });
+  });
+
   // ---------- Giao diện bàn cờ & quân cờ ----------
   const theme = game.theme;
 
@@ -290,9 +383,22 @@ module.exports = function setupAdmin(app, game) {
     }
   });
 
+  // Đưa ảnh bàn cờ vào thư viện (không áp dụng làm mặc định) — dùng khi phát hành bàn cờ mới vào Cửa hàng
+  api.post('/boards', (req, res) => {
+    try {
+      const board = theme.addBoard((req.body || {}).board);
+      res.json({ board, current: theme.current(), library: theme.library() });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   api.delete('/boards', (req, res) => {
     try {
-      theme.removeBoard(String((req.body && req.body.src) || ''));
+      const src = String((req.body && req.body.src) || '');
+      const used = game.shop.itemUsingImage(src);
+      if (used) throw new Error(`Ảnh này đang là vật phẩm "${used.name}" trong Cửa hàng — xoá vật phẩm đó trước.`);
+      theme.removeBoard(src);
       res.json({ current: theme.current(), library: theme.library() });
     } catch (err) {
       res.status(400).json({ error: err.message });

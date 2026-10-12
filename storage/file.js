@@ -6,7 +6,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const DIRS = { avatars: path.join(DATA_DIR, 'avatars'), uploads: path.join(DATA_DIR, 'uploads') };
 for (const d of [DATA_DIR, ...Object.values(DIRS)]) fs.mkdirSync(d, { recursive: true });
 
-const FILES = { users: 'db.json', puzzles: 'puzzles.json', theme: 'theme.json', tournaments: 'tournaments.json', economy: 'economy.json' };
+const FILES = { users: 'db.json', puzzles: 'puzzles.json', theme: 'theme.json', tournaments: 'tournaments.json', economy: 'economy.json', community: 'community.json', uiNotes: 'ui-notes.json', shop: 'shop.json', features: 'features.json', siteConfig: 'site-config.json' };
 const file = (name) => path.join(DATA_DIR, FILES[name]);
 
 function readJson(name) {
@@ -40,6 +40,16 @@ module.exports = {
   async loadTheme() { return readJson('theme'); },
   async saveTheme(state) { writeJson('theme', state, true); },
   async loadEconomy() { return readJson('economy'); },
+  async loadCommunity() { return readJson('community'); },
+  async loadUiNotes() { return readJson('uiNotes'); },
+  async saveUiNotes(list) { writeJson('uiNotes', list, true); },
+  async loadShop() { return readJson('shop'); },
+  async saveShop(list) { writeJson('shop', list, true); },
+  async loadFeatures() { return readJson('features'); },
+  async saveFeatures(value) { writeJson('features', value, true); },
+  async loadSiteConfig() { return readJson('siteConfig'); },
+  async saveSiteConfig(value) { writeJson('siteConfig', value, true); },
+  async saveCommunity(list) { writeJson('community', list); },
   async saveEconomy(value) { writeJson('economy', value, true); },
   async loadTournaments() { return readJson('tournaments') || []; },
   async saveTournaments(list) { writeJson('tournaments', list); },

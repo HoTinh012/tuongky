@@ -31,6 +31,7 @@
   --r-lg: 14px;
   --shadow: 0 1px 2px rgba(27, 22, 18, 0.04), 0 6px 20px rgba(27, 22, 18, 0.04);
   --sidebar: 232px;
+  --av-r: 24%; /* avatar: hình vuông bo góc (theo % cạnh) — khớp vòng đếm giờ .pc-ring */
   --topbar: 64px;
   font-family: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
   color-scheme: light;
@@ -215,12 +216,12 @@ textarea { resize: vertical; }
 .user-chip .ico { color: var(--faint); }
 
 .avatar {
-  display: grid; place-items: center; flex: none; overflow: hidden; border-radius: 50%; font-weight: 700;
+  display: grid; place-items: center; flex: none; overflow: hidden; border-radius: var(--av-r); font-weight: 700;
   background: var(--red-50); color: var(--red); width: 40px; height: 40px; font-size: 15px;
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar.dark { background: var(--ink); color: #fff; }
-.avatar.ai { background: linear-gradient(135deg, #46526e, #232a3d); color: #e8eefc; border-radius: 12px; letter-spacing: 0.5px; }
+.avatar.ai { background: linear-gradient(135deg, #46526e, #232a3d); color: #e8eefc; letter-spacing: 0.5px; }
 
 /* ---------- Trang ---------- */
 .page-msg { margin: 0 auto; max-width: 1216px; width: 100%; padding: 0 32px; }
@@ -352,7 +353,7 @@ a.mode-row:hover { border-color: var(--red-100); }
 .search-foot span { display: inline-flex; align-items: center; gap: 6px; }
 .opp-card { align-items: center; text-align: center; }
 .opp-card .card-head { width: 100%; }
-.opp-avatar { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: var(--sunken); color: var(--faint); font-size: 26px; font-weight: 800; border: 2px dashed var(--line-2); }
+.opp-avatar { width: 72px; height: 72px; border-radius: var(--av-r); display: grid; place-items: center; background: var(--sunken); color: var(--faint); font-size: 26px; font-weight: 800; border: 2px dashed var(--line-2); }
 .opp-avatar.found { background: var(--ink); color: #fff; border: 0; }
 .opp-name { font-size: 16px; }
 .tip-card .ico { color: var(--ivory); width: 22px; height: 22px; }
@@ -563,7 +564,7 @@ a.mode-row:hover { border-color: var(--red-100); }
 .player.me { background: var(--red-50); border-color: var(--red-100); }
 .player.turn { border-color: var(--red); box-shadow: 0 0 0 3px rgba(198, 29, 29, 0.1); }
 .pc-avatar { position: relative; width: 42px; height: 42px; flex: none; }
-.pc-avatar img, .pc-initial { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; display: grid; place-items: center; background: var(--ink); color: #fff; font-weight: 800; font-size: 16px; }
+.pc-avatar img, .pc-initial { width: 100%; height: 100%; border-radius: var(--av-r); object-fit: cover; display: grid; place-items: center; background: var(--ink); color: #fff; font-weight: 800; font-size: 16px; }
 .player.me .pc-initial { background: var(--red); }
 .pc-initial.ai { background: linear-gradient(135deg, #46526e, #232a3d); color: #e8eefc; font-size: 13px; }
 .pc-initial.empty { background: var(--sunken); color: var(--faint); border: 2px dashed var(--line-2); }
@@ -1524,7 +1525,7 @@ a.p2-tables { color: #f1e7da; }
   #game:not(.ended) .player.me { background: linear-gradient(180deg, #6a2a1c, #3e1910); }
   #game:not(.ended) .pc-avatar { width: 100%; height: auto; aspect-ratio: 1; max-height: 96px; margin: 0 auto; max-width: 96px; }
   #game:not(.ended) .pc-avatar img, #game:not(.ended) .pc-initial {
-    border-radius: 6px; font-size: 44px; font-family: var(--serif); border: 2px solid #c99a45;
+    border-radius: var(--av-r); font-size: 44px; font-family: var(--serif); border: 2px solid #c99a45;
     background: radial-gradient(circle at 40% 30%, #8a5a3a, #2b1a12); color: #f3dfb8;
   }
   #game:not(.ended) .player.me .pc-initial { background: radial-gradient(circle at 40% 30%, #b3372a, #4a120c); }
@@ -1766,3 +1767,1075 @@ a.p2-tables { color: #f1e7da; }
 }
 .p2-rank-info small { white-space: nowrap; }
 .p2-time b { white-space: nowrap; }
+
+/* ---------- Cộng đồng (trang chủ) ---------- */
+.cm-card { gap: 12px; }
+.cm-feed {
+  display: flex; flex-direction: column; gap: 10px; max-height: 420px; min-height: 160px; overflow-y: auto;
+  padding: 10px; border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--line);
+}
+.cm-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 8px; }
+.cm-msg { display: flex; gap: 10px; align-items: flex-start; }
+.cm-msg .avatar { width: 34px; height: 34px; flex: none; font-size: 13px; }
+.cm-body { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 4px 12px 12px 12px; padding: 8px 12px; }
+.cm-msg.mine .cm-body { background: var(--red-50); border-color: var(--red-100, #f3cfc9); }
+.cm-meta { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.cm-meta b { font-size: 13.5px; }
+.cm-elo { color: var(--muted); font-size: 11.5px; }
+.cm-meta small { color: var(--faint); font-size: 11.5px; }
+.cm-del { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 11.5px; cursor: pointer; padding: 0; }
+.cm-del:hover { color: var(--red); }
+.cm-text { margin-top: 3px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.cm-pos { display: flex; gap: 12px; align-items: center; margin-top: 8px; padding: 8px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.cm-board { width: 120px; flex: none; aspect-ratio: 0.9; border-radius: 6px; overflow: hidden; background: #e9c98f; border: 2px solid #b98a4e; }
+.cm-board.sm { width: 64px; }
+.cm-board svg { display: block; width: 100%; height: 100%; }
+.cm-pos-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; align-items: flex-start; }
+.cm-pos-info small { color: var(--muted); font-size: 12px; }
+.cm-compose { display: flex; flex-direction: column; gap: 8px; }
+.cm-row { display: flex; gap: 8px; align-items: stretch; }
+.cm-row textarea { flex: 1; min-width: 0; resize: vertical; min-height: 44px; max-height: 160px; font: inherit; padding: 8px 10px; border-radius: var(--r-sm); border: 1px solid var(--line-2); background: var(--surface); }
+.cm-row textarea:disabled { background: var(--sunken); }
+.cm-actions { display: flex; flex-direction: column; gap: 6px; }
+.cm-attach { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; border: 1px dashed var(--line-2); background: var(--surface-2); }
+.cm-attach .cm-del { margin-left: auto; }
+.cm-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
+.cm-pick-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font: inherit; }
+.cm-pick-item:hover { border-color: var(--red); }
+.cm-pick-item small { color: var(--muted); font-size: 11.5px; }
+.cm-login { font-size: 13px; color: var(--muted); }
+.cm-login .link { color: var(--red); font-weight: 700; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+@media (max-width: 520px) {
+  .cm-row { flex-direction: column; }
+  .cm-actions { flex-direction: row; justify-content: flex-end; }
+  .cm-board { width: 96px; }
+}
+
+/* =====================================================================
+   Trong trận & lúc hết ván — đồng bộ phong cách thuỷ mặc / bàn gỗ
+   ===================================================================== */
+
+/* Quân đã ăn được (trong thẻ người chơi) */
+.pc-caps { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-height: 22px; align-items: center; }
+.pc-caps .cap {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-style: normal;
+  font: 700 12px "LXGW WenKai TC", "Noto Serif TC", serif; background: #f3e2c1; border: 1.5px solid #b98d4f;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.pc-caps .cap.r { color: #c42a1f; }
+.pc-caps .cap.b { color: #1b1310; }
+.pc-caps small { font-size: 11px; color: var(--muted); }
+
+@media (min-width: 1100px) {
+  /* Nền "mặt bàn gỗ" phía sau khu thi đấu */
+  #game:not(.ended) .game-grid {
+    padding: 14px; border-radius: 18px;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(255, 240, 210, 0.35), transparent 60%),
+      repeating-linear-gradient(92deg, rgba(90, 54, 34, 0.06) 0 2px, transparent 2px 9px),
+      linear-gradient(180deg, #d8bf96, #c4a479);
+    box-shadow: inset 0 0 0 1px rgba(90, 54, 34, 0.25), inset 0 2px 14px rgba(60, 35, 15, 0.25), 0 14px 34px rgba(60, 35, 15, 0.18);
+    --arena-bw: min(calc(min(100vw, var(--frame, 1440px)) - var(--sidebar) - var(--side-l) - var(--side-r) - 112px),
+                    calc((100dvh - var(--topbar) - 94px) * var(--board-ar, 1)));
+  }
+  #game:not(.ended) .board-frame { border-color: #8a5a2b; box-shadow: 0 18px 40px rgba(40, 20, 10, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.2); }
+  #game:not(.ended) .player .pc-caps small { color: #c9a87a; }
+  #game:not(.ended) .player { justify-content: space-between; min-height: 0; }
+  #game:not(.ended) #p-top, #game:not(.ended) #p-bottom { align-self: stretch; }
+
+  /* Tấm biển báo lượt */
+  #game:not(.ended) .actions-card .status-box {
+    font-family: var(--serif); font-size: 14px; font-weight: 700; text-align: center; padding: 10px 12px;
+    background: linear-gradient(180deg, #fff8ea, #f1e1c3); border: 1px solid #b98a4e; color: #4a2410;
+    box-shadow: 0 3px 0 rgba(138, 90, 43, 0.5);
+  }
+  #game:not(.ended) .actions-card .status-box.check { background: linear-gradient(180deg, #ffe3dc, #f7c3b7); color: #8a1712; border-color: #c42a1f; }
+  #game:not(.ended) .actions-card .status-box .hint { font-family: inherit; font-weight: 500; color: #7a5a3a; }
+  #game:not(.ended) .moves-card, #game:not(.ended) .chat-card, #game:not(.ended) .eval-card { box-shadow: 0 8px 20px rgba(60, 35, 15, 0.18); }
+}
+
+/* ---------- Hết ván: thẻ kết quả kiểu thuỷ mặc ---------- */
+.result-card { position: relative; overflow: hidden; align-items: center; text-align: center; padding: 26px 22px 20px; border-radius: 18px; }
+.result-card::before { content: ""; position: absolute; inset: 7px; border-radius: 13px; border: 1px solid rgba(201, 154, 69, 0.5); pointer-events: none; }
+.result-card > * { position: relative; }
+.result-card .result-ico { width: auto; height: auto; background: none; border: 0; box-shadow: none; }
+.result-card .seal {
+  display: grid; place-items: center; width: 84px; height: 84px; border-radius: 14px; transform: rotate(-6deg);
+  font: 700 54px "LXGW WenKai TC", "Noto Serif TC", serif; color: #fff4e0; background: #b3201a;
+  box-shadow: inset 0 0 0 4px rgba(255, 244, 224, 0.85), inset 0 0 0 7px #b3201a, 0 10px 22px rgba(120, 20, 10, 0.4);
+}
+.result-card .result-title { font-family: var(--serif); font-size: 34px; font-weight: 700; margin-top: 8px; }
+.result-card .result-sub { font-size: 13.5px; }
+.result-card.win {
+  background: radial-gradient(90% 60% at 50% 20%, rgba(255, 200, 100, 0.35), transparent 70%), linear-gradient(180deg, #a31b14, #6e100b);
+  border-color: #d39a4a; color: #fff3dc;
+}
+.result-card.win .result-title { color: #ffe39b; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3); }
+.result-card.win .muted, .result-card.win .result-hint { color: #f3d2c2; }
+.result-card.win .seal { background: #e9ae45; color: #6e100b; box-shadow: inset 0 0 0 4px rgba(110, 16, 11, 0.85), inset 0 0 0 7px #e9ae45, 0 10px 24px rgba(0, 0, 0, 0.45); }
+.result-card.lose { background: linear-gradient(180deg, #3a322c, #1f1915); border-color: #5a4a3c; color: #e9dfd3; }
+.result-card.lose .result-title { color: #f3e9dd; }
+.result-card.lose .muted, .result-card.lose .result-hint { color: #b8a898; }
+.result-card.lose .seal { background: #5a4a3c; color: #e9dfd3; box-shadow: inset 0 0 0 4px rgba(233, 223, 211, 0.6), inset 0 0 0 7px #5a4a3c, 0 10px 22px rgba(0, 0, 0, 0.45); }
+.result-card.draw { background: linear-gradient(180deg, #fff7e8, #ecd9b6); border-color: #c99a45; color: #3a2a1c; }
+.result-card.draw .seal { background: #9c6421; }
+/* Hai bên & tỉ số */
+.result-card .vs-row { max-width: 420px; }
+.result-card .vs-side b { font-family: var(--serif); font-size: 15px; }
+.result-card .vs-score { font-family: var(--serif); font-size: 34px; font-weight: 700; }
+.result-card.win .vs-side small, .result-card.lose .vs-side small { color: inherit; opacity: 0.75; }
+.result-card .delta-row .delta { border-radius: 999px; font-weight: 800; }
+.result-card.win .delta, .result-card.lose .delta { background: rgba(0, 0, 0, 0.3); color: #fff3dc; border: 1px solid rgba(255, 217, 138, 0.35); }
+.result-card.win .delta.up { color: #b9f5c8; }
+.result-card .delta.coin { color: #ffd98a; }
+/* Nút: chính = nút gỗ vàng, phụ = viền */
+.result-card .result-actions .btn.primary {
+  background: linear-gradient(180deg, #ffe39b, #e9ae45); color: #5a1a0e; border: 0; font-family: var(--serif); font-size: 16px;
+  box-shadow: 0 4px 0 #a8742a, 0 8px 18px rgba(0, 0, 0, 0.25); min-width: 220px;
+}
+.result-card.draw .result-actions .btn.primary { background: linear-gradient(180deg, #c42a1f, #8f1610); color: #fff; box-shadow: 0 4px 0 #6e100b; }
+.result-card .result-links { flex-wrap: wrap; justify-content: center; }
+.result-card.win .result-links .btn, .result-card.lose .result-links .btn { color: #f3e2c1; }
+.result-card.win .result-links .btn:hover, .result-card.lose .result-links .btn:hover { background: rgba(255, 255, 255, 0.1); }
+/* Bàn cờ cuối ván to hơn, nằm bên phải */
+@media (min-width: 1100px) {
+  #game.ended .game-grid { grid-template-columns: minmax(380px, 460px) minmax(0, 1fr); grid-template-areas: "result board"; gap: 20px; }
+  #game.ended .board-col { --bw: 100%; max-width: calc((100dvh - var(--topbar) - 150px) * var(--board-ar, 1) + 36px); justify-self: center; width: 100%; }
+}
+#game.ended .board-col { background: linear-gradient(180deg, #fffaf1, #f3e6cf); border-color: #e3cfa9; }
+#game.ended .board-frame { border: 5px solid #b98a4e; }
+#game.ended .end-board-head h3, #game.ended .end-insight h3 { font-family: var(--serif); }
+.result-card.win .result-ico, .result-card.lose .result-ico, .result-card.draw .result-ico { background: none; box-shadow: none; width: auto; height: auto; }
+
+/* ---------- Hết ván: gói trọn trong một khung màn hình (≥ 1100px) ----------
+   Trái: thẻ kết quả · Giữa: bàn cờ cuối ván · Phải: nhận xét, thống kê, biểu đồ chỉ số */
+@media (min-width: 1100px) {
+  #game.ended { max-width: none; padding: 8px 16px 10px; gap: 8px; }
+  #game.ended .game-head h1, #game.ended .game-head .lead, #game.ended .end-board-head { display: none; }
+  #game.ended .result-view, #game.ended .board-col { display: contents; }
+  #game.ended .game-grid {
+    --res-w: 330px; --side-w: 290px;
+    --end-bw: min(calc(min(100vw, var(--frame, 1440px)) - var(--sidebar) - var(--res-w) - var(--side-w) - 120px),
+                  calc((100dvh - var(--topbar) - 70px) * var(--board-ar, 1)));
+    grid-template-columns: var(--res-w) var(--end-bw) var(--side-w);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "res board ins"
+      "res board stats"
+      "res board radar";
+    height: calc(100dvh - var(--topbar) - 52px);
+    gap: 10px 16px; justify-content: center; align-items: stretch;
+  }
+  #game.ended #result-card { grid-area: res; overflow-y: auto; justify-content: center; gap: 10px; padding: 18px 16px 14px; animation: rise 0.35s ease-out; }
+  #game.ended .board-frame { grid-area: board; width: var(--end-bw); align-self: center; }
+  #game.ended .end-insight {
+    grid-area: ins; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--r-lg);
+    background: linear-gradient(180deg, #fffaf1, #f3e6cf); border: 1px solid #e3cfa9; box-shadow: var(--shadow);
+  }
+  #game.ended .end-insight h3 { font-size: 15px; }
+  #game.ended .end-insight p { font-size: 12.5px; }
+  #game.ended .end-insight .btn { padding: 8px 10px; }
+  #game.ended .result-view > .card:nth-child(2) { grid-area: stats; padding: 12px 14px; gap: 8px; }
+  #game.ended .radar-card { grid-area: radar; min-height: 0; overflow: hidden; padding: 12px 14px; gap: 6px; }
+  #game.ended .result-view > .card h3 { font-size: 15px; }
+  #game.ended .radar-card .card-head p { font-size: 11.5px; }
+  #game.ended .radar-wrap { grid-template-columns: minmax(0, 1fr); gap: 4px; min-height: 0; }
+  #game.ended #radar { max-height: calc(100dvh - var(--topbar) - 470px); min-height: 120px; width: 100%; }
+  #game.ended .radar-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-size: 11.5px; }
+  #game.ended .stat-row.plain { gap: 6px; }
+
+  /* Thẻ kết quả gọn hơn */
+  #game.ended .result-card .seal { width: 64px; height: 64px; font-size: 42px; }
+  #game.ended .result-card .result-title { font-size: 28px; margin-top: 2px; }
+  #game.ended .result-card .vs-row { margin: 4px 0 0; }
+  #game.ended .result-card .vs-side .avatar { width: 40px; height: 40px; }
+  #game.ended .result-card .vs-score { font-size: 28px; }
+  #game.ended .result-card .result-actions .btn.primary { min-width: 0; width: 100%; }
+  #game.ended .result-card .result-actions { width: 100%; }
+  #game.ended .result-card .result-links { gap: 2px 6px; }
+  #game.ended .result-card .result-links .btn { padding: 6px 8px; font-size: 12.5px; }
+}
+
+
+/* ---------- Ảnh nền chung (phong cảnh thuỷ mặc: lầu gác, đèn lồng, núi sông) ---------- */
+body {
+  background: #efe4d0 url("assets/bg-scene.webp") center / cover no-repeat fixed;
+}
+.shell, .main { background: transparent; }
+/* Thay cho tranh thuỷ mặc vẽ bằng SVG trước đây */
+.ink-scene, .ink-vtext { display: none; }
+/* Lớp sáng mờ phía dưới nội dung để chữ & thẻ luôn dễ đọc, vẫn thấy cảnh hai bên */
+.main::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: linear-gradient(90deg, rgba(250, 244, 233, 0.15) 0%, rgba(250, 244, 233, 0.55) 22%, rgba(250, 244, 233, 0.55) 78%, rgba(250, 244, 233, 0.15) 100%);
+}
+@media (min-width: 1500px) {
+  body { background: #efe4d0 url("assets/bg-scene.webp") center / cover no-repeat fixed; }
+  .shell { background: transparent; box-shadow: 0 0 0 1px rgba(60, 40, 25, 0.08), 0 20px 60px rgba(40, 25, 15, 0.12); }
+}
+
+/* ---------- Điểm nhấn khung web: bên ngoài mờ & tối nhẹ, khung giữa rõ nét có viền vàng ---------- */
+@media (min-width: 1500px) {
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: rgba(45, 28, 16, 0.28);
+    backdrop-filter: blur(7px) saturate(0.85); -webkit-backdrop-filter: blur(7px) saturate(0.85);
+  }
+  .shell {
+    position: relative; z-index: 1;
+    /* nền cố định theo màn hình → khớp liền với ảnh bên ngoài, chỉ khác là rõ nét */
+    background: #efe4d0 url("assets/bg-scene.webp") center / cover no-repeat fixed;
+    box-shadow: 0 0 0 1px rgba(201, 154, 69, 0.7), 0 0 0 6px rgba(255, 244, 222, 0.18), 0 30px 90px rgba(20, 10, 5, 0.5);
+  }
+}
+
+/* ---------- Trang chủ: banner + (xếp hạng · trận hot) bên trái, chat cộng đồng cao hết cột phải ---------- */
+.btn.ghost-light { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.35); color: #fff; }
+.btn.ghost-light:hover { background: rgba(255, 255, 255, 0.16); }
+/* Thẻ thông tin xếp hạng */
+.hr-rank { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: var(--r); background: linear-gradient(135deg, #2a1c15, #47281b); color: #f6e7cf; }
+.hr-badge {
+  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, var(--rank, #c9b79c) 45%, color-mix(in srgb, var(--rank, #c9b79c) 55%, #000) 100%);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.3), 0 0 0 5px var(--rank, #c9b79c), 0 0 22px color-mix(in srgb, var(--rank, #c9b79c) 55%, transparent);
+}
+.hr-badge span { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #f4e2bd; border: 2px solid #8f5a12; font: 700 23px "LXGW WenKai TC", "Noto Serif TC", serif; color: #8a1712; }
+.hr-main { display: grid; gap: 2px; min-width: 0; }
+.hr-name { font-family: var(--serif); font-size: 20px; color: var(--rank, #f6e7cf); line-height: 1.1; }
+.hr-stars { display: flex; gap: 2px; font-size: 13px; color: rgba(255, 255, 255, 0.22); }
+.hr-stars i { font-style: normal; }
+.hr-stars i.on { color: #ffd27a; }
+.hr-elo { display: flex; align-items: baseline; gap: 6px; }
+.hr-elo small { color: #c9a87a; font-size: 12px; }
+.hr-elo strong { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff3dc; }
+.hr-progress { display: grid; gap: 4px; }
+.hr-progress .bar { height: 8px; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.hr-progress .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold), var(--red)); }
+.form-stats.three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.form-stats.three div { padding: 8px 10px; }
+.form-stats.three b { font-size: 20px; }
+
+@media (min-width: 1100px) {
+  #lobby {
+    display: grid; max-width: none;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(330px, 1.1fr);
+    grid-template-areas:
+      "head head head"
+      "hero hero chat"
+      "form live chat"
+      "more more more";
+    gap: 16px; align-items: stretch;
+  }
+  #lobby > .page-head { grid-area: head; }
+  #lobby > .hero { grid-area: hero; min-height: 236px; }
+  #lobby .hero h2 { font-size: 27px; }
+  #lobby > .quick-grid { display: none; } /* đã có nút trong banner & menu trái */
+  #lobby > .cols { display: contents; }
+  #lobby #home-form { grid-area: form; gap: 12px; }
+  #lobby #home-live-card { grid-area: live; min-height: 0; }
+  #lobby #home-live-card .live-list { max-height: 420px; overflow-y: auto; }
+  #lobby > .grid-3 { grid-area: more; }
+  /* Chat cao đúng bằng banner + hàng dưới (không tự kéo dài trang) */
+  #lobby > #community { grid-area: chat; contain: size; display: flex; flex-direction: column; min-height: 0; }
+  #lobby > #community .cm-feed { flex: 1; max-height: none; min-height: 0; }
+}
+
+/* ---------- Hồ sơ kỳ thủ: trái (thẻ · chỉ số · nút) — phải (nội dung theo nút) ---------- */
+.pf-layout { display: grid; gap: 16px; }
+.pf-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+#profile .pf-header { display: flex; flex-direction: column; align-items: stretch; gap: 14px; padding: 18px; }
+.pf-top { display: flex; align-items: center; gap: 16px; }
+#profile .pf-avatar { width: 96px; height: 96px; font-size: 32px; }
+#profile .pf-lines { gap: 3px; align-items: flex-start; }
+#profile .pf-lines h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+#profile .pf-lines .muted { font-size: 13px; }
+.pf-info { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pf-info-item { display: grid; gap: 1px; padding-bottom: 6px; border-bottom: 2px solid var(--line-2); }
+.pf-info-item small { font-size: 11.5px; color: var(--muted); }
+.pf-info-item b { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pf-info-item.elo { border-bottom-color: var(--red); }
+.pf-info-item.coin { border-bottom-color: var(--gold); }
+.pf-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pf-stat { padding: 14px 16px; gap: 6px; }
+.pf-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pf-stat small { display: block; font-size: 12px; color: var(--muted); }
+.pf-stat b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.pf-stat em { font-style: normal; font-size: 12px; color: var(--muted); }
+.pf-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px; }
+.pf-menu button {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--r-sm); border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--text-2); font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; text-align: left;
+}
+.pf-menu button:hover { border-color: var(--line-2); background: var(--surface); color: var(--text); }
+.pf-menu button.active { background: var(--red); border-color: var(--red); color: #fff; }
+.pf-menu button.active .ico { color: #fff; }
+.pf-menu button.danger { color: var(--red); }
+.pf-menu-sep { grid-column: 1 / -1; height: 1px; background: var(--line); margin: 4px 0; }
+.pf-panel { min-width: 0; padding: 18px; }
+.pf-pane { display: flex; flex-direction: column; gap: 12px; }
+.pf-pane .table { width: 100%; }
+@media (min-width: 1000px) {
+  .pf-layout { grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr); align-items: stretch; }
+  /* Ô bên phải cao bằng cột trái, nội dung dài thì cuộn bên trong */
+  .pf-panel { contain: size; min-height: 520px; overflow-y: auto; }
+}
+
+/* ---------- Thông báo đầu trang (admin → Cài đặt hệ thống → Nội dung trang chủ) ---------- */
+.announce {
+  position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; margin: 12px 32px 0; padding: 10px 14px;
+  border-radius: var(--r); background: linear-gradient(90deg, #8f1610, #c42a1f); color: #fff7ea; font-weight: 600; font-size: 13.5px;
+  box-shadow: 0 6px 18px rgba(140, 25, 18, 0.25);
+}
+.announce .ico { color: #ffd27a; flex: none; }
+.announce span { flex: 1; min-width: 0; }
+.announce-x { border: 0; background: rgba(255, 255, 255, 0.15); color: #fff; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; flex: none; }
+.announce-x:hover { background: rgba(255, 255, 255, 0.3); }
+body[data-screen="game"] .announce { display: none; }
+@media (max-width: 900px) { .announce { margin: 10px 16px 0; } }
+
+/* Dòng phụ thẻ người chơi: các phần nối bằng " · " */
+.pc-sub > span + span::before { content: " · "; color: var(--faint); font-weight: 400; }
+
+/* ---------- Bàn đấu (≥1100px): trái = đối thủ + nút · giữa = bàn cờ · phải = chat + bạn ---------- */
+@media (min-width: 1100px) {
+  #game:not(.ended) .game-grid {
+    --side-l: var(--arena-left, 260px); --side-r: var(--arena-right, 280px);
+    grid-template-areas:
+      "opp   board chat"
+      "moves board chat"
+      "acts  board me";
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  #game:not(.ended) #p-top { grid-area: opp; }
+  #game:not(.ended) #p-bottom { grid-area: me; }
+  #game:not(.ended) .moves-card { grid-area: moves; max-height: none; min-height: 0; overflow: hidden; align-self: stretch; }
+  #game:not(.ended) .moves-card #move-list { min-height: 0; overflow-y: auto; }
+  #game:not(.ended) .chat-card, #game:not(.ended) .eval-card { grid-area: chat; }
+  #game:not(.ended) .chat-card #chat-log { flex: 1; max-height: none; min-height: 0; overflow-y: auto; }
+  #game:not(.ended) .actions-card { grid-area: acts; align-self: end; }
+
+  /* Thẻ người chơi nằm ngang: ảnh vuông bên trái · tên / Elo / rank bên phải · đồng hồ bên dưới */
+  #game:not(.ended) .player {
+    display: grid; grid-template-columns: 84px minmax(0, 1fr); grid-template-areas: "av info" "clock clock" "caps caps";
+    align-items: center; gap: 10px 12px; padding: 12px; text-align: left;
+  }
+  #game:not(.ended) .pc-avatar { grid-area: av; width: 84px; height: 84px; max-width: none; max-height: none; margin: 0; aspect-ratio: 1; }
+  #game:not(.ended) .pc-avatar img, #game:not(.ended) .pc-initial { font-size: 32px; }
+  #game:not(.ended) .pc-initial.ai { font-size: 26px; }
+  #game:not(.ended) .pc-ring { inset: -6px; width: calc(100% + 12px); height: calc(100% + 12px); }
+  #game:not(.ended) .pc-side { width: 18px; height: 18px; right: -3px; bottom: -3px; }
+  #game:not(.ended) .pc-info { grid-area: info; align-items: flex-start; gap: 2px; min-width: 0; }
+  #game:not(.ended) .pc-name { font-size: 18px; line-height: 1.2; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #game:not(.ended) .pc-sub { white-space: normal; font-size: 13px; line-height: 1.45; text-align: left; }
+  #game:not(.ended) .pc-sub > span { display: block; }
+  #game:not(.ended) .pc-sub > span + span::before { content: none; }
+  #game:not(.ended) .pc-sub .pc-handle { display: none; }
+  #game:not(.ended) .pc-sub .pc-elo { color: #ffe2a8; font-weight: 700; }
+  #game:not(.ended) .pc-sub .pc-rank { color: #d9bf98; }
+  #game:not(.ended) .player .clock {
+    grid-area: clock; align-items: center; padding: 6px 10px; border-radius: 8px;
+    background: rgba(0, 0, 0, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 210, 122, 0.25);
+  }
+  #game:not(.ended) .player .clock b { font-size: 30px; line-height: 1.1; }
+  #game:not(.ended) .player .pc-caps { grid-area: caps; justify-content: flex-start; min-height: 0; }
+}
+@media (min-width: 1100px) {
+  /* Mặt bàn gỗ có đệm 14px mỗi phía (box-sizing: border-box) → cao = bàn cờ + 2 × đệm, bàn cờ không lòi ra ngoài */
+  #game:not(.ended) .game-grid { height: calc(var(--arena-bw) / var(--board-ar, 1) + 28px); }
+}
+
+/* =====================================================================
+   Màn hình kết thúc ván (Chiến Thắng / Thất Bại / Hoà Cờ)
+   Trái: biên bản trận đấu · Giữa: thẻ kết quả (2 kỳ thủ, tỉ số, thế cờ cuối, nút) · Phải: biểu đồ, thống kê, chỉ số
+   ===================================================================== */
+.mv-title-end { display: none; }
+#game.ended .mv-title-live { display: none; }
+#game.ended .mv-title-end { display: inline; }
+.res-crown, .res-fx, .res-board-wrap { display: none; }
+#res-again.ask { color: var(--green); font-weight: 800; }
+
+/* Thẻ kết quả: dùng ở mọi kích thước màn hình */
+#game.ended .result-card { position: relative; overflow: hidden; isolation: isolate; text-align: center; align-items: center; }
+#game.ended .result-card .result-ico { display: none; }
+#game.ended .res-crown { display: block; width: 74px; height: auto; margin: 0 auto -6px; fill: #f2c45a; filter: drop-shadow(0 2px 0 #8a4b10) drop-shadow(0 0 10px rgba(255, 200, 90, 0.5)); }
+#game.ended .result-card .result-title {
+  font-family: "Dancing Script", var(--serif); font-weight: 700; font-size: 54px; line-height: 1.05; letter-spacing: 0.5px; margin: 0;
+  background: linear-gradient(180deg, #fff6c8 0%, #ffd56a 40%, #e19a24 70%, #fff0b0 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 rgba(90, 20, 10, 0.55)) drop-shadow(0 0 14px rgba(255, 190, 80, 0.35));
+}
+#game.ended .result-card .vs-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; width: 100%; margin: 6px 0 0; }
+#game.ended .result-card .vs-side { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+#game.ended .result-card .vs-side b { font-family: var(--serif); font-size: 17px; color: #fff3dc; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#game.ended .result-card .vs-side small { color: #f1d3ad; font-size: 12.5px; }
+#game.ended .vs-ring { position: relative; padding: 5px; border-radius: calc(var(--av-r) + 6px); background: linear-gradient(145deg, #e9edf3, #9aa4b2 50%, #dfe4ea); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); margin-bottom: 4px; }
+#game.ended .vs-side.winner .vs-ring { background: conic-gradient(from 200deg, #fff2b8, #e3a23a, #ffe08a, #b8741d, #fff2b8); box-shadow: 0 0 0 2px rgba(255, 220, 140, 0.4), 0 0 26px rgba(255, 190, 70, 0.55), 0 6px 16px rgba(0, 0, 0, 0.35); }
+#game.ended .vs-side.winner .vs-ring::before { content: "\265B"; position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 22px; color: #ffd36b; text-shadow: 0 2px 0 #8a4b10; }
+#game.ended .result-card .vs-side .avatar { width: 76px; height: 76px; font-size: 26px; border: 2px solid rgba(0, 0, 0, 0.25); }
+#game.ended .result-card .vs-score { font-family: var(--serif); font-size: 40px; font-weight: 700; color: #ffe08a; text-shadow: 0 3px 0 rgba(70, 15, 8, 0.6); padding-top: 26px; }
+#game.ended .elo-chg { margin-top: 4px; padding: 3px 14px; border-radius: 999px; font-weight: 800; font-size: 13px; border: 2px solid; background: rgba(0, 0, 0, 0.25); }
+#game.ended .elo-chg.up { color: #5fe08d; border-color: #3fbf6e; }
+#game.ended .elo-chg.down { color: #ff7a6b; border-color: #e0483a; }
+#game.ended .result-card #result-sub { color: #f1d3ad; font-size: 13px; margin: 0; }
+#game.ended .res-board-wrap {
+  display: block; width: min(100%, 300px); margin: 4px auto 0; padding: 6px; border-radius: 10px;
+  background: linear-gradient(180deg, #e8c27a, #b8873f); box-shadow: 0 0 0 2px #6e3b12, 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+#game.ended #res-board { display: block; width: 100%; height: auto; border-radius: 6px; }
+#game.ended .result-card .delta-row { justify-content: center; }
+#game.ended .result-card .result-hint { color: #ffe08a; margin: 0; }
+#game.ended .result-card .result-actions { width: 100%; }
+#game.ended .result-card .result-actions .btn.primary {
+  width: 100%; min-width: 0; font-family: var(--serif); font-size: 19px; padding: 12px 16px; border-radius: 12px;
+  background: linear-gradient(180deg, #fff1b3, #f2c45a 45%, #d89a2a); color: #5a1a0e; border: 0;
+  box-shadow: 0 4px 0 #8a5a12, 0 10px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+#game.ended .result-card .result-links { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; width: 100%; border-top: 1px solid rgba(255, 220, 160, 0.25); padding-top: 8px; }
+#game.ended .result-card .result-links .btn { color: #fff3dc; justify-content: center; font-weight: 700; }
+#game.ended .result-card .result-links .btn:hover { background: rgba(255, 255, 255, 0.1); }
+#game.ended .result-card .result-links .btn .ico { color: #ffd36b; }
+#game.ended .result-links #res-board { display: none; }
+
+/* Chủ đề màu */
+#game.ended .result-card.win {
+  background:
+    radial-gradient(120% 50% at 50% 0%, rgba(255, 196, 90, 0.35), transparent 60%),
+    radial-gradient(90% 60% at 50% 100%, rgba(0, 0, 0, 0.35), transparent 70%),
+    linear-gradient(180deg, #a8160f, #7d0e0a 55%, #5c0906);
+  border: 3px solid #e2ad4c; box-shadow: inset 0 0 0 3px #7a0d08, inset 0 0 0 5px rgba(255, 210, 120, 0.55), 0 20px 50px rgba(80, 10, 5, 0.45);
+}
+#game.ended .result-card.lose {
+  background:
+    radial-gradient(120% 50% at 50% 0%, rgba(160, 180, 210, 0.25), transparent 60%),
+    linear-gradient(180deg, #3a4150, #262b36 55%, #1a1e26);
+  border: 3px solid #8e98a8; box-shadow: inset 0 0 0 3px #1c2029, inset 0 0 0 5px rgba(200, 210, 225, 0.35), 0 20px 50px rgba(10, 15, 25, 0.45);
+}
+#game.ended .result-card.lose .res-crown { fill: #9aa4b2; opacity: 0.55; transform: rotate(-8deg); filter: none; }
+#game.ended .result-card.lose .result-title {
+  background: linear-gradient(180deg, #ffffff 0%, #c9d2de 45%, #7c8796 75%, #e4e9f0 100%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.55));
+}
+#game.ended .result-card.lose .vs-score, #game.ended .result-card.lose .result-hint { color: #d6dde7; }
+#game.ended .result-card.lose .vs-side small, #game.ended .result-card.lose #result-sub { color: #b7c0cc; }
+#game.ended .result-card.lose .result-links .btn .ico { color: #c9d2de; }
+#game.ended .result-card.lose .result-actions .btn.primary { background: linear-gradient(180deg, #f3f6fa, #c7cfda 50%, #9aa5b4); color: #1f2530; box-shadow: 0 4px 0 #5d6675, 0 10px 24px rgba(0, 0, 0, 0.35); }
+#game.ended .result-card.draw {
+  background: radial-gradient(120% 50% at 50% 0%, rgba(150, 230, 200, 0.25), transparent 60%), linear-gradient(180deg, #1f6b58, #134a3d 55%, #0d3329);
+  border: 3px solid #d8c07a; box-shadow: inset 0 0 0 3px #0e3a30, inset 0 0 0 5px rgba(240, 220, 150, 0.4), 0 20px 50px rgba(5, 30, 25, 0.45);
+}
+#game.ended .result-card.draw .res-crown { display: none; }
+
+/* Hiệu ứng rơi */
+#game.ended .res-fx { display: block; position: absolute; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
+#game.ended .res-fx i { position: absolute; top: -20px; display: block; }
+#game.ended .result-card.win .res-fx i {
+  width: 12px; height: 9px; border-radius: 60% 0 60% 0; background: linear-gradient(135deg, #ff6b4a, #c4160c); opacity: 0.85;
+  animation: petal-fall linear infinite;
+}
+#game.ended .result-card.win .res-fx i:nth-child(3n) { background: linear-gradient(135deg, #ffe08a, #e39a24); width: 8px; height: 8px; border-radius: 50%; }
+#game.ended .result-card.lose .res-fx i { width: 1.5px; height: 18px; background: linear-gradient(180deg, transparent, rgba(210, 222, 240, 0.55)); animation: rain-fall linear infinite; }
+@keyframes petal-fall {
+  0% { transform: translate(0, -20px) rotate(0deg); }
+  50% { transform: translate(28px, 50vh) rotate(200deg); }
+  100% { transform: translate(-10px, 110vh) rotate(420deg); }
+}
+@keyframes rain-fall { from { transform: translate(0, -20px); } to { transform: translate(-30px, 110vh); } }
+@media (prefers-reduced-motion: reduce) { #game.ended .res-fx { display: none; } }
+
+/* Nền trang khi hết ván */
+#game.ended[data-result]::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+#game.ended[data-result="win"]::before { background: radial-gradient(70% 60% at 50% 40%, rgba(255, 120, 60, 0.12), rgba(120, 10, 5, 0.35)); }
+#game.ended[data-result="lose"]::before { background: radial-gradient(70% 60% at 50% 40%, rgba(40, 50, 70, 0.10), rgba(15, 20, 30, 0.45)); }
+#game.ended[data-result="draw"]::before { background: radial-gradient(70% 60% at 50% 40%, rgba(40, 120, 100, 0.08), rgba(10, 40, 35, 0.3)); }
+#game.ended > * { position: relative; z-index: 1; }
+
+/* Bố cục 3 cột (≥ 1100px) */
+@media (min-width: 1100px) {
+  #game.ended .game-grid {
+    --rec-w: 290px; --res-w: 440px; --side-w: 320px;
+    grid-template-columns: var(--rec-w) var(--res-w) var(--side-w);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "rec res ins"
+      "rec res stats"
+      "rec res radar";
+    height: calc(100dvh - var(--topbar) - 52px);
+    gap: 12px 18px; justify-content: center; align-items: stretch;
+  }
+  #game.ended .board-frame { display: none; }
+  #game.ended .game-side { display: contents; }
+  #game.ended .chat-card, #game.ended .eval-card, #game.ended .actions-card { display: none; }
+  #game.ended .moves-card { display: flex; grid-area: rec; min-height: 0; overflow: hidden; padding: 14px; gap: 8px; background: rgba(255, 252, 245, 0.96); }
+  #game.ended .moves-card #move-list { flex: 1; min-height: 0; overflow-y: auto; max-height: none; }
+  #game.ended .moves-card h3 { font-family: var(--serif); }
+  #game.ended #result-card { grid-area: res; overflow-y: auto; justify-content: flex-start; gap: 8px; padding: 14px 20px 12px; }
+  #game.ended .end-insight { grid-area: ins; gap: 6px; padding: 12px 14px; }
+  #game.ended .end-insight .end-ins-title { font-size: 13.5px; margin-top: 2px; }
+  #game.ended .end-insight p { font-size: 12px; }
+}
+@media (min-width: 1100px) and (max-height: 820px) {
+  #game.ended .result-card .result-title { font-size: 44px; }
+  #game.ended .res-crown { width: 56px; }
+  #game.ended .result-card .vs-side .avatar { width: 60px; height: 60px; }
+  #game.ended .res-board-wrap { width: min(100%, 230px); }
+}
+
+/* Biểu đồ trận đấu */
+.end-chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.end-chart-head h3 { font-family: var(--serif); font-size: 15px; }
+.end-chart-head small { color: var(--muted); font-size: 11.5px; }
+.end-chart { width: 100%; height: 110px; display: block; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); }
+.end-chart .grid { stroke: rgba(0, 0, 0, 0.06); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.end-chart .zero { stroke: rgba(0, 0, 0, 0.25); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.end-chart .up { fill: rgba(198, 29, 29, 0.28); }
+.end-chart .down { fill: rgba(27, 22, 18, 0.22); }
+.end-chart .line { fill: none; stroke: #7a2a16; stroke-width: 1.8; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+
+/* Tinh chỉnh thẻ kết quả: vương miện có chiều cao cố định, gọn để vừa một khung màn hình */
+#game.ended .res-crown { width: 68px; height: 34px; flex: none; }
+#game.ended .result-card .result-hint:empty { display: none; }
+#game.ended .res-board-wrap { width: min(100%, 260px); }
+#game.ended .result-card .result-links .btn { padding: 5px 8px; }
+@media (min-width: 1100px) and (max-height: 820px) { #game.ended .res-crown { width: 52px; height: 26px; } #game.ended .res-board-wrap { width: min(100%, 210px); } }
+
+/* ---------- Thẻ kết quả bản 2: khung vàng, ruy băng đỏ, mây vàng, nguyệt quế (theo mẫu) ---------- */
+.res-deco, .res-flourish { display: none; }
+#game.ended[data-result]::before { display: none; } /* giữ nguyên ảnh nền phong cảnh như mẫu */
+#game.ended .result-card { border-radius: 22px; }
+#game.ended .result-card.win, #game.ended .result-card.draw {
+  border: 4px solid #e8b75a;
+  box-shadow: 0 0 0 2px #8a4b10, inset 0 0 0 3px #5e0a07, inset 0 0 0 5px rgba(255, 214, 128, 0.7), 0 24px 60px rgba(80, 10, 5, 0.45);
+}
+#game.ended .result-card.lose {
+  background: radial-gradient(90% 40% at 70% 6%, rgba(160, 30, 25, 0.35), transparent 70%), linear-gradient(180deg, #1d1416, #141012 60%, #0f0c0d);
+  border: 4px solid #d9a94e;
+  box-shadow: 0 0 0 2px #6a3a10, inset 0 0 0 3px #0c0909, inset 0 0 0 5px rgba(230, 180, 90, 0.45), 0 24px 60px rgba(10, 8, 8, 0.5);
+}
+#game.ended .res-deco { display: block; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+/* Ruy băng đỏ uốn lượn hai bên */
+#game.ended .res-ribbon { position: absolute; top: 34px; width: 56px; height: 72%; opacity: 0.95; }
+#game.ended .res-ribbon.l { left: -16px; }
+#game.ended .res-ribbon.r { right: -16px; transform: scaleX(-1); }
+#game.ended .res-ribbon .rb { fill: none; stroke: #c8161a; stroke-width: 20; stroke-linecap: round; }
+#game.ended .res-ribbon .rh { fill: none; stroke: #ff6a55; stroke-width: 3; opacity: 0.55; transform: translateX(-5px); }
+#game.ended .result-card.lose .res-ribbon { top: 150px; height: 62%; opacity: 0.8; }
+#game.ended .result-card.lose .res-ribbon .rb { stroke: #9e1712; }
+#game.ended .result-card.draw .res-ribbon .rb { stroke: #1d7a62; }
+#game.ended .result-card.draw .res-ribbon .rh { stroke: #7fe0c0; }
+/* Đèn lồng hai bên bàn cờ (thắng) */
+#game.ended .res-lantern { position: absolute; top: 52%; width: 26px; filter: drop-shadow(0 0 10px rgba(255, 170, 60, 0.75)); display: none; }
+#game.ended .res-lantern.l { left: 10px; }
+#game.ended .res-lantern.r { right: 10px; }
+#game.ended .result-card.win .res-lantern { display: block; }
+/* Mây vàng ở đáy */
+#game.ended .res-clouds { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 64px; }
+#game.ended .res-clouds .cl-fill { fill: url(#rc-gold); stroke: #7a4510; stroke-width: 1.5; }
+#game.ended .res-clouds .cl-curl path { fill: none; stroke: #8a5214; stroke-width: 1.6; opacity: 0.7; }
+/* Cảnh trăng đỏ & lầu gác (thua) */
+#game.ended .res-scene { display: none; position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 46%; }
+#game.ended .result-card.lose .res-scene { display: block; }
+#game.ended .res-scene .mt { fill: #1c1517; opacity: 0.9; }
+#game.ended .res-scene .mt2 { fill: #141012; }
+#game.ended .res-scene .pg { fill: #0d0a0b; }
+#game.ended .result-card.lose .res-crown { display: none; }
+
+/* Tiêu đề & đường hoa văn */
+#game.ended .result-card .result-title { font-size: 60px; margin-top: -4px; }
+#game.ended .result-card.lose .result-title {
+  background: linear-gradient(180deg, #ffffff 0%, #e9e2e2 40%, #a79c9c 70%, #f1e7e7 100%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 3px 0 rgba(120, 15, 10, 0.75)) drop-shadow(0 0 16px rgba(200, 40, 30, 0.35));
+}
+#game.ended .res-flourish { display: block; position: relative; width: 62%; height: 10px; margin: -2px auto 2px; }
+#game.ended .res-flourish::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1.5px; background: linear-gradient(90deg, transparent, #f2c45a 30%, #f2c45a 70%, transparent); }
+#game.ended .res-flourish i { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; background: #f2c45a; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 8px rgba(255, 200, 90, 0.8); }
+#game.ended .result-card.lose .res-flourish { display: none; }
+
+/* Hai kỳ thủ */
+#game.ended .result-card .vs-side .avatar { width: 84px; height: 84px; font-size: 30px; font-weight: 800; border: 0; }
+#game.ended .result-card .vs-side .avatar:not(.ai) { background: linear-gradient(180deg, #fff, #f3e4e0); color: #c42a1f; }
+#game.ended .result-card .vs-side .avatar.ai { background: linear-gradient(180deg, #34405a, #1c2335); color: #f3f6fb; }
+#game.ended .vs-ring { padding: 5px; }
+#game.ended .vs-side.loser .vs-ring { background: linear-gradient(145deg, #ffffff, #d9dde3 50%, #f4f6f8); }
+#game.ended .vs-side.winner .vs-ring::before { content: none; }
+#game.ended .mini-crown { position: absolute; left: 50%; top: -26px; width: 40px; height: 22px; transform: translateX(-50%); fill: #f2c45a; filter: drop-shadow(0 2px 0 #8a4b10) drop-shadow(0 0 6px rgba(255, 200, 90, 0.7)); z-index: 2; }
+#game.ended .laurel { position: absolute; inset: -24px; width: calc(100% + 48px); height: calc(100% + 48px); pointer-events: none; z-index: -1; }
+#game.ended .laurel .lf { fill: #e8b13e; stroke: #7a4a0e; stroke-width: 0.8; }
+#game.ended .vs-side.winner .vs-ring { z-index: 0; }
+#game.ended .result-card .vs-side b { font-size: 19px; }
+#game.ended .result-card .vs-score { display: flex; flex-direction: column; align-items: center; gap: 22px; padding-top: 24px; }
+#game.ended .result-card .vs-score span { font-size: 46px; line-height: 1; color: #fff3dc; text-shadow: 0 3px 0 rgba(70, 15, 8, 0.6), 0 0 18px rgba(255, 200, 120, 0.35); }
+#game.ended .vs-div { display: block; position: relative; width: 84px; height: 8px; }
+#game.ended .vs-div::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: linear-gradient(90deg, transparent, #e8b75a, transparent); }
+#game.ended .vs-div::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; border: 1.5px solid #e8b75a; transform: translate(-50%, -50%) rotate(45deg); background: #7d0e0a; }
+#game.ended .result-card.lose .vs-div::after { background: #141012; border-color: #c0392b; }
+#game.ended .result-card.lose .vs-div::before { background: linear-gradient(90deg, transparent, #c0392b, transparent); }
+#game.ended .result-card #result-sub { font-family: var(--serif); font-size: 16px; font-weight: 700; color: #ffe08a; }
+#game.ended .result-card.lose #result-sub { color: #ff7a5a; }
+
+/* Bàn cờ cuối ván có quầng sáng */
+#game.ended .res-board-wrap { width: min(100%, 320px); box-shadow: 0 0 0 2px #6e3b12, 0 0 28px rgba(255, 190, 90, 0.45), 0 12px 24px rgba(0, 0, 0, 0.4); }
+#game.ended .result-card.lose .res-board-wrap { box-shadow: 0 0 0 2px #4a2a10, 0 0 24px rgba(255, 140, 60, 0.25), 0 12px 24px rgba(0, 0, 0, 0.5); }
+
+/* Nút chính & các link */
+#game.ended .result-card .result-actions .btn.primary { font-size: 22px; padding: 12px 16px; border-radius: 14px; }
+#game.ended .result-card.lose .result-actions .btn.primary {
+  background: linear-gradient(180deg, #ef4a3a, #c4160c 55%, #9a0f08); color: #fff;
+  box-shadow: 0 4px 0 #6e0a05, 0 10px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+#game.ended .result-card .result-links {
+  grid-template-columns: 1fr 1fr; gap: 0; padding: 8px 0 54px; border-top: 1px solid rgba(255, 220, 160, 0.22);
+  background: linear-gradient(rgba(255, 220, 160, 0.3), rgba(255, 220, 160, 0.3)) center 8px / 1px 34px no-repeat;
+}
+#game.ended .result-card .result-links .btn { font-size: 16px; justify-content: center; }
+#game.ended .result-card.lose .result-links .btn .ico { color: #fff; }
+
+/* Biên bản trống: biểu tượng cuộn giấy */
+#game.ended #move-list li.empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 40px; color: var(--muted); }
+#game.ended #move-list li.empty::before {
+  content: ""; width: 96px; height: 80px; opacity: 0.35;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 80' fill='none' stroke='%237d7268' stroke-width='3' stroke-linecap='round'%3E%3Crect x='14' y='8' width='50' height='62' rx='6'/%3E%3Cpath d='M24 24h30M24 34h30M24 44h22'/%3E%3Cpath d='M58 66 86 14l6 4-28 52-8 4z'/%3E%3Cpath d='M8 70h40'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+@media (min-width: 1100px) {
+  #game.ended .game-grid { --res-w: 470px; --rec-w: 300px; --side-w: 330px; }
+  #game.ended #result-card { padding: 16px 26px 0; gap: 8px; }
+}
+@media (min-width: 1100px) and (max-height: 860px) {
+  #game.ended .result-card .result-title { font-size: 48px; }
+  #game.ended .result-card .vs-side .avatar { width: 66px; height: 66px; font-size: 24px; }
+  #game.ended .result-card .vs-score span { font-size: 38px; }
+  #game.ended .res-board-wrap { width: min(100%, 236px); }
+  #game.ended .result-card .result-links { padding-bottom: 44px; }
+  #game.ended .res-clouds { height: 50px; }
+}
+
+/* Bàn cờ cuối ván tự lớn theo chiều cao màn hình để thẻ kết quả kín khung (≈ 500px là phần chữ, nút, mây) */
+@media (min-width: 1100px) {
+  #game.ended .res-board-wrap, #game.ended .result-card.lose .res-board-wrap { width: min(100%, max(190px, calc((100dvh - var(--topbar) - 52px - 510px) / 1.03))); }
+}
+@media (min-width: 1100px) {
+  /* Ba cột co giãn theo bề rộng màn hình (không tràn ở khổ ~1180px) */
+  #game.ended .game-grid { grid-template-columns: minmax(200px, var(--rec-w)) minmax(360px, var(--res-w)) minmax(240px, var(--side-w)); }
+}
+@media (min-width: 1100px) {
+  /* Thắng/hoà có thêm vương miện & đường hoa văn trên tiêu đề → bàn cờ nhỏ hơn một chút để vẫn vừa khung */
+  #game.ended .res-board-wrap { width: min(100%, max(190px, calc((100dvh - var(--topbar) - 52px - 570px) / 1.03))); }
+}
+/* Chừa chỗ cho vòng nguyệt quế, không đè lên tên */
+#game.ended .vs-side.winner .vs-ring { margin-bottom: 14px; }
+
+/* Bảng Nhiệm vụ hôm nay (nút quà cạnh chuông thông báo) */
+.mission-panel .mission-box { display: flex; flex-direction: column; gap: 12px; }
+.mission-btn .badge { background: var(--green); }
+
+/* ---------- Trang chủ vừa đúng một màn hình (≥1100px): không cuộn trang, nội dung dài cuộn bên trong từng ô ---------- */
+@media (min-width: 1100px) {
+  body[data-screen="home"] .main { height: 100dvh; overflow: hidden; }
+  body[data-screen="home"] #lobby { flex: 1 1 0; min-height: 0; padding-bottom: 16px; gap: 14px; }
+  #lobby { grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "head head head" "hero hero chat" "form live chat"; }
+  #lobby > .grid-3 { display: none; }
+  #lobby #home-form, #lobby #home-live-card { min-height: 0; overflow-y: auto; }
+  #lobby #home-live-card .live-list { max-height: none; }
+  #lobby > .hero { min-height: 0; }
+}
+@media (min-width: 1100px) and (max-height: 820px) {
+  #lobby > .hero { min-height: 0; }
+  #lobby .hero h2 { font-size: 23px; }
+  #lobby .hero-body { padding: 20px 26px; gap: 10px; }
+  #lobby .hero-art img { width: min(100%, 200px); }
+}
+@media (min-width: 1100px) and (max-height: 820px) {
+  /* Màn thấp: thẻ xếp hạng chỉ giữ huy hiệu, thanh tiến độ & nút — 3 ô số liệu xem ở Hồ sơ */
+  #lobby #home-form .form-stats.three { display: none; }
+  #lobby #home-form { gap: 10px; }
+  #lobby #home-form .hr-rank { padding: 10px; }
+  #lobby .hero-actions .btn { padding-top: 8px; padding-bottom: 8px; }
+}
+
+/* =====================================================================
+   Chơi nhanh: 4 lối vào là 4 cờ phướn (ảnh khung vàng), cuộn ngang
+   Ảnh 1024×1536: khung nằm ở x 126–898, y 17–1475 (772×1458); hoa văn đáy bắt đầu ~y 1090
+   → mọi kích thước tính theo --bn-w (bề rộng khung), giữ đúng tỉ lệ ảnh
+   ===================================================================== */
+#page-play { --bn-w: clamp(260px, calc((100dvh - var(--topbar) - 150px) / 1.8886), 330px); position: relative; }
+#page-play .p2-grid {
+  display: flex; gap: 26px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  padding: 10px 6px 16px; margin: 0 -6px; grid-template-columns: none;
+  scrollbar-width: thin; scrollbar-color: #d9a94e transparent;
+}
+#page-play .p2-grid::-webkit-scrollbar { height: 8px; }
+#page-play .p2-grid::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #f2c45a, #c98a22); border-radius: 999px; }
+#page-play .p2-grid::-webkit-scrollbar-track { background: rgba(120, 80, 30, 0.08); border-radius: 999px; }
+#page-play .p2-entry {
+  flex: 0 0 var(--bn-w); width: var(--bn-w); height: calc(var(--bn-w) * 1.8886); scroll-snap-align: start;
+  position: relative; isolation: isolate; overflow: visible;
+  background: none !important; border: 0 !important; border-radius: 0; box-shadow: none !important;
+  padding: calc(var(--bn-w) * 0.075) calc(var(--bn-w) * 0.085) calc(var(--bn-w) * 0.52);
+  gap: calc(var(--bn-w) * 0.03); filter: drop-shadow(0 12px 18px rgba(60, 35, 15, 0.28));
+}
+#page-play .p2-entry::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--bn-img) no-repeat; background-size: calc(var(--bn-w) * 1.3264) auto;
+  background-position: calc(var(--bn-w) * -0.1632) calc(var(--bn-w) * -0.022);
+  border: 0; border-radius: 0; opacity: 1; inset: 0; transform: none;
+}
+#page-play .p2-entry::after { content: none !important; }
+#page-play a.p2-entry:hover { transform: translateY(-6px); box-shadow: none; filter: drop-shadow(0 18px 24px rgba(60, 35, 15, 0.35)); }
+#page-play .p2-ranked { --bn-img: url("assets/banner-red.webp"); color: #fff5e6; }
+#page-play .p2-coin { --bn-img: url("assets/banner-ivory.webp"); color: #3a2416; }
+#page-play .p2-tables { --bn-img: url("assets/banner-black.webp"); color: #f1e7da; }
+#page-play .p2-friend { --bn-img: url("assets/banner-beige.webp"); color: #3a2416; }
+
+/* Nội dung gọn để nằm trong phần thân cờ phướn */
+#page-play .p2-entry .p2-card-head { gap: 10px; }
+#page-play .p2-entry .p2-card-head h2 { font-size: calc(var(--bn-w) * 0.075); }
+#page-play .p2-entry .p2-card-head p { font-size: 12.5px; }
+#page-play .p2-entry .p2-head-ico { width: calc(var(--bn-w) * 0.14); height: calc(var(--bn-w) * 0.14); }
+#page-play .p2-entry .p2-trophy { margin: 0 auto; }
+#page-play .p2-entry .p2-trophy svg { width: calc(var(--bn-w) * 0.42); height: auto; }
+#page-play .p2-entry .p2-points { font-size: 12.5px; gap: 4px; }
+#page-play .p2-entry .p2-btn { padding: 10px 12px; font-size: 15px; }
+#page-play .p2-entry .p2-foot { font-size: 12px; margin: 0; }
+#page-play .p2-entry .p2-coin-art { display: none; }
+#page-play .p2-entry .p2-friend-art { width: 100%; height: auto; max-height: calc(var(--bn-w) * 0.45); }
+#page-play .p2-entry .p2-table-list { min-height: 0; overflow: hidden; flex: 1; }
+#page-play .p2-entry .p2-opt { padding: 7px 10px; }
+#page-play .p2-tables .p2-card-head p, #page-play .p2-ranked .p2-card-head p { color: rgba(255, 240, 220, 0.8); }
+
+/* Nút cuộn trái / phải */
+.p2-scroll {
+  position: absolute; top: 50%; z-index: 5; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #e8b75a; cursor: pointer;
+  display: grid; place-items: center; background: linear-gradient(180deg, #fff6dc, #f1d9a4); color: #7a3d0e;
+  box-shadow: 0 6px 16px rgba(60, 35, 15, 0.3); transition: opacity 0.2s, transform 0.2s;
+}
+.p2-scroll:hover { transform: scale(1.08); }
+.p2-scroll.prev { left: 6px; }
+.p2-scroll.next { right: 6px; }
+.p2-scroll.prev .ico { transform: rotate(180deg); }
+.p2-scroll[disabled] { opacity: 0; pointer-events: none; }
+#page-play .p2-grid { scroll-padding-left: 6px; }
+
+/* Cờ phướn co giãn: thiết kế ở 300px, phóng theo --bn-k (JS tính để 4 lá vừa một khung hình) */
+#page-play { --bn-w: 300px; }
+#page-play .p2-entry { zoom: var(--bn-k, 1); }
+#page-play .p2-grid { justify-content: safe center; }
+
+/* Cờ phướn dài theo màn hình: cắt ảnh 3 phần (đầu 60px · thân · đuôi hoa văn 446px) — chỉ kéo dãn phần thân
+   Tỉ lệ theo ảnh gốc 1024×1536, khung thấy được rộng 772px (x 126–898) → đơn vị theo --bn-w */
+#page-play .p2-entry { height: var(--bn-h, calc(var(--bn-w) * 1.8886)); }
+#page-play .p2-entry::before {
+  background: none;
+  top: calc(var(--bn-w) * -0.022); bottom: calc(var(--bn-w) * -0.079); left: calc(var(--bn-w) * -0.1632); right: calc(var(--bn-w) * -0.1632);
+  border-style: solid; border-color: transparent;
+  border-image-source: var(--bn-img); border-image-slice: 60 169 446 170 fill; border-image-repeat: stretch;
+  border-image-width: calc(var(--bn-w) * 0.0777) calc(var(--bn-w) * 0.2189) calc(var(--bn-w) * 0.5777) calc(var(--bn-w) * 0.2202);
+}
+#page-play { padding-bottom: 20px; }
+/* Phần trong suốt hai bên ảnh vẽ bằng border-image-outset (chỉ tràn hình, không làm dãy cờ tưởng bị tràn → không hiện thanh cuộn thừa) */
+#page-play .p2-entry::before {
+  inset: 0;
+  border-image-outset: calc(var(--bn-w) * 0.022) calc(var(--bn-w) * 0.1632) calc(var(--bn-w) * 0.079) calc(var(--bn-w) * 0.1632);
+}
+
+/* Đầu trang Xếp hạng & Túi đồ cùng khoảng cách như trang AI (mẫu gốc): đầu trang 23px · thanh tab ở 119px · nội dung từ 196px */
+#page-ranking > .tabs-row { margin-bottom: 18px; } /* thanh tab dạng nút cao 45px (AI 43px) → bù 2px */
+#page-inventory > .page-head .coin-pill { margin-block: -9px; } /* ô xu không làm đầu trang cao thêm */
+
+/* =====================================================================
+   AI · Xếp hạng · Túi đồ/Cửa hàng vừa một màn hình (≥1100px): không cuộn trang,
+   phần dài cuộn bên trong khung, bàn cờ xem trước tự nhỏ lại theo chiều cao
+   Nội dung các trang này bắt đầu ở ~196px (đầu trang + thanh tab), chừa 30px lề dưới
+   ===================================================================== */
+@media (min-width: 1100px) {
+  /* Đấu với AI: cột trái (cấp độ, màu quân...) cuộn bên trong; bàn cờ luyện tập vừa chiều cao */
+  #ai-panel-ai > .cols { height: calc(100dvh - 226px); align-items: stretch; }
+  #ai-panel-ai > .cols > .card { min-height: 0; overflow-y: auto; gap: 12px; }
+  #ai-panel-ai > .cols > .col-side { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  #ai-panel-ai > .cols > .col-side > .card:first-child { flex: 1 1 auto; min-height: 0; }
+  #ai-panel-ai .col-side .mini-board { width: min(100%, calc((100dvh - 470px) * 0.9)); margin: 0 auto; }
+
+  /* Lịch sử luyện tập / Cờ thế: danh sách dài cuộn trong khung */
+  #ai-panel-history, #ai-panel-puzzles { max-height: calc(100dvh - 226px); overflow-y: auto; }
+
+  /* Xếp hạng: bảng dài cuộn trong khung */
+  #page-ranking > .cols { height: calc(100dvh - 226px); align-items: stretch; }
+  #page-ranking > .cols > * { min-height: 0; overflow-y: auto; }
+
+  /* Túi đồ & Cửa hàng: lưới vật phẩm cuộn bên trong, khung xem trước co theo chiều cao */
+  #page-inventory > .cols { height: calc(100dvh - 285px); align-items: stretch; }
+  #page-inventory .col-main { display: flex; flex-direction: column; min-height: 0; }
+  #page-inventory .col-main .inv-grid { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 4px 8px 2px; align-content: start; }
+  #page-inventory .col-side { min-height: 0; }
+  #page-inventory .inv-preview { height: 100%; overflow: hidden; gap: 8px; padding: 14px 16px; }
+  #page-inventory .inv-preview .mini-board { width: min(100%, calc((100dvh - 285px - 330px) * 0.9)); }
+  #page-inventory .inv-preview .kv { margin: 0; }
+  #page-inventory .inv-preview .note { margin: 0; font-size: 12px; }
+  #page-inventory .inv-preview .btn { margin-top: auto; }
+}
+@media (min-width: 1100px) { #page-ai, #page-ranking, #page-inventory { padding-bottom: 30px; } }
+@media (min-width: 1201px) {
+  /* Phân tích vừa một màn hình: bàn cờ nhỏ hơn 10px theo chiều cao để chừa lề dưới */
+  .ab-frame { width: min(calc(min(100vw, var(--frame, 1440px)) - var(--sidebar) - 230px - 330px - 120px), max(280px, calc((100dvh - var(--topbar) - 245px) * var(--pz-ar, 1)))); }
+}
+
+/* Đồng hồ: tổng thời gian + thời gian nước đi bên cạnh (ván giới hạn mỗi nước) */
+.clock .clock-move { display: none; }
+.clock.dual { flex-direction: row; align-items: stretch; gap: 6px; }
+.clock.dual .clock-move { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; padding: 2px 8px; border-radius: var(--r-sm); background: var(--sunken); border: 1px solid var(--line); line-height: 1.1; }
+.clock.dual .clock-move i { font-style: normal; font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.clock.dual .clock-move em { font-style: normal; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.clock.dual.running .clock-move { border-color: var(--red); color: var(--red); }
+.clock.dual.move-low .clock-move { background: var(--red); color: #fff; animation: clock-pulse 1s steps(2) infinite; }
+.clock.dual.move-low .clock-move i { color: rgba(255, 255, 255, 0.85); }
+@media (min-width: 1100px) {
+  #game:not(.ended) .player .clock.dual { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+  #game:not(.ended) .player .clock.dual b { font-size: 28px; text-align: left; }
+  #game:not(.ended) .player .clock.dual .clock-move { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 210, 122, 0.35); color: #ffe2a8; min-width: 64px; padding: 4px 8px; }
+  #game:not(.ended) .player .clock.dual .clock-move i { color: #d9bf98; }
+  #game:not(.ended) .player .clock.dual .clock-move em { font-size: 17px; font-family: var(--serif); }
+  #game:not(.ended) .player .clock.dual.running .clock-move { border-color: #ffd27a; color: #fff; box-shadow: 0 0 10px rgba(255, 210, 122, 0.35); }
+  #game:not(.ended) .player .clock.dual.move-low .clock-move { background: #c42a1f; border-color: #ff8a6e; color: #fff; }
+}
+
+/* ---------- Đồng hồ kiểu mới: ⏳ tổng thời gian (xanh lá) · 🕒 thời gian nước đi (cam), trên nền sẫm ---------- */
+.clock.pair {
+  display: inline-flex; flex-direction: row; align-items: center; gap: 12px; padding: 5px 10px; border-radius: 8px;
+  background: rgba(24, 18, 14, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); line-height: 1;
+}
+.clock.pair > span { display: inline-flex; align-items: center; gap: 5px; }
+.clock.pair > span[hidden] { display: none; }
+.clock.pair svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.clock.pair b, .clock.pair em {
+  font: 700 15px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-style: normal; font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+  background: none; border: 0; padding: 0; min-width: 0; color: inherit; text-shadow: none; animation: none;
+}
+.clock.pair .ck-total { color: #5fd38a; }
+.clock.pair .ck-move { color: #f2a03d; }
+/* Bên không đến lượt: mờ đi */
+.clock.pair:not(.running) { opacity: 0.62; }
+.clock.pair.running { box-shadow: inset 0 0 0 1px rgba(242, 160, 61, 0.45), 0 0 10px rgba(242, 160, 61, 0.18); }
+.clock.pair.running b, .clock.pair.running em { background: none; color: inherit; }
+/* Sắp hết giờ: phần tương ứng chuyển đỏ và nhấp nháy */
+.clock.pair.total-low .ck-total, .clock.pair.move-low .ck-move { color: #ff5a4a; animation: clock-pulse 1s steps(2) infinite; }
+.clock.pair.low b { animation: none; }
+
+/* Trên bàn đấu (thẻ người chơi ngang): đồng hồ to, chiếm hết bề ngang thẻ */
+@media (min-width: 1100px) {
+  #game:not(.ended) .player .clock.pair { display: flex; justify-content: space-around; gap: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.42); }
+  #game:not(.ended) .player .clock.pair svg { width: 20px; height: 20px; }
+  #game:not(.ended) .player .clock.pair b, #game:not(.ended) .player .clock.pair em { font-size: 24px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: inherit; text-shadow: none; }
+  #game:not(.ended) .player .clock.pair.running b, #game:not(.ended) .player .clock.pair.running em { color: inherit; text-shadow: 0 0 10px currentColor; }
+}
+
+/* Bàn đấu: nhãn trạng thái & bàn có ghế trống */
+.p2-live.ready { color: #e9b44c; }
+.p2-live.ready i { background: #e9b44c; box-shadow: 0 0 0 3px rgba(233, 180, 76, 0.22); }
+.p2-live.wait { color: #7fd6a4; }
+.p2-live.wait i { background: #3fbf6e; box-shadow: 0 0 0 3px rgba(63, 191, 110, 0.22); }
+.p2-pl.empty span { font-style: italic; opacity: 0.6; }
+.p2-watch.join { background: linear-gradient(180deg, #3fbf6e, #23854a); border-color: #23854a; color: #fff; }
+.p2-watch.off { opacity: 0.55; cursor: default; font-size: 11.5px; }
+
+/* Bàn Tranh xu trong danh sách Bàn đấu: huy hiệu mức cược */
+.p2-thumb { position: relative; }
+.p2-stake-badge { position: absolute; left: 4px; bottom: 4px; display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #5a1a0e; background: linear-gradient(180deg, #ffe39b, #e9ae45); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.p2-stake-badge .ico { width: 12px; height: 12px; }
+.p2-table.is-coin { box-shadow: inset 0 0 0 1px rgba(233, 174, 69, 0.55); }
+
+/* =====================================================================
+   MÀN HÌNH KẾT QUẢ — BẢN 3 (thay toàn bộ phong cách trước)
+   Cả khu vực một tông: nền sơn mài (thắng: đỏ son · thua: mực xám · hoà: ngọc bích),
+   thẻ hai bên trong suốt viền chỉ vàng; thẻ giữa: triện 勝/敗/和, tiêu đề in hoa, góc hoa văn mảnh
+   ===================================================================== */
+#game.ended {
+  --rs-bg1: #5a0d08; --rs-bg2: #250403; --rs-acc: #f0c463; --rs-acc2: #b8862b; --rs-text: #fff4e2; --rs-muted: #e2c7a4;
+  --rs-panel: rgba(255, 236, 205, 0.06); --rs-line: rgba(240, 196, 99, 0.3); --rs-seal: #c8241a; --rs-btn1: #ffe7a6; --rs-btn2: #e2a43a; --rs-btn-text: #4a1508;
+}
+#game.ended[data-result="lose"] {
+  --rs-bg1: #2c303a; --rs-bg2: #111318; --rs-acc: #d5dce6; --rs-acc2: #8b95a5; --rs-text: #eef1f6; --rs-muted: #a9b2c0;
+  --rs-panel: rgba(220, 228, 240, 0.05); --rs-line: rgba(200, 210, 225, 0.22); --rs-seal: #4b515d; --rs-btn1: #f4f6f9; --rs-btn2: #c3cad5; --rs-btn-text: #1d222b;
+}
+#game.ended[data-result="draw"] {
+  --rs-bg1: #11473b; --rs-bg2: #061c17; --rs-acc: #e8d18a; --rs-acc2: #a8924a; --rs-text: #f1f7f2; --rs-muted: #b9d3c8;
+  --rs-panel: rgba(220, 245, 235, 0.05); --rs-line: rgba(232, 209, 138, 0.28); --rs-seal: #1f7a62; --rs-btn1: #fbefc2; --rs-btn2: #d9b961; --rs-btn-text: #1e2a20;
+}
+
+/* Bỏ các trang trí cũ */
+#game.ended .res-crown, #game.ended .laurel, #game.ended .res-scene, #game.ended .res-ribbon, #game.ended .res-lantern, #game.ended .res-clouds { display: none !important; }
+
+/* ---------- Khung chung (≥1100px): một tấm sơn mài chứa 3 cột ---------- */
+@media (min-width: 1100px) {
+  #game.ended .game-grid {
+    padding: 16px; border-radius: 20px; gap: 14px 16px;
+    height: calc(100dvh - var(--topbar) - 52px);
+    grid-template-columns: minmax(210px, 280px) minmax(380px, 460px) minmax(270px, 340px);
+    background:
+      radial-gradient(70% 55% at 50% 0%, color-mix(in srgb, var(--rs-acc) 16%, transparent), transparent 70%),
+      repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 12px),
+      linear-gradient(180deg, var(--rs-bg1), var(--rs-bg2));
+    box-shadow: 0 24px 60px rgba(20, 8, 4, 0.35), inset 0 0 0 1px var(--rs-line);
+  }
+  /* Thẻ hai bên: trong suốt, viền chỉ vàng, chữ sáng */
+  #game.ended .moves-card, #game.ended .end-insight, #game.ended .result-view > .card:nth-child(2), #game.ended .radar-card {
+    background: var(--rs-panel) !important; border: 1px solid var(--rs-line) !important; box-shadow: none !important;
+    color: var(--rs-text); border-radius: 14px; backdrop-filter: blur(2px);
+  }
+  #game.ended .moves-card h3, #game.ended .end-insight h3, #game.ended .result-view > .card h3 {
+    font-family: var(--serif); color: var(--rs-acc); font-size: 15px; letter-spacing: 0.02em;
+  }
+  #game.ended .moves-card .muted, #game.ended .end-insight .muted, #game.ended .end-insight p, #game.ended .end-chart-head small,
+  #game.ended .radar-card .card-head p, #game.ended .result-view .stat-row small { color: var(--rs-muted) !important; }
+  #game.ended .result-view .stat-row b { color: var(--rs-text); }
+  #game.ended .end-insight .tag { background: rgba(255, 255, 255, 0.08); color: var(--rs-muted); border: 1px solid var(--rs-line); }
+  #game.ended .end-insight .btn.primary { background: transparent; border: 1px solid var(--rs-acc); color: var(--rs-acc); box-shadow: none; }
+  #game.ended .end-insight .btn.primary:hover { background: color-mix(in srgb, var(--rs-acc) 16%, transparent); }
+  #game.ended .end-insight .btn.primary .ico { color: var(--rs-acc); }
+  /* Biên bản */
+  #game.ended .moves-card select, #game.ended .moves-card .icon-btn { background: rgba(255, 255, 255, 0.06); border-color: var(--rs-line); color: var(--rs-text); }
+  #game.ended .moves-card select option { color: #222; }
+  #game.ended #move-list { color: var(--rs-text); }
+  #game.ended #move-list li:nth-child(even) > *, #game.ended #move-list li:nth-child(even) button { background: rgba(255, 255, 255, 0.04); }
+  #game.ended #move-list button { color: var(--rs-text); }
+  #game.ended #move-list button.r { color: #ff9a86; }
+  #game.ended #move-list li.result-line, #game.ended #move-list li.empty { color: var(--rs-muted); }
+  #game.ended #move-list li.empty::before { filter: invert(1); opacity: 0.25; }
+  #game.ended .moves-card .replay-bar, #game.ended .moves-card .rp-label { color: var(--rs-muted); border-color: var(--rs-line); }
+  #game.ended .moves-card thead th, #game.ended .moves-card .mv-head { color: var(--rs-muted); }
+  /* Biểu đồ trận đấu */
+  #game.ended .end-chart { background: rgba(0, 0, 0, 0.18); border-color: var(--rs-line); }
+  #game.ended .end-chart .grid { stroke: rgba(255, 255, 255, 0.07); }
+  #game.ended .end-chart .zero { stroke: rgba(255, 255, 255, 0.28); }
+  #game.ended .end-chart .up { fill: color-mix(in srgb, var(--rs-acc) 32%, transparent); }
+  #game.ended .end-chart .down { fill: rgba(255, 255, 255, 0.1); }
+  #game.ended .end-chart .line { stroke: var(--rs-acc); }
+  /* Chỉ số ván đấu: chữ không bị cắt */
+  #game.ended .radar-card { overflow: hidden; }
+  #game.ended #radar { overflow: visible; max-height: calc(100dvh - var(--topbar) - 500px); min-height: 130px; }
+  #game.ended #radar .web, #game.ended #radar .axis { stroke: rgba(255, 255, 255, 0.14); }
+  #game.ended #radar text { fill: var(--rs-muted); font-size: 12.5px; }
+  #game.ended #radar .shape { fill: color-mix(in srgb, var(--rs-acc) 22%, transparent); stroke: var(--rs-acc); }
+  #game.ended #radar .pt { fill: var(--rs-acc); }
+  #game.ended .radar-legend li { border-color: rgba(255, 255, 255, 0.08); color: var(--rs-muted); }
+  #game.ended .radar-legend b { color: var(--rs-text); }
+}
+
+/* ---------- Thẻ kết quả ở giữa ---------- */
+#game.ended #result-card {
+  position: relative; isolation: isolate; overflow: hidden; text-align: center; align-items: center; justify-content: center;
+  gap: 10px; padding: 26px 26px 20px; border-radius: 16px;
+  background: radial-gradient(80% 45% at 50% 0%, color-mix(in srgb, var(--rs-acc) 14%, transparent), transparent 70%),
+              linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.28)) !important;
+  border: 1px solid var(--rs-acc) !important;
+  box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.18), inset 0 0 0 6px var(--rs-line), 0 18px 40px rgba(0, 0, 0, 0.35) !important;
+  color: var(--rs-text); animation: rise 0.35s ease-out;
+}
+/* Góc hoa văn */
+#game.ended .res-deco { display: block; position: absolute; inset: 10px; z-index: -1; pointer-events: none; }
+#game.ended .res-deco .rc { position: absolute; width: 34px; height: 34px; color: var(--rs-acc); opacity: 0.85; }
+#game.ended .res-deco .rc svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.6; }
+#game.ended .res-deco .rc.tl { left: 0; top: 0; }
+#game.ended .res-deco .rc.tr { right: 0; top: 0; transform: scaleX(-1); }
+#game.ended .res-deco .rc.bl { left: 0; bottom: 0; transform: scaleY(-1); }
+#game.ended .res-deco .rc.br { right: 0; bottom: 0; transform: scale(-1, -1); }
+/* Triện 勝 / 敗 / 和 */
+#game.ended #result-card .result-ico { display: grid !important; place-items: center; width: auto; height: auto; background: none; box-shadow: none; margin: 0; }
+#game.ended #result-card .seal {
+  display: grid; place-items: center; width: 62px; height: 62px; border-radius: 10px; transform: rotate(-6deg);
+  font: 700 38px/1 "LXGW WenKai TC", "Noto Serif TC", serif; color: #fff7ea;
+  background: var(--rs-seal); box-shadow: inset 0 0 0 3px var(--rs-seal), inset 0 0 0 4px rgba(255, 255, 255, 0.55), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+/* Tiêu đề */
+#game.ended #result-card .result-title {
+  font: 800 32px/1.1 var(--serif); letter-spacing: 0.16em; text-transform: uppercase; margin: 4px 0 0;
+  background: linear-gradient(180deg, #fff, var(--rs-acc) 55%, var(--rs-acc2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35));
+}
+#game.ended #result-card .res-flourish { display: block; position: relative; width: 58%; height: 10px; margin: 0 auto; }
+#game.ended #result-card .res-flourish::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: linear-gradient(90deg, transparent, var(--rs-acc), transparent); }
+#game.ended #result-card .res-flourish i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; transform: translate(-50%, -50%) rotate(45deg); background: var(--rs-acc); box-shadow: none; }
+#game.ended #result-card #result-sub { font: 600 14px/1.4 var(--serif); color: var(--rs-muted) !important; margin: 0; }
+/* Hai kỳ thủ */
+#game.ended #result-card .vs-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; width: 100%; margin: 6px 0 0; }
+#game.ended #result-card .vs-side { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+#game.ended #result-card .vs-ring { position: relative; padding: 3px; border-radius: calc(var(--av-r) + 4px); background: rgba(255, 255, 255, 0.18); box-shadow: none; margin: 14px 0 6px; }
+#game.ended #result-card .vs-side.winner .vs-ring { background: linear-gradient(145deg, #fff3c4, var(--rs-acc) 45%, var(--rs-acc2)); box-shadow: 0 0 18px color-mix(in srgb, var(--rs-acc) 45%, transparent); }
+#game.ended #result-card .vs-side .avatar { width: 64px; height: 64px; font-size: 22px; border: 0; }
+#game.ended #result-card .mini-crown { top: -18px; width: 30px; height: 17px; fill: var(--rs-acc); filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4)); }
+#game.ended #result-card .vs-side b { font: 700 15px/1.25 var(--serif); color: var(--rs-text); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#game.ended #result-card .vs-side small { color: var(--rs-muted); font-size: 12px; }
+#game.ended #result-card .vs-score { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; }
+#game.ended #result-card .vs-score span { font: 700 40px/1 var(--serif); color: var(--rs-text); text-shadow: none; }
+#game.ended #result-card .vs-div { width: 46px; }
+#game.ended #result-card .vs-div::before { background: linear-gradient(90deg, transparent, var(--rs-acc), transparent); }
+#game.ended #result-card .vs-div::after { background: var(--rs-bg1); border-color: var(--rs-acc); }
+#game.ended #result-card .elo-chg { margin-top: 4px; padding: 2px 10px; font-size: 12px; border-width: 1px; background: rgba(0, 0, 0, 0.2); }
+#game.ended #result-card .delta-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+#game.ended #result-card .delta-row .delta { background: rgba(0, 0, 0, 0.22); border: 1px solid var(--rs-line); color: var(--rs-acc); }
+#game.ended #result-card .result-hint { color: var(--rs-acc); font-size: 13px; margin: 0; }
+/* Thế cờ cuối ván */
+#game.ended #result-card .res-board-wrap {
+  display: block; margin: 2px auto 0; padding: 5px; border-radius: 10px; background: linear-gradient(180deg, #d9b07a, #a8793f);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.35) !important;
+  width: min(100%, max(180px, calc((100dvh - var(--topbar) - 52px - 32px - 560px) / 1.03)));
+}
+#game.ended #res-board { border-radius: 6px; }
+/* Nút */
+#game.ended #result-card .result-actions { width: 100%; margin-top: 4px; }
+#game.ended #result-card .result-actions .btn.primary {
+  width: 100%; min-width: 0; padding: 12px 16px; border-radius: 12px; border: 0;
+  font: 700 18px/1.2 var(--serif); letter-spacing: 0.02em; color: var(--rs-btn-text);
+  background: linear-gradient(180deg, var(--rs-btn1), var(--rs-btn2)) !important;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 10px 22px rgba(0, 0, 0, 0.3) !important;
+}
+#game.ended #result-card .result-actions .btn.primary .ico { color: var(--rs-btn-text); }
+#game.ended #result-card .result-links {
+  display: flex !important; flex-wrap: wrap; justify-content: center; gap: 2px 4px; width: 100%;
+  padding: 8px 0 0 !important; background: none !important; border-top: 1px solid var(--rs-line);
+}
+#game.ended #result-card .result-links .btn { color: var(--rs-text); font: 600 13.5px/1 inherit; padding: 7px 10px; background: none; border: 0; }
+#game.ended #result-card .result-links .btn:hover { background: rgba(255, 255, 255, 0.08); }
+#game.ended #result-card .result-links .btn .ico { color: var(--rs-acc) !important; }
+#game.ended #result-card .result-links .btn.hidden, #game.ended #result-card .result-links #res-board { display: none !important; }
+#game.ended #result-card #res-again.ask { color: #7ee0a3; }
+/* Lấp lánh nhẹ khi thắng (thay cánh hoa) — thua & hoà không có hiệu ứng */
+#game.ended #result-card .res-fx { display: block; position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+#game.ended #result-card.win .res-fx i {
+  position: absolute; top: auto; bottom: -10px; width: 4px; height: 4px; border-radius: 50%; background: var(--rs-acc); opacity: 0;
+  box-shadow: 0 0 8px var(--rs-acc); animation: rs-spark linear infinite; transform: none;
+}
+#game.ended #result-card.lose .res-fx i, #game.ended #result-card.draw .res-fx i { display: none; }
+@keyframes rs-spark { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 0.9; } 100% { transform: translateY(-90vh); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #game.ended #result-card .res-fx { display: none; } }
+@media (min-width: 1100px) {
+  #game.ended #result-card { grid-area: res; overflow: hidden; }
+}
+@media (min-width: 1100px) and (max-height: 820px) {
+  #game.ended #result-card { gap: 7px; padding: 18px 22px 14px; }
+  #game.ended #result-card .seal { width: 50px; height: 50px; font-size: 30px; }
+  #game.ended #result-card .result-title { font-size: 26px; }
+  #game.ended #result-card .vs-side .avatar { width: 54px; height: 54px; }
+  #game.ended #result-card .vs-score span { font-size: 34px; }
+  #game.ended #result-card .res-board-wrap { width: min(100%, max(160px, calc((100dvh - var(--topbar) - 52px - 32px - 480px) / 1.03))); }
+}
+@media (min-width: 1100px) {
+  /* Bàn cờ cuối ván to hơn: phần chữ & nút trong thẻ chiếm ~470px */
+  #game.ended #result-card .res-board-wrap { width: min(100%, max(180px, calc((100dvh - var(--topbar) - 52px - 32px - 470px) / 1.03))); }
+  #game.ended .moves-card .mv-head { background: rgba(255, 255, 255, 0.06); color: var(--rs-muted); }
+  #game.ended .radar-wrap { gap: 2px; }
+}
+@media (min-width: 1100px) and (max-height: 820px) {
+  #game.ended #result-card .res-board-wrap { width: min(100%, max(160px, calc((100dvh - var(--topbar) - 52px - 32px - 410px) / 1.03))); }
+}
+
+/* Kết quả: bỏ triện chữ Hán trên tiêu đề; bàn cờ cuối ván chiếm phần chỗ còn lại (co giãn) để nút luôn hiện đủ */
+#game.ended #result-card .result-ico { display: none !important; }
+#game.ended #result-card > * { flex-shrink: 0; }
+#game.ended #result-card .res-board-wrap {
+  flex: 1 1 0; min-height: 110px; width: 100% !important; display: flex !important; justify-content: center; align-items: center;
+  padding: 0; margin: 2px 0; background: none !important; box-shadow: none !important; border-radius: 0;
+}
+#game.ended #res-board {
+  height: 100%; width: auto; max-width: 100%; max-height: 330px; display: block; box-sizing: border-box; padding: 5px; border-radius: 10px;
+  background: linear-gradient(180deg, #d9b07a, #a8793f); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+#game.ended #result-card { justify-content: flex-start; }
+#game.ended #result-card .result-title { margin-top: 6px; }
+@media (min-width: 1100px) { #game.ended .radar-card { overflow-y: auto !important; } }

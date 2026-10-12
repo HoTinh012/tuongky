@@ -16,17 +16,22 @@ const tournaments = require('./tournaments.js');
 const engineServer = require('./engine-server.js');
 const Catalog = require('./public/catalog.js');
 const economy = require('./economy.js');
+const shop = require('./shop.js');
+const features = require('./features-store.js');
+const config = require('./config-store.js');
+const CFG = config.values; // cài đặt hệ thống (admin chỉnh) — luôn đọc CFG.X lúc dùng
+const F = (key) => features.on(key); // chức năng đang bật? (admin → Chức năng web)
+const community = require('./community.js');
 const E = Catalog.ECONOMY; // cài đặt chế độ chơi (admin chỉnh được) — luôn đọc E.X để thấy giá trị mới nhất
 
 const PORT = process.env.PORT || 3000;
-const ROOM_TTL_MS = 30 * 60 * 1000; // xoá phòng trống sau 30 phút
 // Lựa chọn thời gian khi tạo phòng (0 = không giới hạn)
-const TIME_TOTAL_MIN = [0, 1, 3, 5, 10, 15, 20, 30, 60]; // thời gian mỗi bên (phút)
-const TIME_MOVE_SEC = [0, 30, 60, 120, 180, 300]; // thời gian mỗi nước (giây)
-const TIME_INC_SEC = [0, 2, 3, 5, 10]; // cộng thêm sau mỗi nước (giây), vd nhịp 15+10
+const TIME_MOVE_SEC = [30, 60, 120, 180, 300]; // thời gian mỗi nước (giây) — bắt buộc khi ván có tính giờ
+const DEFAULT_MOVE_SEC = 60;
 // Người chơi mất kết nối quá 90 giây (mặc định) → coi như rời bàn
-const ABANDON_MS = (Number(process.env.ABANDON_SECONDS) || 90) * 1000;
-const ACCEPT_MS = 12000; // thời gian xác nhận khi ghép được đối thủ
+// Thời gian giữ chỗ khi mất kết nối & xác nhận ghép trận (admin chỉnh; biến môi trường ABANDON_SECONDS được ưu tiên)
+const abandonMs = () => (Number(process.env.ABANDON_SECONDS) || CFG.ABANDON_SEC) * 1000;
+const acceptMs = () => CFG.ACCEPT_SEC * 1000;
 
 const app = express();
 // Fairy-Stockfish (WebAssembly đa luồng) cần trang được "cách ly" để dùng SharedArrayBuffer.
@@ -66,6 +71,7 @@ app.get('/api/puzzles/:id', (req, res) => {
   res.json({ puzzle: { ...puzzleSummary(p, new Set(acc ? acc.solvedPuzzles : [])), solution: p.solution } });
 });
 app.post('/api/puzzles/:id/solve', express.json({ limit: '20kb' }), (req, res) => {
+  if (!F('puzzles')) return res.status(403).json({ error: features.offMessage('puzzles') });
   const p = puzzles.get(req.params.id);
   if (!p || !p.published) return res.status(404).json({ error: 'Không tìm thấy bài tập.' });
   if (!puzzles.checkSolution(p, req.body && req.body.moves)) return res.status(400).json({ error: 'Lời giải chưa đúng.' });
@@ -108,7 +114,25 @@ app.get('/api/live', (req, res) => {
     const host = room.players.r || room.players.b;
     return { roomId: room.id, stake: room.stake, settings: room.settings, since: room.createdAt, host: { name: host.name, rating: host.rating || null, avatar: host.avatar || null } };
   });
-  res.json({ online: onlineInfo().total, playing: live.length, searching: queue.size, matches: live.slice(0, 12), waiting });
+  // Tất cả bàn (trang Chơi nhanh → Bàn đấu): bàn 1 người đang chờ, bàn đủ 2 người chờ sẵn sàng, bàn đang chơi
+  const tables = [];
+  for (const room of rooms.values()) {
+    const { r, b } = room.players;
+    const g = room.game;
+    if ((!r && !b) || g.result) continue;
+    const status = r && b ? (g.startedAt ? 'playing' : 'ready') : 'waiting';
+    tables.push({
+      roomId: room.id, status, players: { r: r ? seat(r) : null, b: b ? seat(b) : null },
+      spectators: [...room.members.values()].filter((t) => !colorOf(room, t)).length,
+      canWatch: !!room.rules.spectators && F('spectate'), kind: room.kind, stake: room.stake || null, settings: room.settings,
+      board: g.board, lastMove: g.lastMove, moveCount: g.moveCount, since: room.createdAt,
+      tournament: room.tournament ? { id: room.tournament.id, name: room.tournament.name } : null,
+    });
+  }
+  const order = { playing: 0, ready: 1, waiting: 2 };
+  tables.sort((a, b) => order[a.status] - order[b.status] || b.spectators - a.spectators || a.since - b.since);
+  res.json({ online: onlineInfo().total, playing: live.length, searching: queue.size, matches: F('spectate') ? live.slice(0, 12) : [], waiting: F('coin') ? waiting : [],
+    tables: F('tables') ? tables.slice(0, 60) : [] });
 });
 
 // ---------- Bảng xếp hạng ----------
@@ -155,9 +179,27 @@ app.get('/api/replay/:id', (req, res) => {
 
 // Cấu hình kinh tế & vật phẩm cho trình duyệt
 app.get('/api/config', (req, res) => {
-  res.json({ economy: economy.current(), abandonMs: ABANDON_MS, acceptMs: ACCEPT_MS });
+  res.json({ economy: economy.current(), abandonMs: abandonMs(), acceptMs: acceptMs() });
 });
 // Cài đặt chế độ chơi cho trình duyệt (nạp ngay sau catalog.js để không phải chờ tải dữ liệu)
+// Cài đặt hệ thống (nội dung trang chủ, bậc rank, nhịp phòng riêng...) — trình duyệt nạp trước app.js
+app.get('/api/site-config.js', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.type('application/javascript').send(config.browserScript());
+});
+
+// Chức năng đang bật/tắt — trình duyệt nạp trước app.js
+app.get('/api/features.js', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.type('application/javascript').send(features.browserScript());
+});
+
+// Danh sách vật phẩm do admin quản lý — nạp ngay sau catalog.js
+app.get('/api/shop.js', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.type('application/javascript').send(shop.browserScript());
+});
+
 app.get('/api/economy.js', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.type('application/javascript').send(economy.browserScript());
@@ -183,6 +225,7 @@ app.get('/api/tournaments/:id', (req, res) => {
 });
 for (const action of ['register', 'unregister', 'checkin']) {
   app.post(`/api/tournaments/:id/${action}`, (req, res) => {
+    if (!F('tournaments')) return res.status(403).json({ error: features.offMessage('tournaments') });
     const acc = sessionAccount(req);
     if (!acc) return res.status(401).json({ error: 'Hãy đăng nhập để tham gia giải.' });
     try {
@@ -318,7 +361,7 @@ function publicState(room) {
     matchmaking: !!room.matchmaking,
     rated: room.kind === 'ranked' || (room.kind === 'tournament' && !!(room.players.r && room.players.b && room.players.r.accountId && room.players.b.accountId)),
     kind: room.kind, rules: room.rules, stake: room.stake || null, fee: room.fee || null,
-    ready: [...room.ready], takebackOffer: room.takebackOffer || null, graceMs: ABANDON_MS,
+    ready: [...room.ready], takebackOffer: room.takebackOffer || null, graceMs: abandonMs(),
     tournament: room.tournament ? { id: room.tournament.id, name: room.tournament.name, round: room.tournament.round, deadline: room.tournament.deadline || null } : null,
     ownerColor: colorOf(room, room.ownerToken),
     reservedNames: room.reservedNames || null,
@@ -429,13 +472,15 @@ function joinRoom(socket, room, name, token, { spectate = false, note = null } =
   }
   if (room.players.r && room.players.b && !room.game.history.length) {
     room.game.names = { r: room.players.r.name, b: room.players.b.name };
-    // Phòng riêng: chờ cả hai bấm "Sẵn sàng"; các loại khác bắt đầu ngay khi đủ 2 người
-    if (room.kind !== 'room') beginGame(room);
+    // Phòng riêng & Tranh xu: chờ cả hai bấm "Sẵn sàng" (xác nhận cược) mới bắt đầu; các loại khác bắt đầu ngay khi đủ 2 người
+    if (!NEEDS_READY.includes(room.kind)) beginGame(room);
   }
 
   socket.emit('joined', { roomId: room.id, color, chat: room.chat, note });
   broadcast(room);
 }
+
+const NEEDS_READY = ['room', 'coin']; // loại bàn phải cả hai xác nhận mới bắt đầu
 
 // Bắt đầu ván: ghi giờ bắt đầu & chạy đồng hồ
 function beginGame(room) {
@@ -471,17 +516,17 @@ function vacateSeat(room, color) {
 }
 
 // Phòng chỉ bị huỷ khi không còn ai trong phòng.
-// Người cuối cùng chủ động rời → huỷ ngay; mất kết nối → chờ ABANDON_MS để còn kịp tải lại trang.
+// Người cuối cùng chủ động rời → huỷ ngay; mất kết nối → chờ thời gian giữ chỗ (abandonMs) để còn kịp tải lại trang.
 function checkEmpty(room, immediate) {
   if (room.members.size > 0) return;
   room.emptySince = Date.now();
   clearTimeout(room.emptyTimer);
   if (immediate) destroyRoom(room);
-  else room.emptyTimer = setTimeout(() => room.members.size === 0 && destroyRoom(room), ABANDON_MS);
+  else room.emptyTimer = setTimeout(() => room.members.size === 0 && destroyRoom(room), abandonMs());
 }
 
 // explicit = người dùng chủ động rời (bấm Rời bàn, sang phòng khác, bị mời ra);
-// ngược lại là mất kết nối — cho phép quay lại trong ABANDON_MS.
+// ngược lại là mất kết nối — cho phép quay lại trong abandonMs().
 function leaveRoom(socket, { explicit = false } = {}) {
   const room = rooms.get(socket.data.roomId);
   socket.data.roomId = null;
@@ -509,7 +554,7 @@ function leaveRoom(socket, { explicit = false } = {}) {
         vacateSeat(room, c);
         broadcast(room);
         checkEmpty(room, true);
-      }, ABANDON_MS));
+      }, abandonMs()));
     }
   }
   broadcast(room);
@@ -647,12 +692,16 @@ function presenceOf(accountId) {
   const playing = !!(room && ['r', 'b'].some((c) => room.players[c] && room.players[c].accountId === accountId) && room.game.startedAt && !room.game.result);
   return { online: true, roomId: room && room.rules.spectators ? roomId : null, playing };
 }
-setupAccount(app, { users, presenceOf, onAccountChange: (acc) => renameUser(acc.id, acc.displayName, acc.avatar || null) });
+setupAccount(app, { users, presenceOf, features, onAccountChange: (acc) => renameUser(acc.id, acc.displayName, acc.avatar || null) });
 setupAdmin(app, {
   rooms, users, theme, puzzles, tournaments, onlineInfo, kickUser, renameUser, closeRoom,
   queueSize: () => queue.size,
   onThemeChange: (current) => io.emit('theme', current), // cập nhật ngay cho mọi người đang chơi
   economy, onEconomyChange: (current) => io.emit('economy', current),
+  shop, onShopChange: (items) => io.emit('shop', items),
+  features, onFeaturesChange: (state) => io.emit('features', state),
+  config, onConfigChange: (values) => io.emit('site-config', values),
+  community, onCommunityDelete: (id) => io.emit('community-delete', id),
 });
 
 // Bàn tranh xu đang chờ: đúng nhịp & mức đặt, mới có 1 người (không phải mình), chưa bắt đầu
@@ -671,15 +720,17 @@ function findCoinTable(settings, stake, accountId) {
 }
 
 // Nhịp do admin cài (Xếp hạng / Tranh xu) — đã kiểm tra ở economy.js nên không giới hạn theo danh sách phòng riêng
-const tcSettings = (totalMin, incSec) => ({ totalMs: totalMin * 60000, moveMs: null, incMs: incSec ? incSec * 1000 : null });
+const tcSettings = (totalMin, incSec, moveSec) => ({ totalMs: totalMin * 60000, moveMs: (moveSec || DEFAULT_MOVE_SEC) * 1000, incMs: incSec ? incSec * 1000 : null });
 
 function parseSettings(totalMin, moveSec, incSec) {
-  const totalMs = TIME_TOTAL_MIN.includes(totalMin) && totalMin ? totalMin * 60 * 1000 : null;
+  // Phòng riêng chỉ nhận nhịp trong danh sách admin cài (kiểm tra ở 'create'); giải đấu dùng nhịp riêng của giải
+  const totalMs = Number.isInteger(totalMin) && totalMin > 0 && totalMin <= 180 ? totalMin * 60 * 1000 : null;
   return {
     totalMs,
-    moveMs: TIME_MOVE_SEC.includes(moveSec) && moveSec ? moveSec * 1000 : null,
+    // Có tổng thời gian thì bắt buộc giới hạn mỗi nước (không chọn / chọn sai → 60 giây)
+    moveMs: totalMs ? (TIME_MOVE_SEC.includes(moveSec) ? moveSec : DEFAULT_MOVE_SEC) * 1000 : null,
     // Chỉ cộng giờ khi có giới hạn tổng thời gian
-    incMs: totalMs && TIME_INC_SEC.includes(incSec) && incSec ? incSec * 1000 : null,
+    incMs: totalMs && Number.isInteger(incSec) && incSec > 0 && incSec <= 60 ? incSec * 1000 : null,
   };
 }
 
@@ -720,11 +771,11 @@ function createRoom(settings, opts = {}) {
 // Khác thể thức thời gian bị tính thêm 150 điểm chênh lệch (vẫn ghép được khi đã chờ lâu).
 // mode 'ranked' (Xếp hạng, phí xu nếu cả hai có tài khoản) | 'coin' (Tranh xu, cùng mức đặt, chỉ tài khoản).
 // Tìm thấy đối thủ → cả hai bấm "Chấp nhận" trong 12 giây; ai từ chối / không phản hồi bị loại khỏi hàng chờ.
-const MM_BASE = 100, MM_STEP = 50, MM_STEP_MS = 5000, MM_ANY_MS = 60000, MM_OTHER_SETTINGS = 150, MM_MIXED = 200;
+const MM_OTHER_SETTINGS = 150, MM_MIXED = 200; // khoảng chênh Elo khi tìm trận: admin chỉnh (CFG.MM_*)
 const queue = new Map(); // socketId -> { socket, token, name, identity, accountId, rating, settings, since, mode, stake }
 const pendingMatches = new Map(); // matchId -> { id, a, b, accepted: Set<socketId>, timer }
 
-const mmWindow = (e, now) => (now - e.since >= MM_ANY_MS ? Infinity : MM_BASE + Math.floor((now - e.since) / MM_STEP_MS) * MM_STEP);
+const mmWindow = (e, now) => (now - e.since >= CFG.MM_ANY_SEC * 1000 ? Infinity : CFG.MM_BASE + Math.floor((now - e.since) / (CFG.MM_STEP_SEC * 1000)) * CFG.MM_STEP);
 const sameSettings = (a, b) => a.settings.totalMs === b.settings.totalMs && a.settings.moveMs === b.settings.moveMs
   && a.settings.incMs === b.settings.incMs;
 
@@ -765,11 +816,11 @@ function proposeMatch(a, b) {
   queue.delete(a.socket.id);
   queue.delete(b.socket.id);
   const id = crypto.randomBytes(6).toString('hex');
-  const m = { id, a, b, accepted: new Set(), deadline: Date.now() + ACCEPT_MS };
+  const m = { id, a, b, accepted: new Set(), deadline: Date.now() + acceptMs() };
   m.timer = setTimeout(() => {
     if (!pendingMatches.has(id)) return;
     for (const e of [a, b]) if (!m.accepted.has(e.socket.id)) declineMatch(m, e.socket.id, 'timeout');
-  }, ACCEPT_MS + 300);
+  }, acceptMs() + 300);
   pendingMatches.set(id, m);
   const rated = a.mode === 'ranked' && !!(a.accountId && b.accountId);
   for (const [me, opp] of [[a, b], [b, a]]) {
@@ -882,6 +933,28 @@ io.on('connection', (socket) => {
     setIdentity(socket, uid, session);
   });
 
+  // ---------- Cộng đồng (trang chủ): trò chuyện chung & chia sẻ thế cờ ----------
+  socket.on('community-history', () => socket.emit('community-history', community.history()));
+  socket.on('community-post', ({ uid, session, text, position } = {}) => {
+    if (!F('community')) return socket.emit('community-error', features.offMessage('community'));
+    if (users.isValidUid(uid)) setIdentity(socket, uid, session);
+    const acc = socket.data.accountId ? users.get(socket.data.accountId) : null;
+    try {
+      io.emit('community-msg', community.post(acc, { text, position }));
+    } catch (err) {
+      if (!(err instanceof community.CommunityError)) console.error(err);
+      socket.emit('community-error', err instanceof community.CommunityError ? err.message : 'Không gửi được tin.');
+    }
+  });
+  socket.on('community-delete', ({ id } = {}) => {
+    try {
+      if (!socket.data.accountId) throw new community.CommunityError('Đăng nhập để xoá tin.');
+      if (community.remove(String(id || ''), socket.data.accountId)) io.emit('community-delete', String(id));
+    } catch (err) {
+      socket.emit('community-error', err.message);
+    }
+  });
+
   // Tạo phòng riêng (Chơi với bạn). rules: { spectators, takeback }
   function createPrivateRoom({ name, token, color, uid, session, totalMin, moveSec, incSec, rules } = {}) {
     token = cleanToken(token);
@@ -897,10 +970,15 @@ io.on('connection', (socket) => {
     joinRoom(socket, room, name, token);
     return room;
   }
-  socket.on('create', (opts) => createPrivateRoom(opts));
+  socket.on('create', (opts) => {
+    if (!F('room')) return socket.emit('error-msg', features.offMessage('room'));
+    if (opts && !CFG.ROOM_TCS.includes(`${Number(opts.totalMin) || 0}|${Number(opts.incSec) || 0}`)) return socket.emit('error-msg', 'Nhịp chơi không hợp lệ.');
+    createPrivateRoom(opts);
+  });
 
   // Mời một kỳ hữu: tạo phòng riêng rồi gửi thông báo kèm mã phòng
   socket.on('invite-friend', (opts = {}) => {
+    if (!F('room') || !F('friends')) return socket.emit('error-msg', features.offMessage(F('room') ? 'friends' : 'room'));
     const to = String(opts.to || '');
     const acc = opts.session ? users.resolveSession(opts.session) : null;
     if (!acc) return socket.emit('error-msg', 'Hãy đăng nhập để mời kỳ hữu.');
@@ -924,6 +1002,9 @@ io.on('connection', (socket) => {
     const accId = socket.data.accountId;
     const reservedSeat = room.reserved && accId && ['r', 'b'].some((c) => room.reserved[c] === accId);
     const wouldSit = !spectate && !colorOf(room, token) && (room.reserved ? reservedSeat : (!room.players.r || !room.players.b));
+    if (!wouldSit && !colorOf(room, token) && !reservedSeat && !F('spectate')) {
+      return socket.emit('error-msg', features.offMessage('spectate'));
+    }
     if (!wouldSit && !colorOf(room, token) && !reservedSeat && !room.rules.spectators) {
       return socket.emit('error-msg', 'Phòng này không cho người xem.');
     }
@@ -949,6 +1030,7 @@ io.on('connection', (socket) => {
   // Tranh xu theo kiểu bàn chờ: có bàn cùng nhịp & mức đặt đang chờ thì vào ngồi (ván bắt đầu ngay),
   // không có thì tự tạo bàn mới và chờ đối thủ.
   socket.on('coin-seat', ({ name, token, uid, session, totalMin, incSec, stake } = {}) => {
+    if (!F('coin')) return socket.emit('error-msg', features.offMessage('coin'));
     mmLeave(socket);
     token = cleanToken(token);
     if (!token) return socket.emit('error-msg', 'Thiếu mã định danh.');
@@ -963,7 +1045,7 @@ io.on('connection', (socket) => {
     if (acc.coins < stake) return socket.emit('error-msg', `Không đủ xu — cần ${stake} xu, bạn có ${acc.coins} xu.`);
     if (socket.data.roomId) leaveRoom(socket, { explicit: true });
     if (!ensureOneRoom(socket, socket.data.identity)) return;
-    const settings = tcSettings(Number(totalMin), Number(incSec) || 0);
+    const settings = tcSettings(Number(totalMin), Number(incSec) || 0, E.COIN_MOVE_SEC);
     const room = findCoinTable(settings, stake, acc.id);
     if (room) {
       joinRoom(socket, room, name, token);
@@ -1049,9 +1131,21 @@ io.on('connection', (socket) => {
   socket.on('rematch', () => {
     const room = currentRoom(socket);
     const color = room && colorOf(room, socket.data.token);
-    if (!color || !room.game.result || !room.players.r || !room.players.b || room.kind !== 'room') return;
+    // Phòng riêng & ván ghép trận (xếp hạng / tranh xu / ghép thường) được đấu lại; ván giải đấu thì không
+    if (!color || !room.game.result || !room.players.r || !room.players.b || !['room', 'ranked', 'coin', 'match'].includes(room.kind)) return;
     room.rematch.add(color);
     if (room.rematch.size === 2) {
+      // Ván xếp hạng / tranh xu: kiểm tra lại xu của cả hai, xếp hạng thì trừ phí như ván mới
+      const need = room.kind === 'coin' ? room.stake : room.kind === 'ranked' ? E.RANKED_FEE : 0;
+      if (need) {
+        const accs = ['r', 'b'].map((c) => (room.players[c].accountId ? users.get(room.players[c].accountId) : null));
+        if (accs.some((a) => !a || a.coins < need)) {
+          room.rematch.clear();
+          systemMsg(room, `Không thể đấu lại — mỗi bên cần ít nhất ${need} xu.`);
+          return broadcast(room);
+        }
+        if (room.kind === 'ranked') { for (const a of accs) users.spendCoins(a.id, need); room.fee = need; }
+      }
       archiveGame(room);
       // Đổi màu cho ván mới
       [room.players.r, room.players.b] = [room.players.b, room.players.r];
@@ -1066,13 +1160,20 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
-  // Phòng riêng: cả hai bấm Sẵn sàng thì ván bắt đầu
+  // Phòng riêng & Tranh xu: cả hai bấm Sẵn sàng (xác nhận) thì ván bắt đầu
   socket.on('ready', (on = true) => {
     const room = currentRoom(socket);
     const color = room && colorOf(room, socket.data.token);
-    if (!color || room.kind !== 'room' || room.game.startedAt || room.game.result) return;
+    if (!color || !NEEDS_READY.includes(room.kind) || room.game.startedAt || room.game.result) return;
+    // Tranh xu: kiểm tra lại xu trước khi xác nhận cược
+    if (on && room.kind === 'coin') {
+      const acc = room.players[color].accountId ? users.get(room.players[color].accountId) : null;
+      if (!acc || acc.coins < room.stake) return socket.emit('error-msg', `Không đủ xu — bàn này cược ${room.stake} xu.`);
+    }
     if (on) room.ready.add(color); else room.ready.delete(color);
-    systemMsg(room, `${room.players[color].name} ${on ? 'đã sẵn sàng' : 'huỷ sẵn sàng'}.`);
+    systemMsg(room, room.kind === 'coin'
+      ? `${room.players[color].name} ${on ? `đã xác nhận cược ${room.stake} xu` : 'huỷ xác nhận'}.`
+      : `${room.players[color].name} ${on ? 'đã sẵn sàng' : 'huỷ sẵn sàng'}.`);
     if (room.players.r && room.players.b && room.ready.size === 2) {
       beginGame(room);
       systemMsg(room, 'Cả hai đã sẵn sàng — ván đấu bắt đầu!');
@@ -1121,7 +1222,8 @@ io.on('connection', (socket) => {
   socket.on('chat', (text) => {
     const room = currentRoom(socket);
     if (!room) return;
-    text = String(text || '').trim().slice(0, 300);
+    if (!F('chat')) return socket.emit('error-msg', features.offMessage('chat'));
+    text = String(text || '').trim().slice(0, CFG.CHAT_MAX_TEXT);
     if (!text) return;
     const color = colorOf(room, socket.data.token);
     const name = color ? room.players[color].name : 'Khán giả';
@@ -1138,6 +1240,7 @@ io.on('connection', (socket) => {
     name = identify(socket, uid, name, session);
     if (!name) return;
     mode = mode === 'coin' ? 'coin' : 'ranked';
+    if (!F(mode)) return socket.emit('error-msg', features.offMessage(mode));
     const accNow = socket.data.accountId ? users.get(socket.data.accountId) : null;
     if (mode === 'coin') {
       stake = Number(stake);
@@ -1149,11 +1252,11 @@ io.on('connection', (socket) => {
     }
     // Nhịp: Xếp hạng luôn theo cài đặt (không theo trình duyệt gửi lên); Tranh xu phải là một nhịp admin đã mở
     let mmSettings;
-    if (mode === 'ranked') mmSettings = tcSettings(E.RANKED_TC.totalMin, E.RANKED_TC.incSec);
+    if (mode === 'ranked') mmSettings = tcSettings(E.RANKED_TC.totalMin, E.RANKED_TC.incSec, E.RANKED_TC.moveSec);
     else {
       const tc = `${Number(totalMin)}|${Number(incSec) || 0}`;
       if (!E.COIN_TCS.some((x) => x.tc === tc)) return socket.emit('error-msg', 'Nhịp Tranh xu này hiện không mở — tải lại trang để xem nhịp mới.');
-      mmSettings = tcSettings(Number(totalMin), Number(incSec) || 0);
+      mmSettings = tcSettings(Number(totalMin), Number(incSec) || 0, E.COIN_MOVE_SEC);
     }
     if (socket.data.roomId) leaveRoom(socket, { explicit: true });
     if (!ensureOneRoom(socket, socket.data.identity)) return;
@@ -1188,7 +1291,7 @@ io.on('connection', (socket) => {
 setInterval(() => {
   const now = Date.now();
   for (const [id, room] of rooms) {
-    if (room.emptySince && now - room.emptySince > ROOM_TTL_MS) destroyRoom(room);
+    if (room.emptySince && now - room.emptySince > CFG.ROOM_TTL_MIN * 60 * 1000) destroyRoom(room);
   }
 }, 5 * 60 * 1000).unref();
 
@@ -1196,7 +1299,8 @@ setInterval(() => {
 (async () => {
   try {
     if (storage.check) await storage.check();
-    await Promise.all([users.init(), puzzles.init(), theme.init(), tournaments.init(), economy.init()]);
+    await Promise.all([users.init(), puzzles.init(), theme.init(), tournaments.init(), economy.init(), community.init(), features.init(), config.init()]);
+    await shop.init(); // sau theme.init(): vật phẩm bàn cờ ảnh tải lên cần thư viện ảnh
   } catch (err) {
     console.error('Không nạp được dữ liệu:', err.message);
     process.exit(1);

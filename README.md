@@ -5,6 +5,10 @@ Nền tảng cờ tướng online thời gian thực (Node.js + Socket.io): xế
 ## Giao diện (theo Figma + tài liệu "Tượng Kỳ – Product UX")
 Tông kem / đỏ son `#C61D1D` / ngà `#F2D7A6` / đen nâu `#1B1612`, logo quân Tượng (象). Menu trái gồm:
 - **Trang chủ**: lời chào, banner, lối vào nhanh, nhiệm vụ hằng ngày, giải đang diễn ra, cửa hàng, trận đấu hot, phong độ cá nhân
+- **Cộng đồng** (trang chủ, `community.js`): tường trò chuyện chung thời gian thực; đính kèm thế cờ (từ nút "Chia sẻ" ở tab
+  Phân tích hoặc thế cờ đã lưu) hiện thành bàn cờ thu nhỏ có nút "Mở phân tích". Ai cũng đọc; gửi tin cần đăng nhập
+  (≤ 500 ký tự, 1 tin / 3 giây / tài khoản); người viết tự xoá tin, admin xoá tin bất kỳ (trang Cộng đồng). Giữ 300 tin
+  gần nhất trong `data/community.json` hoặc khoá `community` của bảng settings Supabase
 - **Chơi nhanh**: **Xếp hạng** (nhịp cố định 15+5, hiện Elo & bậc rank hiện tại, phí 10 xu, bước xác nhận 12 giây khi tìm thấy đối thủ); **Tranh xu**
   (bàn chờ: chọn nhịp & mức đặt → vào bàn đang chờ cùng thiết lập, chưa có thì tự tạo bàn và chờ đối thủ;
   trang Tranh xu có danh sách "Bàn đang chờ"); **Chơi với bạn** (phòng riêng mã 6 ký tự, tuỳ chọn cho đi lại / cho xem, nút Sẵn sàng);
@@ -129,6 +133,19 @@ Mở http://localhost:3000/admin
   - **Chế độ chơi & xu**: nhịp cố định & phí / thưởng của Xếp hạng; các nhịp (theo nhóm Cờ chớp, Cờ nhanh…) và mức đặt
     của Tranh xu; xu tặng khi tạo tài khoản, thưởng đăng nhập, cờ thế, đấu máy. Lưu là áp dụng ngay cho ván mới và trang
     chơi của mọi người (không cần tải lại); lưu ở `data/economy.json` hoặc khoá `economy` trong bảng settings của Supabase
+  - **Cài đặt hệ thống**: chỉnh mọi thông số trước đây viết cứng trong code — nội dung trang chủ (thông báo đầu trang,
+    banner, hộp gợi ý), Elo & uy tín (Elo khởi đầu, hệ số K, cộng/trừ uy tín), mốc Elo các bậc rank, ghép trận & kết nối
+    (thời gian chấp nhận, giữ chỗ, xoá phòng trống, khoảng chênh Elo), nhịp phòng riêng, giới hạn chat/cộng đồng, nhiệm vụ
+    hằng ngày (tên, mục tiêu, thưởng, bật/tắt), điểm Danh vọng giải đấu, giới hạn engine, thời hạn đăng nhập, khu vực.
+    Danh sách mục ở `public/site-config.js`, lưu ở `data/site-config.json` (hoặc Supabase), web cập nhật ngay.
+  - Menu admin chia 3 nhóm: Vận hành · Nội dung · Cài đặt.
+  - **Chức năng web**: công tắc bật/tắt 17 chức năng (Xếp hạng, Tranh xu, Bàn chơi, Chơi với bạn, Xem trận, Chat trong trận,
+    Đấu máy, Phân tích, Cờ thế, Cộng đồng, Bạn bè, Giải đấu, Bảng xếp hạng, Đăng ký, Cửa hàng, Nhiệm vụ, Góp ý). Tắt là áp dụng
+    ngay: trang chơi ẩn phần đó (phần tử có `data-feature`), server từ chối thao tác. Danh sách ở `public/features.js`,
+    lưu ở `data/features.json` (hoặc Supabase).
+  - **Cửa hàng vật phẩm**: toàn bộ bàn cờ, quân cờ, đồng hồ trong Túi đồ & Cửa hàng — sửa tên, mô tả, giá, thứ tự,
+    ẩn khỏi Cửa hàng (người đã mua vẫn giữ), thêm món mới (bảng màu vẽ, ảnh có sẵn hoặc ảnh đã tải lên), xoá. Lưu ở
+    `data/shop.json` (hoặc Supabase), người chơi đang mở web thấy ngay.
   - **Bàn cờ & quân cờ**: giao diện mặc định ("Theo Tượng Kỳ" trong Túi đồ) — chọn/tải ảnh bàn cờ (tự nhận diện lưới 9×10),
     kiểu quân, font và màu chữ; lưu là áp dụng ngay. Ảnh lưu trong `data/uploads/`, cấu hình trong `data/theme.json`
 

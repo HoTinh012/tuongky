@@ -8,7 +8,8 @@ const users = require('./users');
 const FORMATS = { knockout: 'Loại trực tiếp', roundrobin: 'Vòng tròn', swiss: 'Hệ Thụy Sĩ' };
 const STATUS = { open: 'Đang mở đăng ký', checkin: 'Đang check-in', running: 'Đang thi đấu', finished: 'Đã kết thúc', cancelled: 'Đã huỷ' };
 const LIMITS = { knockout: [2, 64], roundrobin: [2, 10], swiss: [2, 64] };
-const BADGE_POINTS = [10, 6, 3]; // điểm Danh vọng mùa cho hạng 1-2-3
+const CFG = require('./config-store.js').values;
+const BADGE_POINTS = () => [CFG.BADGE_1, CFG.BADGE_2, CFG.BADGE_3]; // điểm Danh vọng mùa cho hạng 1-2-3 (admin chỉnh)
 
 class TournamentError extends Error {}
 
@@ -307,7 +308,7 @@ function finish(t) {
   for (const p of t.players) {
     const prize = p.place <= 3 ? t.prizes[p.place - 1] || 0 : 0;
     if (prize) users.addCoins(p.id, prize);
-    if (p.place <= 3) users.addBadge(p.id, { type: 'tournament', tid: t.id, name: `${placeName[p.place - 1]} · ${t.name}`, place: p.place, points: BADGE_POINTS[p.place - 1] });
+    if (p.place <= 3) users.addBadge(p.id, { type: 'tournament', tid: t.id, name: `${placeName[p.place - 1]} · ${t.name}`, place: p.place, points: BADGE_POINTS()[p.place - 1] });
     users.notify(p.id, 'tournament', {
       tid: t.id, name: t.name,
       text: `Giải "${t.name}" kết thúc — bạn xếp hạng ${p.place}/${t.players.length}${prize ? `, nhận ${prize} xu` : ''}.`,

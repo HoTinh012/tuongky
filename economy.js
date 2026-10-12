@@ -21,7 +21,9 @@ function clean(input) {
   const x = input && typeof input === 'object' ? input : {};
   const tc = x.RANKED_TC || {};
   const out = {
-    RANKED_TC: { totalMin: int(tc.totalMin, 1, 180, 'Thời gian mỗi bên (Xếp hạng)'), incSec: int(tc.incSec, 0, 60, 'Giây cộng mỗi nước (Xếp hạng)') },
+    RANKED_TC: { totalMin: int(tc.totalMin, 1, 180, 'Thời gian mỗi bên (Xếp hạng)'), incSec: int(tc.incSec, 0, 60, 'Giây cộng mỗi nước (Xếp hạng)'),
+      moveSec: int(tc.moveSec ?? 60, 10, 600, 'Thời gian mỗi nước (Xếp hạng)') },
+    COIN_MOVE_SEC: int(x.COIN_MOVE_SEC ?? 60, 10, 600, 'Thời gian mỗi nước (Tranh xu)'),
     RANKED_FEE: int(x.RANKED_FEE, 0, 100000, 'Phí xếp hạng'),
     RANKED_REWARD_PLAY: int(x.RANKED_REWARD_PLAY, 0, 100000, 'Thưởng chơi trọn ván xếp hạng'),
     RANKED_REWARD_WIN: int(x.RANKED_REWARD_WIN, 0, 100000, 'Thưởng thắng ván xếp hạng'),
@@ -65,7 +67,9 @@ async function init() {
   const saved = await storage.loadEconomy();
   if (!saved) return;
   try {
-    Object.assign(E, clean({ ...JSON.parse(JSON.stringify(DEFAULTS)), ...saved }));
+    // Gộp sâu nhịp Xếp hạng: bản lưu cũ thiếu khoá mới (vd moveSec) thì lấy mặc định
+    const base = JSON.parse(JSON.stringify(DEFAULTS));
+    Object.assign(E, clean({ ...base, ...saved, RANKED_TC: { ...base.RANKED_TC, ...(saved.RANKED_TC || {}) } }));
   } catch (err) {
     console.error('Cài đặt chế độ chơi đã lưu không hợp lệ, dùng mặc định:', err.message);
   }

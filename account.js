@@ -6,7 +6,9 @@ const X = require('./public/xiangqi.js');
 const LEVEL_NAMES = { easy: 'Dễ', medium: 'Vừa', hard: 'Khó' };
 for (let i = 1; i <= 9; i++) LEVEL_NAMES['l' + i] = 'Cấp ' + i;
 
-module.exports = function setupAccount(app, { users, presenceOf, onAccountChange }) {
+module.exports = function setupAccount(app, { users, presenceOf, features, onAccountChange }) {
+  // Chặn khi admin tắt chức năng (admin → Chức năng web)
+  const need = (key) => (req, res, next) => (features.on(key) ? next() : res.status(403).json({ error: features.offMessage(key) }));
   const api = express.Router();
   api.use(express.json({ limit: '200kb' }));
   api.use((req, res, next) => {
@@ -41,7 +43,7 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
     res.status(500).json({ error: 'Có lỗi xảy ra.' });
   };
 
-  api.post('/register', limited, (req, res) => {
+  api.post('/register', limited, need('register'), (req, res) => {
     try {
       const { username, displayName, password } = req.body || {};
       const acc = users.register(username, displayName, password);
@@ -124,7 +126,7 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
   });
 
   // Lưu ván đánh với máy. Server đi lại toàn bộ nước để kiểm tra hợp lệ & xác định kết quả.
-  api.post('/ai-games', auth, (req, res) => {
+  api.post('/ai-games', auth, need('ai'), (req, res) => {
     try {
       const { moves, humanColor, level, resigned } = req.body || {};
       if (!Array.isArray(moves) || !moves.length || moves.length > 1000) throw new users.UserError('Ván đấu không hợp lệ.');
@@ -157,7 +159,7 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
 
   // ---------- Cửa hàng & Túi đồ ----------
   api.get('/inventory', auth, (req, res) => res.json({ inventory: users.inventoryOf(req.account) }));
-  api.post('/shop/buy', auth, (req, res) => {
+  api.post('/shop/buy', auth, need('shop'), (req, res) => {
     try {
       const acc = users.buyItem(req.account.id, String((req.body || {}).itemId || ''));
       res.json({ inventory: users.inventoryOf(acc), account: users.publicAccount(acc) });
@@ -176,7 +178,7 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
 
   // ---------- Nhiệm vụ hằng ngày ----------
   api.get('/missions', auth, (req, res) => res.json({ missions: users.missionsOf(req.account.id) }));
-  api.post('/missions/:id/claim', auth, (req, res) => {
+  api.post('/missions/:id/claim', auth, need('missions'), (req, res) => {
     try {
       const coins = users.claimMission(req.account.id, String(req.params.id));
       res.json({ coins, missions: users.missionsOf(req.account.id), account: users.publicAccount(req.account) });
@@ -204,15 +206,15 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
     return { ...s, friends: withPresence(s.friends), activity: activity.slice(0, 15) };
   }
   api.get('/social', auth, (req, res) => res.json(socialPayload(req.account.id)));
-  api.get('/social/search', auth, (req, res) => res.json({ results: withPresence(users.searchUsers(req.query.q, req.account.id)) }));
+  api.get('/social/search', auth, need('friends'), (req, res) => res.json({ results: withPresence(users.searchUsers(req.query.q, req.account.id)) }));
   const socialAction = (fn) => (req, res) => {
     try {
       fn(req.account.id, String((req.body || {}).userId || ''));
       res.json({ ...socialPayload(req.account.id), account: users.publicAccount(req.account) });
     } catch (err) { fail(res, err); }
   };
-  api.post('/social/request', auth, socialAction(users.sendFriendRequest));
-  api.post('/social/accept', auth, socialAction(users.acceptFriend));
+  api.post('/social/request', auth, need('friends'), socialAction(users.sendFriendRequest));
+  api.post('/social/accept', auth, need('friends'), socialAction(users.acceptFriend));
   api.post('/social/decline', auth, socialAction(users.declineFriend));
   api.post('/social/remove', auth, socialAction(users.removeFriend));
   api.post('/social/block', auth, socialAction(users.blockUser));
@@ -250,7 +252,7 @@ module.exports = function setupAccount(app, { users, presenceOf, onAccountChange
     });
   });
 
-  api.post('/feedback', limited, (req, res) => {
+  api.post('/feedback', limited, need('feedback'), (req, res) => {
     try {
       const acc = users.resolveSession(bearer(req));
       const { message, contact, name } = req.body || {};

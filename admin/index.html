@@ -66,9 +66,16 @@
       <div class="nav-label">Nội dung</div>
       <nav class="nav" aria-label="Nội dung">
         <button class="nav-item" data-page="puzzles"><svg class="ico"><use href="#i-puzzle"/></svg><span>Cờ thế</span><span class="count" id="c-puzzles">0</span></button>
+        <button class="nav-item" data-page="community"><svg class="ico"><use href="#i-chat"/></svg><span>Cộng đồng</span></button>
         <button class="nav-item" data-page="feedback"><svg class="ico"><use href="#i-chat"/></svg><span>Góp ý</span><span class="count" id="c-feedback">0</span></button>
+      </nav>
+      <div class="nav-label">Cài đặt</div>
+      <nav class="nav" aria-label="Cài đặt">
+        <button class="nav-item" data-page="features"><svg class="ico"><use href="#i-overview"/></svg><span>Chức năng web</span><span class="count" id="c-features-off" hidden>0</span></button>
+        <button class="nav-item" data-page="site-config"><svg class="ico"><use href="#i-rank"/></svg><span>Cài đặt hệ thống</span></button>
         <button class="nav-item" data-page="economy"><svg class="ico"><use href="#i-coin"/></svg><span>Chế độ chơi &amp; xu</span></button>
         <button class="nav-item" data-page="theme"><svg class="ico"><use href="#i-piece"/></svg><span>Bàn cờ &amp; quân cờ</span></button>
+        <button class="nav-item" data-page="shop"><svg class="ico"><use href="#i-coin"/></svg><span>Cửa hàng vật phẩm</span></button>
       </nav>
       <div class="sb-foot-nav">
         <a class="nav-item" href="/" target="_blank" rel="noopener"><svg class="ico"><use href="#i-external"/></svg><span>Mở trang chơi</span></a>
@@ -275,6 +282,18 @@
       </div>
 
       <!-- Bàn cờ & quân cờ mặc định -->
+      <div id="page-community" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Cộng đồng</p>
+            <h1>Tin nhắn cộng đồng.</h1>
+            <p class="lead">Tường trò chuyện ở trang chủ (giữ 300 tin gần nhất). Xoá tin vi phạm — mọi người thấy tin biến mất ngay.</p>
+          </div>
+          <div class="row-actions"><button class="btn" id="cm-reload">Tải lại</button></div>
+        </header>
+        <section class="card"><div id="cm-admin-list"></div></section>
+      </div>
+
       <div id="page-economy" class="admin-page hidden">
         <header class="page-head">
           <div>
@@ -295,6 +314,7 @@
             <div class="eco-fields">
               <label class="field"><span>Thời gian mỗi bên (phút)</span><input type="number" min="1" max="180" step="1" data-k="RANKED_TC.totalMin"></label>
               <label class="field"><span>Cộng sau mỗi nước (giây)</span><input type="number" min="0" max="60" step="1" data-k="RANKED_TC.incSec"></label>
+              <label class="field"><span>Thời gian mỗi nước (giây, 10–600)</span><input type="number" min="10" max="600" step="5" data-k="RANKED_TC.moveSec"></label>
               <label class="field"><span>Phí mỗi ván (xu)</span><input type="number" min="0" step="1" data-k="RANKED_FEE"></label>
               <label class="field"><span>Thưởng chơi trọn ván (xu)</span><input type="number" min="0" step="1" data-k="RANKED_REWARD_PLAY"></label>
               <label class="field"><span>Thưởng thêm khi thắng (xu)</span><input type="number" min="0" step="1" data-k="RANKED_REWARD_WIN"></label>
@@ -304,6 +324,7 @@
 
           <section class="card eco-card">
             <div class="card-head"><div><h3>Tranh xu</h3><p>Người chơi chọn một nhịp và một mức đặt — thắng nhận mức đặt của đối thủ.</p></div></div>
+            <label class="field"><span>Thời gian mỗi nước (giây, 10–600) — áp dụng mọi nhịp Tranh xu</span><input type="number" min="10" max="600" step="5" data-k="COIN_MOVE_SEC"></label>
             <div class="eco-sub"><b>Nhịp chơi</b><small>Nhóm cùng tên hiện chung một hàng (vd Cờ chớp, Cờ nhanh). Tối đa 12 nhịp.</small></div>
             <div class="eco-tcs" id="eco-tcs"></div>
             <button class="btn sm" id="eco-add-tc"><svg class="ico sm"><use href="#i-plus"/></svg>Thêm nhịp</button>
@@ -324,6 +345,60 @@
             <p class="muted small">Xu tặng khi tạo tài khoản chỉ áp dụng cho tài khoản mới; tài khoản cũ giữ nguyên số xu.</p>
           </section>
         </div>
+      </div>
+
+      <div id="page-site-config" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Cài đặt hệ thống</p>
+            <h1>Thiết lập toàn bộ web.</h1>
+            <p class="lead">Elo, bậc rank, ghép trận, phòng riêng, nhiệm vụ, giới hạn chat, engine, tài khoản và nội dung trang chủ. Lưu là áp dụng ngay — trang chơi của mọi người cập nhật không cần tải lại.</p>
+          </div>
+          <div class="row-actions">
+            <button class="btn" id="cf-reset">Khôi phục mặc định</button>
+            <button class="btn" id="cf-undo" disabled>Bỏ thay đổi</button>
+            <button class="btn primary" id="cf-save" disabled>Lưu thay đổi</button>
+          </div>
+        </header>
+        <p class="eco-status" id="cf-status"></p>
+        <div class="cf-layout">
+          <nav class="card cf-nav" id="cf-nav" aria-label="Nhóm cài đặt"></nav>
+          <div class="cf-groups" id="cf-groups"></div>
+        </div>
+      </div>
+
+      <div id="page-features" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Chức năng web</p>
+            <h1>Bật / tắt chức năng.</h1>
+            <p class="lead">Gạt công tắc là áp dụng ngay: chức năng tắt sẽ biến khỏi trang chơi của mọi người và server từ chối mọi thao tác của nó. Ván đang diễn ra không bị ảnh hưởng.</p>
+          </div>
+          <div class="row-actions"><button class="btn" id="ft-all-on">Bật tất cả</button></div>
+        </header>
+        <div class="ft-grid" id="ft-grid"></div>
+      </div>
+
+      <div id="page-shop" class="admin-page hidden">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Cửa hàng vật phẩm</p>
+            <h1>Bàn cờ, quân cờ, đồng hồ.</h1>
+            <p class="lead">Toàn bộ vật phẩm người chơi thấy trong Túi đồ &amp; Cửa hàng: đổi tên, giá, thứ tự, ẩn khỏi Cửa hàng, thêm hoặc xoá.</p>
+          </div>
+          <div class="row-actions">
+            <button class="btn" id="sh-reset">Khôi phục mặc định</button>
+            <button class="btn" id="sh-undo" disabled>Bỏ thay đổi</button>
+            <button class="btn primary" id="sh-save" disabled>Lưu thay đổi</button>
+          </div>
+        </header>
+        <p class="eco-status" id="sh-status"></p>
+        <div class="sh-tabs" id="sh-tabs">
+          <button data-cat="board">Bàn cờ <em>0</em></button>
+          <button data-cat="pieces">Quân cờ <em>0</em></button>
+          <button data-cat="clock">Đồng hồ <em>0</em></button>
+        </div>
+        <div class="sh-grid" id="sh-grid"></div>
       </div>
 
       <div id="page-theme" class="admin-page hidden">
@@ -361,6 +436,7 @@
                 </div>
                 <button class="btn sm" id="calib-auto">Tự nhận diện lại</button>
               </div>
+              <div class="pub-box" id="pub-board"></div>
             </section>
             <section class="card">
               <h3>Quân cờ</h3>
@@ -370,6 +446,7 @@
                 <label>Chữ Đỏ <input type="color" id="pc-red"></label>
                 <label>Chữ Đen <input type="color" id="pc-black"></label>
               </div>
+              <div class="pub-box" id="pub-pieces"></div>
             </section>
             <div class="theme-actions">
               <button class="btn primary" id="theme-save">Lưu &amp; áp dụng</button>
@@ -385,6 +462,8 @@
   <div id="toast" role="status"></div>
   <script src="/xiangqi.js"></script>
   <script src="/board-render.js"></script>
+  <script src="/features.js"></script>
+  <script src="/site-config.js"></script>
   <script src="/ranks.js"></script>
   <script src="/board-ui.js"></script>
   <script src="admin.js"></script>

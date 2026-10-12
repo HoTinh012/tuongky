@@ -8,7 +8,6 @@ const Catalog = require('./public/catalog.js');
 // Gọi khi có thông báo mới cho một tài khoản (server.js gắn vào để đẩy qua socket)
 const hooks = { onNotify: null };
 
-const SESSION_MS = 30 * 24 * 60 * 60 * 1000; // phiên đăng nhập 30 ngày
 const MAX_GAMES = 5000; // số ván lưu tối đa (ván cũ nhất bị xoá trước)
 
 let db = { accounts: {}, sessions: {}, games: {}, feedback: [], meta: { gamesPlayed: 0 } };
@@ -55,11 +54,8 @@ const emptyStats = () => ({ games: 0, wins: 0, losses: 0, draws: 0 });
 class UserError extends Error {}
 
 // ---------- Hồ sơ người chơi ----------
-const START_RATING = 1200; // điểm Elo khởi đầu
-const START_CREDIT = 1000; // điểm uy tín khởi đầu
-const MAX_CREDIT = 1100;
-const REGIONS = ['Hà Nội', 'TP. Hồ Chí Minh', 'Hải Phòng', 'Đà Nẵng', 'Cần Thơ', 'Miền Bắc', 'Miền Trung',
-  'Tây Nguyên', 'Miền Nam', 'Nước ngoài'];
+// Elo/uy tín khởi đầu, khu vực... do admin chỉnh (Cài đặt hệ thống) — đọc CFG.X lúc dùng để luôn có giá trị mới nhất
+const CFG = require('./config-store.js').values;
 
 // Kỳ hiệu: số 7 chữ số không trùng
 function newPlayerNo() {
@@ -72,7 +68,7 @@ function newPlayerNo() {
 // Bổ sung các trường mới cho tài khoản cũ
 function migrate(acc) {
   const defaults = {
-    rating: START_RATING, credit: START_CREDIT, coins: Catalog.ECONOMY.START_COINS, streak: 0, bestStreak: 0, // xu tặng: admin chỉnh được
+    rating: CFG.START_RATING, credit: CFG.START_CREDIT, coins: Catalog.ECONOMY.START_COINS, streak: 0, bestStreak: 0, // xu tặng: admin chỉnh được
     region: '', lastBonusDay: null, avatar: null, solvedPuzzles: [],
     // Bạn bè: danh sách bạn, lời mời đến / đã gửi, người đã chặn (mã tài khoản)
     friends: [], friendIn: [], friendOut: [], blocked: [],
@@ -160,7 +156,7 @@ function update(id, patch) {
   if (!acc) return null;
   if (patch.displayName !== undefined) acc.displayName = cleanDisplayName(patch.displayName);
   if (patch.region !== undefined) {
-    if (patch.region !== '' && !REGIONS.includes(patch.region)) throw new UserError('Khu vực không hợp lệ.');
+    if (patch.region !== '' && !CFG.REGIONS.includes(patch.region)) throw new UserError('Khu vực không hợp lệ.');
     acc.region = patch.region;
   }
   if (typeof patch.banned === 'boolean') {
@@ -168,7 +164,7 @@ function update(id, patch) {
     if (patch.banned) destroySessionsOf(id);
   }
   // Chỉ quản trị viên: chỉnh Elo / xu / uy tín
-  for (const [key, min, max] of [['rating', 0, 4000], ['coins', 0, 1e9], ['credit', 0, MAX_CREDIT]]) {
+  for (const [key, min, max] of [['rating', 0, 4000], ['coins', 0, 1e9], ['credit', 0, CFG.MAX_CREDIT]]) {
     if (patch[key] === undefined) continue;
     const v = Number(patch[key]);
     if (!Number.isInteger(v) || v < min || v > max) throw new UserError(`Giá trị ${key} phải là số nguyên từ ${min} đến ${max}.`);
@@ -307,7 +303,7 @@ function removeFeedback(id) {
 // ---------- Phiên đăng nhập ----------
 function createSession(accountId) {
   const token = crypto.randomBytes(32).toString('base64url');
-  db.sessions[sha256(token)] = { accountId, expires: Date.now() + SESSION_MS };
+  db.sessions[sha256(token)] = { accountId, expires: Date.now() + CFG.SESSION_DAYS * 24 * 60 * 60 * 1000 };
   save();
   return token;
 }
@@ -366,7 +362,7 @@ function recordGame(record) {
   const score = (c) => (!game.result.winner ? 0.5 : game.result.winner === c ? 1 : 0);
 
   if (online && accs.r && accs.b && RATED_KINDS.includes(kind)) {
-    const K = 32;
+    const K = CFG.ELO_K;
     const expR = 1 / (1 + 10 ** ((accs.b.rating - accs.r.rating) / 400));
     const dR = Math.round(K * (score('r') - expR));
     game.ratingChange = { r: dR, b: -dR };
@@ -399,10 +395,10 @@ function recordGame(record) {
     game.coinChange[c] = coins;
     acc.coins += coins;
     if (online) {
-      // Chuỗi thắng & uy tín (bỏ ván giữa chừng bị trừ 10, chơi trọn ván +1)
+      // Chuỗi thắng & uy tín (bỏ ván giữa chừng bị trừ, chơi trọn ván được cộng — admin chỉnh mức)
       if (s === 1) { acc.streak++; acc.bestStreak = Math.max(acc.bestStreak, acc.streak); } else if (s === 0) acc.streak = 0;
-      if (game.result.reason === 'abandon' && s === 0) acc.credit = Math.max(0, acc.credit - 10);
-      else acc.credit = Math.min(MAX_CREDIT, acc.credit + 1);
+      if (game.result.reason === 'abandon' && s === 0) acc.credit = Math.max(0, acc.credit - CFG.CREDIT_PENALTY);
+      else acc.credit = Math.min(CFG.MAX_CREDIT, acc.credit + CFG.CREDIT_GAIN);
       progressMission(acc, 'play_online');
       if (kind === 'ranked' && s === 1) progressMission(acc, 'win_ranked');
       if (kind === 'coin') progressMission(acc, 'play_coin');
@@ -498,6 +494,7 @@ function buyItem(id, itemId) {
   const it = Catalog.byId[itemId];
   if (!acc || !it) throw new UserError('Không tìm thấy vật phẩm.');
   if (ownsItem(acc, itemId)) throw new UserError('Bạn đã sở hữu vật phẩm này.');
+  if (it.hidden) throw new UserError('Vật phẩm này đã ngừng bán.');
   if (acc.coins < it.price) throw new UserError(`Không đủ xu — cần ${it.price} xu, bạn có ${acc.coins} xu.`);
   acc.coins -= it.price;
   acc.owned.push(itemId);
@@ -624,15 +621,14 @@ function searchUsers(q, selfId) {
 }
 
 // ---------- Nhiệm vụ hằng ngày ----------
-const MISSIONS = [
-  { id: 'play2', name: 'Chơi 2 ván online', goal: 2, reward: 20, event: 'play_online' },
-  { id: 'winRanked', name: 'Thắng 1 ván xếp hạng', goal: 1, reward: 30, event: 'win_ranked' },
-  { id: 'puzzle1', name: 'Giải 1 thế cờ', goal: 1, reward: 15, event: 'solve_puzzle' },
-  { id: 'aiWin', name: 'Thắng máy từ cấp 3 trở lên', goal: 1, reward: 15, event: 'win_ai3' },
-  { id: 'coin1', name: 'Chơi 1 ván Tranh xu', goal: 1, reward: 10, event: 'play_coin' },
-  { id: 'ai2', name: 'Luyện 2 ván đấu máy', goal: 2, reward: 10, event: 'play_ai' },
-  { id: 'puzzle3', name: 'Giải 3 thế cờ', goal: 3, reward: 25, event: 'solve_puzzle' },
-];
+// Tên, mục tiêu, thưởng & bật/tắt do admin chỉnh (Cài đặt hệ thống → Nhiệm vụ hằng ngày); sự kiện đếm cố định theo mã
+const MISSION_EVENTS = { play2: 'play_online', winRanked: 'win_ranked', puzzle1: 'solve_puzzle', aiWin: 'win_ai3', coin1: 'play_coin', ai2: 'play_ai', puzzle3: 'solve_puzzle' };
+const allMissions = () => CFG.MISSIONS.map((m) => ({ ...m, event: MISSION_EVENTS[m.id] }));
+const MISSIONS = { // các hàm bên dưới dùng như mảng: chọn trong nhiệm vụ đang bật, tra cứu trong tất cả
+  filter: (fn) => allMissions().filter((m) => m.on).filter(fn),
+  find: (fn) => allMissions().find(fn),
+  [Symbol.iterator]: () => allMissions().filter((m) => m.on)[Symbol.iterator](),
+};
 const vnDay = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
 // 3 nhiệm vụ mỗi ngày (cố định theo ngày & tài khoản), luôn có 1 nhiệm vụ cờ thế/đấu máy để ai cũng làm được
 function missionsOf(acc) {
@@ -751,7 +747,6 @@ setInterval(() => {
 }, 60 * 60 * 1000).unref();
 
 // ---------- Thế cờ phân tích đã lưu (tab Phân tích → Lịch sử luyện tập) ----------
-const ANALYSIS_MAX = 50;
 const FEN_RE = /^[rnbakcpRNBAKCP1-9]{1,9}(\/[rnbakcpRNBAKCP1-9]{1,9}){9} [wb]( - - \d+ \d+)?$/;
 const analysesOf = (id) => (db.accounts[id] ? db.accounts[id].analyses : []);
 function saveAnalysis(accountId, input) {
@@ -769,7 +764,7 @@ function saveAnalysis(accountId, input) {
     score: Number.isFinite(x.score) ? Math.round(x.score) : null, savedAt: Date.now(),
   };
   // Lưu lại đúng thế cờ & nước đi đã có → thay bản cũ, không tạo bản trùng
-  acc.analyses = [item, ...acc.analyses.filter((a) => !(a.fen === fen && a.moves.join() === x.moves.join()))].slice(0, ANALYSIS_MAX);
+  acc.analyses = [item, ...acc.analyses.filter((a) => !(a.fen === fen && a.moves.join() === x.moves.join()))].slice(0, CFG.ANALYSIS_MAX);
   save();
   return item;
 }
@@ -782,8 +777,10 @@ function removeAnalysis(accountId, id) {
 
 module.exports = {
   analysesOf, saveAnalysis, removeAnalysis,
-  init, hooks, UserError, isValidUid, setAvatar, clearAvatar, REGIONS, dailyBonus,
-  addFeedback, listFeedback, removeFeedback, sessionsOf, MAX_CREDIT, markPuzzleSolved,
+  init, hooks, UserError, isValidUid, setAvatar, clearAvatar, dailyBonus,
+  get REGIONS() { return CFG.REGIONS; },
+  get MAX_CREDIT() { return CFG.MAX_CREDIT; },
+  addFeedback, listFeedback, removeFeedback, sessionsOf, markPuzzleSolved,
   register, login, get, list, touch, update, remove, publicAccount, miniAccount, checkPassword,
   createSession, resolveSession, destroySession, destroySessionsOf,
   recordGame, getGame, publicGame, gamesOf, gamesPlayed, countGuestGame, adminPassword, flush, save,

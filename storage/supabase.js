@@ -224,6 +224,21 @@ module.exports = {
   // Cài đặt chế độ chơi (nhịp, xu) — trang quản trị
   async loadEconomy() { return (await loadSettings()).economy || null; },
   saveEconomy(value) { settingsState.economy = value; return pushSettings(); },
+  // Tin nhắn Cộng đồng (trang chủ)
+  async loadCommunity() { return (await loadSettings()).community || null; },
+  saveCommunity(list) { settingsState.community = list; return pushSettings(); },
+  // Ghi chú góp ý giao diện (chế độ ?gopy=1)
+  async loadUiNotes() { return (await loadSettings()).uiNotes || null; },
+  saveUiNotes(list) { settingsState.uiNotes = list; return pushSettings(); },
+  // Vật phẩm Túi đồ & Cửa hàng (bàn cờ, quân cờ, đồng hồ)
+  async loadShop() { return (await loadSettings()).shop || null; },
+  saveShop(list) { settingsState.shop = list; return pushSettings(); },
+  // Bật/tắt chức năng của web
+  async loadFeatures() { return (await loadSettings()).features || null; },
+  saveFeatures(value) { settingsState.features = value; return pushSettings(); },
+  // Cài đặt hệ thống (Elo, ghép trận, nhiệm vụ, nội dung trang chủ...)
+  async loadSiteConfig() { return (await loadSettings()).siteConfig || null; },
+  saveSiteConfig(value) { settingsState.siteConfig = value; return pushSettings(); },
 
   async loadTournaments() {
     const rows = await selectAll(T.tournaments);

@@ -72,6 +72,16 @@ function resetCurrent() {
   return state.current;
 }
 
+// Thêm / cập nhật ảnh bàn cờ trong thư viện mà KHÔNG đổi giao diện mặc định (để bán / tặng trong Cửa hàng)
+function addBoard(board) {
+  const b = cleanBoard(board);
+  if (!b || b.type !== 'image' || !uploaded(b.src)) throw new Error('Ảnh bàn cờ không hợp lệ.');
+  const i = state.boards.findIndex((x) => x.src === b.src);
+  if (i >= 0) state.boards[i] = b; else state.boards.push(b);
+  save();
+  return b;
+}
+
 function removeBoard(src) {
   if (state.current.board.src === src) throw new Error('Không thể xoá bàn cờ đang được sử dụng.');
   const i = state.boards.findIndex((x) => x.src === src);
@@ -99,5 +109,5 @@ module.exports = {
   init,
   current: () => state.current,
   library: () => state.boards,
-  setCurrent, resetCurrent, removeBoard, saveUpload,
+  setCurrent, resetCurrent, removeBoard, saveUpload, addBoard,
 };
