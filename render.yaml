@@ -1,0 +1,28 @@
+# Cấu hình deploy Tượng Kỳ lên Render (Blueprint) — xem hướng dẫn trong DEPLOY.md
+# Render đọc file này khi tạo "New → Blueprint" từ repo GitHub.
+services:
+  - type: web
+    name: tuongky
+    runtime: node
+    # Singapore gần Việt Nam nhất. Gói "starter" chạy liên tục (gói "free" tự ngủ khi vắng người → mất ván đang chơi).
+    region: singapore
+    plan: starter
+    # Chỉ 1 server: phòng chơi & dữ liệu được giữ trong bộ nhớ của server (KHÔNG tăng số instance).
+    numInstances: 1
+    # Tải engine Pikafish khi build; nếu tải lỗi vẫn deploy được (máy dùng engine chạy trong trình duyệt).
+    buildCommand: npm install && (npm run setup:engine || echo "Không tải được Pikafish — dùng engine trong trình duyệt")
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      # 3 giá trị bí mật dưới đây Render sẽ hỏi khi tạo Blueprint — điền giống file .env trên máy
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: tuongky
