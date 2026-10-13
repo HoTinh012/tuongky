@@ -277,16 +277,21 @@ module.exports = {
       try { role = JSON.parse(Buffer.from(KEY.split('.')[1], 'base64url').toString()).role; } catch { /* không phải JWT */ }
       if (role && role !== 'service_role') throw new Error(wrongKey);
     }
-    for (const t of Object.values(T)) {
-      const { error, status: code } = await sb.from(t).select('*', { head: true, count: 'exact' }).limit(1);
+    // Gửi song song (mỗi truy vấn tới Supabase có thể mất vài giây nếu máy chủ ở xa)
+    const tables = Object.values(T);
+    const results = await Promise.all(tables.map((t) => sb.from(t).select('*', { head: true }).limit(1)));
+    for (const [i, { error, status: code }] of results.entries()) {
+      const t = tables[i];
       if (!error) continue;
       if (/fetch failed|ENOTFOUND|ECONNREFUSED/i.test(error.message)) throw new Error(`Không kết nối được tới ${SB_URL} — kiểm tra SUPABASE_URL và mạng.`);
       if (code === 401 || code === 403) throw new Error('Supabase từ chối khoá — kiểm tra SUPABASE_SERVICE_ROLE_KEY (cần khoá service_role).');
       throw fail(`bảng ${t} — đã chạy supabase/schema.sql trong SQL Editor chưa?`, error);
     }
     // Cột mới thêm sau (bản cập nhật) — báo chạy lại schema.sql nếu thiếu
-    for (const [t, col] of [[T.accounts, 'profile'], [T.games, 'extra'], [T.feedback, 'type'], [T.puzzles, 'topic']]) {
-      const { error } = await sb.from(t).select(col).limit(1);
+    const cols = [[T.accounts, 'profile'], [T.games, 'extra'], [T.feedback, 'type'], [T.puzzles, 'topic']];
+    const colRes = await Promise.all(cols.map(([t, col]) => sb.from(t).select(col).limit(1)));
+    for (const [i, { error }] of colRes.entries()) {
+      const [t, col] = cols[i];
       if (error) throw new Error(`Bảng ${t} thiếu cột "${col}" — hãy chạy lại toàn bộ supabase/schema.sql trong SQL Editor (an toàn, không mất dữ liệu).`);
     }
   },

@@ -1,4 +1,4 @@
-// Chuyển dữ liệu đang lưu file (data/db.json, puzzles.json, theme.json + ảnh trong data/) lên Supabase.
+// Chuyển toàn bộ dữ liệu đang lưu file trong data/ (tài khoản, ván, cờ thế, giao diện, cài đặt, cửa hàng, cộng đồng... + ảnh) lên Supabase.
 // Cách dùng:  1) chạy supabase/schema.sql   2) điền .env   3) npm run migrate:supabase
 // Mặc định dừng lại nếu Supabase đã có tài khoản; thêm --force để ghi đè/gộp.
 const fs = require('fs');
@@ -62,6 +62,25 @@ async function moveImage(src) {
 
   const economy = await file.loadEconomy();
   if (economy) { console.log('Cài đặt chế độ chơi & xu'); await sb.saveEconomy(economy); }
+
+  // Các phần thêm sau: giải đấu, cộng đồng, góp ý giao diện, cửa hàng vật phẩm, bật/tắt chức năng, cài đặt hệ thống
+  const tournaments = await file.loadTournaments();
+  if (tournaments && tournaments.length) { console.log(`Giải đấu: ${tournaments.length}`); await sb.saveTournaments(tournaments); }
+  const community = await file.loadCommunity();
+  if (community && community.length) { console.log(`Tin cộng đồng: ${community.length}`); await sb.saveCommunity(community); }
+  const uiNotes = await file.loadUiNotes();
+  if (uiNotes && uiNotes.length) { console.log(`Góp ý giao diện: ${uiNotes.length}`); await sb.saveUiNotes(uiNotes); }
+  const shop = await file.loadShop();
+  if (shop) {
+    // Bàn cờ bán trong Cửa hàng dùng ảnh tải lên → chuyển ảnh sang bucket
+    for (const it of shop) if (it.board && it.board.type === 'image') it.board.src = (await moveImage(it.board.src)) || it.board.src;
+    console.log(`Cửa hàng vật phẩm: ${shop.length} món`);
+    await sb.saveShop(shop);
+  }
+  const features = await file.loadFeatures();
+  if (features) { console.log('Bật/tắt chức năng web'); await sb.saveFeatures(features); }
+  const siteConfig = await file.loadSiteConfig();
+  if (siteConfig) { console.log('Cài đặt hệ thống'); await sb.saveSiteConfig(siteConfig); }
 
   const st = sb.status();
   if (st.lastError) { console.error('Có lỗi khi ghi:', st.lastError); process.exit(1); }
