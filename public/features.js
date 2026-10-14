@@ -9,7 +9,7 @@
   const GROUPS = [
     { title: 'Chơi cờ', items: [
       { key: 'ranked', label: 'Đấu xếp hạng', desc: 'Ghép trận tự động, tính Elo.' },
-      { key: 'coin', label: 'Tranh xu', desc: 'Đặt xu, thắng ăn xu của đối thủ.' },
+      { key: 'coin', label: 'Chơi nhanh', desc: 'Đặt xu, thắng ăn xu của đối thủ.' },
       { key: 'tables', label: 'Bàn chơi', desc: 'Danh sách bàn đang chờ để vào ngồi.' },
       { key: 'room', label: 'Chơi với bạn', desc: 'Tạo phòng riêng, gửi link hoặc mời bạn bè.' },
       { key: 'spectate', label: 'Xem trận', desc: 'Mục "Trận đấu hot" và vào xem ván người khác.' },

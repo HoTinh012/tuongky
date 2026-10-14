@@ -81,13 +81,42 @@ Dùng **2 thiết bị / 2 trình duyệt khác nhau** (hoặc 1 tab ẩn danh):
 - [ ] Trang **AI → Phân tích**: engine chạy, có điểm số.
 - [ ] Vào `/admin` → đăng nhập bằng `ADMIN_PASSWORD` → chỉnh thử một cài đặt.
 
-## 7. Cập nhật sau này
+## 7. Tách Dev (máy bạn) và Prod (Render)
+
+| | Dev — máy bạn | Prod — Render |
+|---|---|---|
+| Nhánh Git | `dev` | `main` (Render chỉ deploy nhánh này) |
+| Dữ liệu | File JSON trong `data/` (2 dòng Supabase trong `.env` có dấu `#`) | Supabase (biến môi trường trên Render) |
+| Mục đích | Sửa & thử thoải mái, không đụng dữ liệu thật | Người chơi thật |
+
+**Quy trình mỗi lần cập nhật:**
+```
+git switch dev            # làm việc trên dev
+… sửa code, npm start, thử trên http://localhost:3000 …
+git add -A && git commit -m "Mô tả thay đổi"
+git push -u origin dev    # lưu lên GitHub, Render KHÔNG deploy
+
+# Khi đã thử ổn → đưa lên prod:
+git switch main
+git merge dev
+git push                  # Render tự deploy bản mới
+git switch dev            # quay lại làm việc tiếp
+```
+
+**Lưu ý:**
+- **Không bỏ dấu `#`** ở 2 dòng Supabase trong `.env` khi Render đang chạy — máy sẽ ghi chung dữ liệu với prod.
+  Cần xem dữ liệu prod thì vào Supabase Dashboard (Table Editor), hoặc trang `/admin` của bản trên Render.
+- Có thay đổi bảng dữ liệu (thêm cột mới) → chạy lại `supabase/schema.sql` trên Supabase **trước** khi `git merge` vào `main`.
+- Muốn dev cũng chạy trên Supabase: tạo dự án thứ hai (vd `tuongky-dev`, gói Free cho 2 dự án) và dùng khoá
+  của dự án đó trong `.env` trên máy — tuyệt đối không dùng khoá của dự án prod.
+
+## 8. Cập nhật sau này
 
 `autoDeploy: true` → mỗi lần `git push` lên nhánh `main`, Render tự build & deploy bản mới.
 Lưu ý: mỗi lần deploy, server khởi động lại → **các ván đang chơi dở bị mất** (tài khoản, xu, lịch sử vẫn còn trên Supabase).
 Nên deploy lúc ít người chơi.
 
-## 8. (Tuỳ chọn) Tên miền riêng
+## 9. (Tuỳ chọn) Tên miền riêng
 
 Trang dịch vụ → **Settings → Custom Domains → Add** (vd `tuongky.vn`) → làm theo hướng dẫn thêm bản ghi DNS
 ở nơi mua tên miền. Render tự cấp HTTPS.

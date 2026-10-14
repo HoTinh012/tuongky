@@ -2839,3 +2839,12 @@ body[data-screen="game"] .announce { display: none; }
 #game.ended #result-card { justify-content: flex-start; }
 #game.ended #result-card .result-title { margin-top: 6px; }
 @media (min-width: 1100px) { #game.ended .radar-card { overflow-y: auto !important; } }
+
+/* Khách chưa đăng nhập: ổ khoá nhỏ ở các mục cần tài khoản (chỉ Trang chủ & AI dùng tự do) */
+body.is-guest .nav-item[data-go]:not([data-go="home"]):not([data-go="ai"]) { opacity: 0.72; }
+body.is-guest .nav-item[data-go]:not([data-go="home"]):not([data-go="ai"])::after, body.is-guest #ai-tabs .tab[data-ai-tab="puzzles"]::after, body.is-guest #ai-tabs .tab[data-ai-tab="history"]::after {
+  content: ""; width: 13px; height: 13px; margin-left: auto; flex: none; opacity: 0.8; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272.4%27 stroke-linecap=%27round%27%3E%3Crect x=%275%27 y=%2711%27 width=%2714%27 height=%279%27 rx=%272%27/%3E%3Cpath d=%27M8 11V8a4 4 0 0 1 8 0v3%27/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272.4%27 stroke-linecap=%27round%27%3E%3Crect x=%275%27 y=%2711%27 width=%2714%27 height=%279%27 rx=%272%27/%3E%3Cpath d=%27M8 11V8a4 4 0 0 1 8 0v3%27/%3E%3C/svg%3E") center / contain no-repeat;
+}
+body.is-guest #ai-tabs .tab[data-ai-tab="puzzles"], body.is-guest #ai-tabs .tab[data-ai-tab="history"] { display: inline-flex; align-items: center; gap: 6px; }

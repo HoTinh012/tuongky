@@ -168,7 +168,7 @@
     $('c-tours').textContent = s.tournaments;
   }
 
-  const ROOM_TYPE = { rated: ['Xếp hạng', 'tag'], match: ['Ghép trận', 'tag blue'], coin: ['Tranh xu', 'tag gold'], tournament: ['Giải đấu', 'tag dark'], private: ['Phòng riêng', 'tag soft'] };
+  const ROOM_TYPE = { rated: ['Xếp hạng', 'tag'], match: ['Ghép trận', 'tag blue'], coin: ['Chơi nhanh', 'tag gold'], tournament: ['Giải đấu', 'tag dark'], private: ['Phòng riêng', 'tag soft'] };
   const STATUS = { waiting: ['Chờ đối thủ', 'tag gold'], playing: ['Đang chơi', 'tag green'], finished: ['Đã kết thúc', 'tag soft'] };
   const typeTag = (t) => h('span', { class: ROOM_TYPE[t][1] }, ROOM_TYPE[t][0]);
   const statusTag = (s) => h('span', { class: STATUS[s][1] }, STATUS[s][0]);
@@ -297,7 +297,7 @@
 
   // ---------- Bảng xếp hạng ----------
   let rankBy = 'rating';
-  const RANK_COL = { rating: 'Elo', season: 'Điểm danh vọng', streak: 'Chuỗi thắng tốt nhất', coin: 'Ván thắng Tranh xu', puzzles: 'Cờ thế đã giải' };
+  const RANK_COL = { rating: 'Elo', season: 'Điểm danh vọng', streak: 'Chuỗi thắng tốt nhất', coin: 'Ván thắng Chơi nhanh', puzzles: 'Cờ thế đã giải' };
   async function loadRanking() {
     $('rank-col').textContent = RANK_COL[rankBy];
     let board;
@@ -606,7 +606,7 @@
         (v) => api('PATCH', `/users/${id}`, { name: v.name }).then(() => userAction(async () => {}, 'Đã đổi tên.'))) }, 'Đổi tên'),
       h('button', { class: 'btn sm', onclick: () => formModal('Chỉnh Elo / Xu / Uy tín', [
         { name: 'rating', label: 'Elo', type: 'number', value: a.rating, min: 0, max: 4000 },
-        { name: 'coins', label: 'Xu', type: 'number', value: a.coins, min: 0, hint: 'Xu dùng cho vật phẩm & Tranh xu — không quy đổi tiền thật.' },
+        { name: 'coins', label: 'Xu', type: 'number', value: a.coins, min: 0, hint: 'Xu dùng cho vật phẩm & Chơi nhanh — không quy đổi tiền thật.' },
         { name: 'credit', label: 'Uy tín (tối đa 1100)', type: 'number', value: a.credit, min: 0, max: 1100 },
       ], (v) => api('PATCH', `/users/${id}`, v).then(() => userAction(async () => {}, 'Đã cập nhật điểm.'))) }, 'Chỉnh Elo / Xu / Uy tín'),
       h('button', { class: 'btn sm', onclick: () => formModal('Đặt lại mật khẩu', [{ name: 'pw', label: 'Mật khẩu mới', type: 'password', hint: 'Ít nhất 6 ký tự. Hãy báo mật khẩu mới cho người chơi.' }],
@@ -1537,7 +1537,7 @@
     if (!EC.draft) return;
     const d = EC.draft;
     document.querySelectorAll('#page-economy input[data-k]').forEach((inp) => { inp.value = ecoGet(d, inp.dataset.k); });
-    // Nhịp Tranh xu: Nhóm · Phút · Giây cộng · Xoá
+    // Nhịp Chơi nhanh: Nhóm · Phút · Giây cộng · Xoá
     $('eco-tcs').replaceChildren(
       h('div', { class: 'eco-tc head' }, h('span', {}, 'Nhóm'), h('span', {}, 'Phút mỗi bên'), h('span', {}, 'Giây cộng'), h('span')),
       ...d.COIN_TCS.map((t, i) => {

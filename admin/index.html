@@ -136,12 +136,12 @@
           <div>
             <p class="eyebrow">Phòng &amp; trận đấu</p>
             <h1>Các bàn đang mở.</h1>
-            <p class="lead">Xếp hạng (phí 10 xu, tính Elo) · Tranh xu (đặt cược, không tính Elo) · Giải đấu · Ghép trận (có khách) · Phòng riêng (không xu, không Elo).</p>
+            <p class="lead">Xếp hạng (phí 10 xu, tính Elo) · Chơi nhanh (đặt cược, không tính Elo) · Giải đấu · Ghép trận (có khách) · Phòng riêng (không xu, không Elo).</p>
           </div>
         </header>
         <div class="toolbar">
           <div class="seg-tabs" id="room-filter">
-            <button class="active" data-f="all">Tất cả</button><button data-f="playing">Đang chơi</button><button data-f="waiting">Chờ đối thủ</button><button data-f="rated">Xếp hạng</button><button data-f="coin">Tranh xu</button><button data-f="tournament">Giải đấu</button><button data-f="private">Phòng riêng</button>
+            <button class="active" data-f="all">Tất cả</button><button data-f="playing">Đang chơi</button><button data-f="waiting">Chờ đối thủ</button><button data-f="rated">Xếp hạng</button><button data-f="coin">Chơi nhanh</button><button data-f="tournament">Giải đấu</button><button data-f="private">Phòng riêng</button>
           </div>
           <span class="spacer"></span>
           <span class="muted" id="queue-info"></span>
@@ -204,7 +204,7 @@
           </div>
         </header>
         <div class="seg-tabs" id="rank-tabs">
-          <button class="active" data-by="rating">Elo</button><button data-by="season">Danh vọng mùa</button><button data-by="streak">Chuỗi thắng</button><button data-by="coin">Tranh xu</button><button data-by="puzzles">Cờ thế</button>
+          <button class="active" data-by="rating">Elo</button><button data-by="season">Danh vọng mùa</button><button data-by="streak">Chuỗi thắng</button><button data-by="coin">Chơi nhanh</button><button data-by="puzzles">Cờ thế</button>
         </div>
         <div class="card flush table-card">
           <table class="table">
@@ -323,8 +323,8 @@
           </section>
 
           <section class="card eco-card">
-            <div class="card-head"><div><h3>Tranh xu</h3><p>Người chơi chọn một nhịp và một mức đặt — thắng nhận mức đặt của đối thủ.</p></div></div>
-            <label class="field"><span>Thời gian mỗi nước (giây, 10–600) — áp dụng mọi nhịp Tranh xu</span><input type="number" min="10" max="600" step="5" data-k="COIN_MOVE_SEC"></label>
+            <div class="card-head"><div><h3>Chơi nhanh</h3><p>Người chơi chọn một nhịp và một mức đặt — thắng nhận mức đặt của đối thủ.</p></div></div>
+            <label class="field"><span>Thời gian mỗi nước (giây, 10–600) — áp dụng mọi nhịp Chơi nhanh</span><input type="number" min="10" max="600" step="5" data-k="COIN_MOVE_SEC"></label>
             <div class="eco-sub"><b>Nhịp chơi</b><small>Nhóm cùng tên hiện chung một hàng (vd Cờ chớp, Cờ nhanh). Tối đa 12 nhịp.</small></div>
             <div class="eco-tcs" id="eco-tcs"></div>
             <button class="btn sm" id="eco-add-tc"><svg class="ico sm"><use href="#i-plus"/></svg>Thêm nhịp</button>

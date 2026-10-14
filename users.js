@@ -75,7 +75,7 @@ function migrate(acc) {
     // Túi đồ: vật phẩm đã mua, bộ đang trang bị, vật phẩm mới nhận (chưa xem)
     owned: [], equip: { ...Catalog.DEFAULT_EQUIP }, freshItems: [],
     notifications: [], missions: null,
-    coinStats: { games: 0, wins: 0, losses: 0, draws: 0, net: 0 }, // Tranh xu
+    coinStats: { games: 0, wins: 0, losses: 0, draws: 0, net: 0 }, // Chơi nhanh
     puzzleLog: [], badges: [], peakRating: null,
     analyses: [], // thế cờ đã lưu từ tab Phân tích (mới nhất trước, tối đa 50)
   };
@@ -339,7 +339,7 @@ function destroySessionsOf(accountId) {
 // ---------- Ván đấu ----------
 // record = { mode: 'online'|'ai', kind?: 'ranked'|'match'|'coin'|'room'|'tournament'|'ai', stake?, tc?, fee?, tournament?,
 //            level?, players: { r: {name, accountId}, b: {...} }, result, moves: [{from,to}], startedAt }
-// Elo chỉ tính ở ván Xếp hạng & Giải đấu giữa 2 tài khoản; Tranh xu chuyển xu theo mức đặt; Phòng riêng không thưởng xu.
+// Elo chỉ tính ở ván Xếp hạng & Giải đấu giữa 2 tài khoản; Chơi nhanh chuyển xu theo mức đặt; Phòng riêng không thưởng xu.
 const RATED_KINDS = ['ranked', 'tournament'];
 function recordGame(record) {
   const id = newId() + newId();
@@ -384,7 +384,7 @@ function recordGame(record) {
     acc.peakRating = Math.max(acc.peakRating || 0, acc.rating);
     let coins = 0;
     if (kind === 'coin') {
-      // Tranh xu: thắng nhận mức đặt của đối thủ, thua mất mức đặt, hoà hoàn nguyên
+      // Chơi nhanh: thắng nhận mức đặt của đối thủ, thua mất mức đặt, hoà hoàn nguyên
       coins = s === 1 ? game.stake : s === 0 ? -Math.min(game.stake, acc.coins) : 0;
       const cs = acc.coinStats;
       cs.games++;
@@ -677,7 +677,7 @@ function addBadge(id, badge) {
   save();
 }
 
-// ---------- Mùa giải: mỗi quý một mùa; Danh vọng = thắng 3, hoà 1 ở ván Xếp hạng / Tranh xu / Giải đấu ----------
+// ---------- Mùa giải: mỗi quý một mùa; Danh vọng = thắng 3, hoà 1 ở ván Xếp hạng / Chơi nhanh / Giải đấu ----------
 function seasonInfo(t = Date.now()) {
   const d = new Date(new Date(t).toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
   const q = Math.floor(d.getMonth() / 3);
@@ -704,7 +704,7 @@ function seasonPoints() {
 }
 
 // ---------- Tổng hợp hồ sơ: tỉ lệ thắng theo chế độ, nhịp hay chơi ----------
-const KIND_LABEL = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Tranh xu', room: 'Phòng riêng', tournament: 'Giải đấu', ai: 'Đấu máy' };
+const KIND_LABEL = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Chơi nhanh', room: 'Phòng riêng', tournament: 'Giải đấu', ai: 'Đấu máy' };
 function summaryOf(id) {
   const acc = db.accounts[id];
   if (!acc) return null;

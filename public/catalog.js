@@ -9,9 +9,9 @@
   const ECONOMY = {
     RANKED_FEE: 10, // phí xu mỗi ván xếp hạng (trừ khi bắt đầu ván, không hoàn)
     RANKED_TC: { totalMin: 15, incSec: 5, moveSec: 60 }, // nhịp cố định của ván xếp hạng: 15 phút + 5 giây cộng, tối đa 60 giây mỗi nước (bắt buộc)
-    COIN_MOVE_SEC: 60, // Tranh xu: thời gian tối đa mỗi nước (giây, bắt buộc)
-    STAKES: [50, 100, 200, 500], // mức đặt Tranh xu
-    // Nhịp Tranh xu: Cờ chớp & Cờ nhanh ('phút|giây cộng')
+    COIN_MOVE_SEC: 60, // Chơi nhanh: thời gian tối đa mỗi nước (giây, bắt buộc)
+    STAKES: [50, 100, 200, 500], // mức đặt Chơi nhanh
+    // Nhịp Chơi nhanh: Cờ chớp & Cờ nhanh ('phút|giây cộng')
     COIN_TCS: [
       { tc: '1|0', group: 'Cờ chớp' }, { tc: '3|0', group: 'Cờ chớp' }, { tc: '3|2', group: 'Cờ chớp' },
       { tc: '5|0', group: 'Cờ nhanh' }, { tc: '10|0', group: 'Cờ nhanh' }, { tc: '10|5', group: 'Cờ nhanh' },

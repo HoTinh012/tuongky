@@ -56,7 +56,7 @@
         { id: 'winRanked', name: 'Thắng 1 ván xếp hạng', goal: 1, reward: 30, on: true },
         { id: 'puzzle1', name: 'Giải 1 thế cờ', goal: 1, reward: 15, on: true },
         { id: 'aiWin', name: 'Thắng máy từ cấp 3 trở lên', goal: 1, reward: 15, on: true },
-        { id: 'coin1', name: 'Chơi 1 ván Tranh xu', goal: 1, reward: 10, on: true },
+        { id: 'coin1', name: 'Chơi 1 ván chơi nhanh', goal: 1, reward: 10, on: true },
         { id: 'ai2', name: 'Luyện 2 ván đấu máy', goal: 2, reward: 10, on: true },
         { id: 'puzzle3', name: 'Giải 3 thế cờ', goal: 3, reward: 25, on: true },
       ] },

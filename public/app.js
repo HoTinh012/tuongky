@@ -221,6 +221,7 @@
   });
 
   // Admin bật/tắt chức năng: ẩn/hiện ngay, đang ở trang bị tắt thì về trang chủ
+  socket.on('need-login', () => { if (!session) openAuth('login'); });
   socket.on('features', (state) => {
     featuresOn = state || {};
     applyFeatures();
@@ -265,11 +266,11 @@
     'Còn ít thời gian? Ưu tiên nước an toàn, giữ cung Tướng chắc chắn.',
     'Sau ván, bấm “Phân tích” để biết nước nào hay, nước nào hớ.',
   ];
-  // mode: 'ranked' (Xếp hạng) | 'coin' (Tranh xu)
+  // mode: 'ranked' (Xếp hạng) | 'coin' (Chơi nhanh)
   const mm = { active: false, since: 0, range: 100, searching: 1, rating: null, timer: null, settings: null, tip: 0, mode: 'ranked', stake: null, found: null };
 
   function startMatchmaking(settings, mode = 'ranked', stake = null) {
-    if (mode === 'coin' && !me) { openAuth('login'); return toast('Tranh xu cần đăng nhập tài khoản.'); }
+    if (mode === 'coin' && !me) { openAuth('login'); return toast('Chơi nhanh cần đăng nhập tài khoản.'); }
     const need = mode === 'coin' ? stake : me ? ECON.RANKED_FEE : 0;
     if (me && me.coins < need) return toast(`Không đủ xu — cần ${need} xu, bạn có ${fmt(me.coins)} xu.`);
     mm.active = true;
@@ -286,8 +287,8 @@
     $('mm-accept-box').classList.add('hidden');
     $('mm-cancel').classList.remove('hidden');
     $('mm-tc').textContent = tcShort({ totalMs: settings.totalMin * 60000, incMs: settings.incSec * 1000, moveMs: settings.moveSec * 1000 });
-    document.querySelector('#page-search .eyebrow').textContent = mode === 'coin' ? `Chơi nhanh · Tranh xu ${stake} xu` : 'Chơi nhanh · Xếp hạng';
-    document.querySelector('#page-search .search-card .tag').textContent = mode === 'coin' ? `Tranh xu · ${stake} xu` : me ? `Xếp hạng · phí ${ECON.RANKED_FEE} xu` : 'Ghép trận';
+    document.querySelector('#page-search .eyebrow').textContent = mode === 'coin' ? `Chơi · Chơi nhanh ${stake} xu` : 'Chơi · Xếp hạng';
+    document.querySelector('#page-search .search-card .tag').textContent = mode === 'coin' ? `Chơi nhanh · ${stake} xu` : me ? `Xếp hạng · phí ${ECON.RANKED_FEE} xu` : 'Ghép trận';
     showScreen('search');
     renderMM();
     clearInterval(mm.timer);
@@ -358,7 +359,7 @@
     $('mm-opp-av').textContent = initials(d.opponent);
     $('mm-opp-av').classList.add('found');
     $('mm-opp-name').textContent = d.opponent;
-    $('mm-opp-sub').textContent = `Elo ${fmt(d.rating)}${d.mode === 'coin' ? ` · Tranh xu ${d.stake} xu` : d.rated ? ` · tính Elo, phí ${d.fee} xu` : ' · không tính Elo'}`;
+    $('mm-opp-sub').textContent = `Elo ${fmt(d.rating)}${d.mode === 'coin' ? ` · Chơi nhanh ${d.stake} xu` : d.rated ? ` · tính Elo, phí ${d.fee} xu` : ' · không tính Elo'}`;
     $('mm-opp-tag').textContent = 'Chờ xác nhận';
     $('mm-info').textContent = 'Đã tìm thấy đối thủ — bấm Chấp nhận để vào bàn.';
     $('mm-accept-info').textContent = `${d.opponent} (Elo ${fmt(d.rating)})${d.mode === 'coin' ? ` · đặt ${d.stake} xu` : d.rated ? ` · phí ${d.fee} xu` : ''}`;
@@ -388,7 +389,7 @@
     showScreen('play');
   });
 
-  // ---------- Tranh xu (Q01) ----------
+  // ---------- Chơi nhanh (Q01) ----------
   let coinTc = ECON.COIN_TCS.some((x) => x.tc === store.get('tk-coin-tc')) ? store.get('tk-coin-tc') : '5|0';
   let coinStake = ECON.STAKES.includes(Number(store.get('tk-coin-stake'))) ? Number(store.get('tk-coin-stake')) : ECON.STAKES[0];
   function renderCoinCard() {
@@ -422,25 +423,25 @@
     const btn = $('coin-match');
     const enough = me && coins >= coinStake;
     btn.disabled = !!me && !enough;
-    btn.querySelector('span').textContent = !me ? 'Đăng nhập để tranh xu' : enough ? `Vào bàn · đặt ${coinStake} xu · ${coinTc.replace('|', '+')}` : 'Không đủ xu';
+    btn.querySelector('span').textContent = !me ? 'Đăng nhập để chơi nhanh' : enough ? `Vào bàn · đặt ${coinStake} xu · ${coinTc.replace('|', '+')}` : 'Không đủ xu';
   }
   $('coin-match').addEventListener('click', () => coinSeat(parseTc(coinTc), coinStake));
 
-  // Tranh xu kiểu bàn chờ: server cho vào bàn đang chờ cùng nhịp & mức đặt, hoặc tạo bàn mới
+  // Chơi nhanh kiểu bàn chờ: server cho vào bàn đang chờ cùng nhịp & mức đặt, hoặc tạo bàn mới
   function coinSeat({ totalMin, incSec }, stake) {
-    if (!me) { openAuth('login'); return toast('Tranh xu cần đăng nhập tài khoản.'); }
+    if (!me) { openAuth('login'); return toast('Chơi nhanh cần đăng nhập tài khoản.'); }
     if (me.coins < stake) return toast(`Không đủ xu — cần ${stake} xu, bạn có ${fmt(me.coins)} xu.`);
     if (inGame() && !leaveGame()) return;
     if (mm.active) stopMM();
     spectate = false;
-    toast('Đang tìm bàn tranh xu…');
+    toast('Đang tìm bàn chơi nhanh…');
     socket.emit('coin-seat', { name: getName(), token, uid, session, totalMin, incSec, stake });
     // Không có phản hồi (vd server chưa khởi động lại sau khi cập nhật) → báo rõ thay vì im lặng
     clearTimeout(coinSeat.timer);
     coinSeat.timer = setTimeout(() => { if (!roomId) toast('Server không phản hồi — thử tải lại trang hoặc khởi động lại server.'); }, 6000);
   }
 
-  // Danh sách bàn tranh xu đang chờ (trang Tranh xu)
+  // Danh sách bàn chơi nhanh đang chờ (trang Chơi nhanh)
   function renderCoinWaiting() {
     const list = live.waiting || [];
     document.querySelectorAll('.js-coin-waiting-n').forEach((e) => { e.textContent = list.length ? `${list.length} bàn` : ''; });
@@ -466,15 +467,15 @@
     rules: 'page-rules', profile: 'profile', game: 'game',
   };
   const PAGE_TITLE = {
-    home: 'Trang chủ', play: 'Chơi nhanh', ranked: 'Xếp hạng', coin: 'Tranh xu', tables: 'Bàn đấu', search: 'Tìm đối thủ', room: 'Chơi với bạn', ai: 'AI', puzzle: 'Cờ thế',
+    home: 'Trang chủ', play: 'Chơi', ranked: 'Xếp hạng', coin: 'Chơi nhanh', tables: 'Bàn đấu', search: 'Tìm đối thủ', room: 'Chơi với bạn', ai: 'AI', puzzle: 'Cờ thế',
     ranking: 'Xếp hạng', tournaments: 'Giải đấu', tournament: 'Giải đấu', friends: 'Bạn bè', inventory: 'Túi đồ', rules: 'Luật chơi', profile: 'Hồ sơ kỳ thủ', game: 'Bàn cờ',
   };
   let lastPage = 'home';
   let currentScreen = 'home';
   let backTarget = null; // đích của nút Quay lại (góc trên bên trái)
 
-  const KIND_NAMES = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Tranh xu', room: 'Phòng riêng', tournament: 'Giải đấu', ai: 'Đấu máy' };
-  const KIND_TITLE = { ranked: 'Bàn xếp hạng', match: 'Bàn ghép trận', coin: 'Bàn tranh xu', room: 'Phòng riêng', tournament: 'Bàn giải đấu' };
+  const KIND_NAMES = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Chơi nhanh', room: 'Phòng riêng', tournament: 'Giải đấu', ai: 'Đấu máy' };
+  const KIND_TITLE = { ranked: 'Bàn xếp hạng', match: 'Bàn ghép trận', coin: 'Bàn chơi nhanh', room: 'Phòng riêng', tournament: 'Bàn giải đấu' };
   // Mục menu trái & breadcrumb của màn hiện tại
   function navOf(name) {
     if (['search', 'room', 'ranked', 'coin', 'tables'].includes(name)) return 'play';
@@ -484,11 +485,11 @@
     return name;
   }
   function crumbsOf(name) {
-    const play = ['Chơi nhanh', '#/play'], aiC = ['AI', '#/ai'];
+    const play = ['Chơi', '#/play'], aiC = ['AI', '#/ai'];
     switch (name) {
       case 'search': return [play, ['Tìm đối thủ']];
       case 'ranked': return [play, ['Xếp hạng']];
-      case 'coin': return [play, ['Tranh xu']];
+      case 'coin': return [play, ['Chơi nhanh']];
       case 'tables': return [play, ['Bàn đấu']];
       case 'room': return [play, ['Chơi với bạn']];
       case 'ai': return aiTab === 'puzzles' ? [aiC, ['Cờ thế']] : aiTab === 'history' ? [aiC, ['Lịch sử luyện tập']]
@@ -552,7 +553,7 @@
 
   const inGame = () => !!(roomId || ai.active || review.active);
 
-  // Chơi nhanh: dãy cờ phướn cuộn ngang — lăn chuột dọc cũng cuộn ngang, nút ‹ › ở hai bên
+  // Chơi: dãy cờ phướn cuộn ngang — lăn chuột dọc cũng cuộn ngang, nút ‹ › ở hai bên
   (function setupPlayScroller() {
     const row = document.querySelector('#page-play .p2-grid');
     if (!row) return;
@@ -581,7 +582,7 @@
       row.style.setProperty('--bn-h', Math.round(h) + 'px');
       sync();
     };
-    new ResizeObserver(fit).observe(row); // cả khi trang Chơi nhanh vừa hiện ra
+    new ResizeObserver(fit).observe(row); // cả khi trang Chơi vừa hiện ra
     window.addEventListener('resize', fit);
     $('p2-prev').addEventListener('click', () => row.scrollBy({ left: -step() }));
     $('p2-next').addEventListener('click', () => row.scrollBy({ left: step() }));
@@ -616,11 +617,21 @@
   }
 
   // Điều hướng theo địa chỉ: #/play, #/ai, #/puzzles, #/ranking... (trang chủ: #/)
+  const GUEST_OK = ['home', 'ai', 'rules', 'replay'];
   function route() {
     if (inGame()) return; // đang trong ván
     if (mm.active) { cancelMM(false); toast('Đã huỷ tìm trận.'); }
     let [, name = 'home', arg] = location.hash.match(/^#\/(\w+)(?:\/(\w+))?/) || [];
     showLobbyError('');
+    // Khách chưa đăng nhập chỉ dùng được Phân tích & Đấu máy (và trang chủ, luật chơi, xem biên bản được chia sẻ)
+    if (!session && !GUEST_OK.includes(name)) {
+      toast('Đăng nhập để dùng mục này — khách chỉ dùng được Phân tích và Đấu máy.');
+      // Cờ thế (trong trang AI) → ở lại trang AI; mục khác → về trang chủ
+      const stay = ['puzzles', 'puzzle'].includes(name);
+      history.replaceState(null, '', stay ? '#/ai' : '#/');
+      name = stay ? 'ai' : 'home'; arg = undefined;
+      setTimeout(() => openAuth('login'), 0);
+    }
     // Chức năng admin đã tắt → về trang chủ
     const need = routeFeature(name, arg);
     if (need && !featureOn(need)) {
@@ -678,7 +689,10 @@
   const params = new URLSearchParams(location.search);
   const urlRoom = params.get('room');
   let spectate = params.has('watch'); // ?watch=1: chỉ xem, không ngồi vào ghế trống
-  if (urlRoom) {
+  if (urlRoom && !session) {
+    // Khách chưa đăng nhập: link mời / xem trận cần tài khoản
+    setTimeout(() => { toast('Đăng nhập để vào phòng ' + urlRoom.toUpperCase() + ' — khách chỉ dùng được Phân tích và Đấu máy.'); openAuth('login'); }, 300);
+  } else if (urlRoom) {
     $('code').value = urlRoom.toUpperCase();
     if (storedName() || spectate || session) {
       socket.emit('join', { roomId: urlRoom, name: getName(), token, uid, session, spectate });
@@ -984,7 +998,7 @@
   function kindLabel(st) {
     if (st.tournament) return `${st.tournament.name} · Vòng ${st.tournament.round} ·`;
     if (st.kind === 'ranked') return `Xếp hạng · phí ${st.fee || ECON.RANKED_FEE} xu · Phòng`;
-    if (st.kind === 'coin') return `Tranh xu ${st.stake} xu · Phòng`;
+    if (st.kind === 'coin') return `Chơi nhanh ${st.stake} xu · Phòng`;
     if (st.kind === 'match') return 'Ghép trận · Phòng';
     const rules = [];
     if (st.rules && st.rules.takeback) rules.push('cho đi lại');
@@ -993,7 +1007,7 @@
   }
 
   function renderHeader() {
-    // Loại ván đang chơi (CSS: ván tranh xu ẩn lịch sử nước đi); hết ván thì bỏ để còn xem lại / phân tích
+    // Loại ván đang chơi (CSS: ván chơi nhanh ẩn lịch sử nước đi); hết ván thì bỏ để còn xem lại / phân tích
     $('game').dataset.live = state.result ? '' : state.ai ? 'ai' : state.review ? 'review' : state.kind || 'room';
     const title = $('game-title');
     if (state.result && !analysisMode) return; // tiêu đề kết quả do renderResult đặt
@@ -2348,10 +2362,11 @@
   // Thanh trên: xu + thẻ người dùng, hoặc nút Đăng nhập / Đăng ký
   function renderAuth() {
     const bar = $('auth-bar');
+    document.body.classList.toggle('is-guest', !me); // khách: hiện ổ khoá ở các mục cần đăng nhập
     if (me) {
       const rank = rankOf(me.rating);
       bar.replaceChildren(
-        h('a', { class: 'coin-pill', href: '#/shop', title: 'Xu: dùng cho vật phẩm & Tranh xu — bấm để mở Cửa hàng' }, icon('coin'), fmt(me.coins)),
+        h('a', { class: 'coin-pill', href: '#/shop', title: 'Xu: dùng cho vật phẩm & Chơi nhanh — bấm để mở Cửa hàng' }, icon('coin'), fmt(me.coins)),
         h('button', { class: 'icon-btn bell-btn mission-btn', title: 'Nhiệm vụ hôm nay', 'aria-label': 'Nhiệm vụ hôm nay', 'data-feature': 'missions', onclick: toggleMissions },
           icon('gift'), missionReady ? h('span', { class: 'badge', text: String(missionReady) }) : null),
         h('button', { class: 'icon-btn bell-btn', title: 'Thông báo', 'aria-label': 'Thông báo', onclick: () => { $('mission-panel').classList.add('hidden'); toggleNotifications(); } },
@@ -2776,7 +2791,7 @@
     const setAll = (cls, text) => document.querySelectorAll(cls).forEach((e) => { e.textContent = text; });
     setAll('.js-online', known ? fmt(live.online) : '—');
     setAll('.js-searching', known ? `${fmt(live.searching)} người đang tìm trận` : '— người đang tìm trận');
-    setAll('.js-coin-waiting', known ? `${fmt((live.waiting || []).length)} bàn tranh xu đang chờ` : '— bàn tranh xu đang chờ');
+    setAll('.js-coin-waiting', known ? `${fmt((live.waiting || []).length)} bàn chơi nhanh đang chờ` : '— bàn chơi nhanh đang chờ');
     if (currentScreen === 'coin') renderCoinWaiting();
     setAll('.js-wait', live.searching ? `${fmt(live.searching)} người đang chờ ghép` : 'Ước tính: < 1 phút');
     const tbl = live.tables || [];
@@ -2786,9 +2801,9 @@
     if (['play', 'tables'].includes(currentScreen)) renderPlayBoard();
   }
 
-  // Một bàn (thẻ Bàn đấu ở trang Chơi nhanh): đang chơi, chờ sẵn sàng hoặc chờ người — ghế trống thì vào chơi được
+  // Một bàn (thẻ Bàn đấu ở trang Chơi): đang chơi, chờ sẵn sàng hoặc chờ người — ghế trống thì vào chơi được
   const TABLE_STATUS = { playing: ['Đang đấu', 'live'], ready: ['Chờ sẵn sàng', 'ready'], waiting: ['Chờ người', 'wait'] };
-  const KIND_TAG = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Tranh xu', room: 'Phòng riêng', tournament: 'Giải đấu' };
+  const KIND_TAG = { ranked: 'Xếp hạng', match: 'Ghép trận', coin: 'Chơi nhanh', room: 'Phòng riêng', tournament: 'Giải đấu' };
   function joinTable(m) {
     if (inGame() && !leaveGame()) return;
     spectate = false;
@@ -2805,7 +2820,7 @@
         h('span', { text: p ? p.name : 'Ghế trống' }), p && p.rating ? h('em', { text: fmt(p.rating) }) : null);
     };
     const [label, cls] = TABLE_STATUS[status];
-    const kind = m.kind === 'coin' && m.stake ? `Tranh xu ${fmt(m.stake)}` : KIND_TAG[m.kind] || '';
+    const kind = m.kind === 'coin' && m.stake ? `Chơi nhanh ${fmt(m.stake)}` : KIND_TAG[m.kind] || '';
     const meta = [status === 'playing' ? `Nước ${m.moveCount}` : null, tcShort(m.settings), kind].filter(Boolean).join(' · ');
     const seatFree = !m.players.r || !m.players.b;
     const act = preview ? null
@@ -2821,12 +2836,12 @@
         h('small', { class: 'p2-tmeta', text: meta })),
       act);
     miniBoard(svgB, m.board, { lastMove: m.lastMove });
-    // Bàn Tranh xu: huy hiệu mức cược trên ảnh bàn cờ
+    // Bàn Chơi nhanh: huy hiệu mức cược trên ảnh bàn cờ
     if (m.kind === 'coin' && m.stake) { node.classList.add('is-coin'); board.appendChild(h('span', { class: 'p2-stake-badge' }, icon('coin', 'sm'), fmt(m.stake))); }
     return node;
   }
 
-  // ---------- Q01 Chơi nhanh ----------
+  // ---------- Q01 Chơi ----------
   // Thẻ bậc rank ở trang Xếp hạng: huy hiệu, sao, Elo, tiến độ lên bậc sau
   const RANK_CHAR = { 'Đồng': '兵', 'Bạc': '炮', 'Vàng': '馬', 'Bạch kim': '車', 'Kim cương': '相', 'Cao thủ': '帥' };
   function renderRankCard() {
@@ -2854,7 +2869,7 @@
     document.querySelectorAll('.js-rank').forEach((e) => { e.textContent = me ? `${rank.label} · Elo ${fmt(rating)}` : 'Đăng nhập để xếp hạng'; });
   }
 
-  // Điền các con số theo cài đặt admin (nhịp xếp hạng, phí, thưởng, nhịp tranh xu)
+  // Điền các con số theo cài đặt admin (nhịp xếp hạng, phí, thưởng, nhịp chơi nhanh)
   function renderEconomyTexts() {
     const { totalMin, incSec, moveSec } = ECON.RANKED_TC;
     const setAll = (cls, text) => document.querySelectorAll(cls).forEach((e) => { e.textContent = text; });
@@ -2998,7 +3013,7 @@
     const badges = sum ? sum.badges.slice(0, 6) : [];
     $('pf-ach').replaceChildren(
       ...(sum ? [h('div', { class: 'ach season' }, h('span', { class: 'ach-ico' }, icon('crown')),
-        h('div', {}, h('b', { text: `${sum.season.name} · ${fmt(sum.seasonPoints)} điểm danh vọng` }), h('small', { text: 'Thắng 3 · hoà 1 ở ván Xếp hạng, Tranh xu, Giải đấu' })))] : []),
+        h('div', {}, h('b', { text: `${sum.season.name} · ${fmt(sum.seasonPoints)} điểm danh vọng` }), h('small', { text: 'Thắng 3 · hoà 1 ở ván Xếp hạng, Chơi nhanh, Giải đấu' })))] : []),
       ...badges.map((b) => h('div', { class: 'ach' }, h('span', { class: 'ach-ico' }, icon('trophy')),
         h('div', {}, h('b', { text: b.name }), h('small', { text: `Huy hiệu giải đấu · ${fmtDate(b.at)}` })))),
       ...ach.map((a) => {
@@ -3014,7 +3029,7 @@
       h('b', { text: KIND_NAMES[k.kind] || k.label }),
       h('span', { class: 'muted', text: `${k.games} ván · ${k.wins}T ${k.draws}H ${k.losses}B` }),
       h('span', { class: 'bar' }, h('i', { style: `width:${k.games ? Math.round((k.wins / k.games) * 100) : 0}%` })))) : [h('p', { class: 'muted', text: 'Chưa có ván nào.' })]),
-    sum && sum.coinStats.games ? h('p', { class: 'muted small', text: `Tranh xu: ${sum.coinStats.games} ván · lãi/lỗ ${signed(sum.coinStats.net)} xu` }) : null].filter(Boolean));
+    sum && sum.coinStats.games ? h('p', { class: 'muted small', text: `Chơi nhanh: ${sum.coinStats.games} ván · lãi/lỗ ${signed(sum.coinStats.net)} xu` }) : null].filter(Boolean));
 
     // Bộ trang bị đang dùng
     const eq = (sum && sum.equip) || me.equip || Catalog.DEFAULT_EQUIP;
@@ -3242,14 +3257,14 @@
 
   // ---------- R01 Xếp hạng ----------
   let rankBy = 'rating';
-  const RANK_COL = { rating: 'Elo', friends: 'Elo', season: 'Danh vọng', streak: 'Chuỗi thắng', coin: 'Thắng Tranh xu', puzzles: 'Bài đã giải' };
-  const RANK_UNIT = { rating: 'Elo', friends: 'Elo', season: 'điểm danh vọng', streak: 'trận thắng liên tiếp', coin: 'ván thắng Tranh xu', puzzles: 'bài' };
+  const RANK_COL = { rating: 'Elo', friends: 'Elo', season: 'Danh vọng', streak: 'Chuỗi thắng', coin: 'Thắng Chơi nhanh', puzzles: 'Bài đã giải' };
+  const RANK_UNIT = { rating: 'Elo', friends: 'Elo', season: 'điểm danh vọng', streak: 'trận thắng liên tiếp', coin: 'ván thắng Chơi nhanh', puzzles: 'bài' };
   const RANK_EMPTY = {
     rating: 'Đăng nhập và chơi ván xếp hạng để ghi tên mình lên bảng.', friends: 'Kết bạn để so tài Elo với kỳ hữu.',
-    season: 'Thắng ván Xếp hạng, Tranh xu hoặc Giải đấu để có điểm Danh vọng mùa này (thắng 3, hoà 1).',
-    streak: 'Thắng liên tiếp các ván online để lên bảng.', coin: 'Chơi Tranh xu để lên bảng.', puzzles: 'Giải cờ thế để lên bảng.',
+    season: 'Thắng ván Xếp hạng, Chơi nhanh hoặc Giải đấu để có điểm Danh vọng mùa này (thắng 3, hoà 1).',
+    streak: 'Thắng liên tiếp các ván online để lên bảng.', coin: 'Chơi Chơi nhanh để lên bảng.', puzzles: 'Giải cờ thế để lên bảng.',
   };
-  const RANK_CTA = { puzzles: ['#/puzzles', 'Giải cờ thế'], friends: ['#/friends', 'Tìm thêm kỳ hữu'], coin: ['#/play', 'Chơi Tranh xu'], season: ['#/play', 'Chơi xếp hạng'] };
+  const RANK_CTA = { puzzles: ['#/puzzles', 'Giải cờ thế'], friends: ['#/friends', 'Tìm thêm kỳ hữu'], coin: ['#/play', 'Chơi Chơi nhanh'], season: ['#/play', 'Chơi xếp hạng'] };
   async function openRanking() {
     showScreen('ranking');
     document.querySelectorAll('#rank-tabs button').forEach((b) => b.classList.toggle('active', b.dataset.by === rankBy));

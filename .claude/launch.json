@@ -5,7 +5,13 @@
       "name": "tuongky-test",
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.js"],
-      "env": { "PORT": "3100", "DATA_DIR": "C:/Users/hosyt/AppData/Local/Temp/claude/D--TuongKy-tuongky/a0ae0cd9-fd47-42f4-b6ac-29fe0931710f/scratchpad/testdata" },
+      "env": {
+        "PORT": "3100",
+        "DATA_DIR": "C:/Users/hosyt/AppData/Local/Temp/claude/D--TuongKy-tuongky/a0ae0cd9-fd47-42f4-b6ac-29fe0931710f/scratchpad/testdata",
+        "SUPABASE_URL": "",
+        "SUPABASE_SERVICE_ROLE_KEY": "",
+        "ADMIN_PASSWORD": ""
+      },
       "port": 3100
     }
   ]
