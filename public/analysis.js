@@ -151,16 +151,18 @@
       h('button', { class: 'btn primary sm', title: 'Lưu thế cờ & các nước đã đi vào Lịch sử luyện tập', onclick: () => saveCurrent() },
         'Lưu vào lịch sử'));
     E.editBar = h('div', { class: 'ab-editbar hidden' });
+    // Hai nhóm: điều hướng nước đi · thao tác (điện thoại: mỗi nhóm một hàng)
     E.toolbar = h('div', { class: 'ab-toolbar' },
-      btn('⏮', 'Về đầu', () => goto(0)), btn('◀', 'Lùi một nước (←)', () => goto(st.ply - 1)),
-      btn('▶', 'Tiến một nước (→)', () => goto(st.ply + 1)), btn('⏭', 'Về nước cuối', () => goto(st.moves.length)),
+      h('span', { class: 'ab-navgrp' },
+        btn('⏮', 'Về đầu', () => goto(0)), btn('◀', 'Lùi một nước (←)', () => goto(st.ply - 1)),
+        btn('▶', 'Tiến một nước (→)', () => goto(st.ply + 1)), btn('⏭', 'Về nước cuối', () => goto(st.moves.length))),
       h('span', { class: 'ab-sep' }),
-      btn('Lật bàn', 'Lật bàn cờ', () => { st.flip = !st.flip; renderBoard(); }),
-      btn('Đi lại', 'Xoá nước cuối', () => { if (st.moves.length) { st.moves.pop(); st.ply = Math.min(st.ply, st.moves.length); changed(); } }),
-      btn('Bàn mới', 'Bắt đầu lại từ thế ban đầu', () => setPosition(X.initialBoard(), 'r')),
-      btn('Bày thế cờ', 'Tự xếp quân lên bàn', () => startEdit()),
-      btn('Lưu', 'Lưu thế cờ & các nước đã đi vào Lịch sử luyện tập', () => saveCurrent(), 'btn sm ab-save'),
-      btn('Chia sẻ', 'Chia sẻ thế cờ này lên Cộng đồng ở trang chủ', () => st.deps.share && st.deps.share(currentItem()), 'btn sm'));
+      h('span', { class: 'ab-actgrp' },
+        btn('Lật bàn', 'Lật bàn cờ', () => { st.flip = !st.flip; renderBoard(); }, 'btn sm ab-flip'),
+        btn('Bàn mới', 'Bắt đầu lại từ thế ban đầu', () => setPosition(X.initialBoard(), 'r'), 'btn sm ab-new'),
+        btn('Bày thế cờ', 'Tự xếp quân lên bàn', () => startEdit(), 'btn sm ab-setup'),
+        btn('Lưu', 'Lưu thế cờ & các nước đã đi vào Lịch sử luyện tập', () => saveCurrent(), 'btn sm ab-save'),
+        btn('Chia sẻ', 'Chia sẻ thế cờ này lên Cộng đồng ở trang chủ', () => st.deps.share && st.deps.share(currentItem()), 'btn sm ab-share')));
 
     // Engine
     E.engOn = h('input', { type: 'checkbox', class: 'toggle', 'aria-label': 'Bật phân tích' });
@@ -176,14 +178,16 @@
     E.lines = h('ol', { class: 'ab-lines' });
     E.filter = h('small', { class: 'ab-filter' });
     E.engMsg = h('p', { class: 'ab-msg' });
-    const engCard = h('div', { class: 'card ab-card' },
-      h('div', { class: 'card-head plain' }, h('div', {}, h('h3', { text: 'Engine phân tích' }),
-        h('p', { text: 'Điểm theo phía Đỏ (đơn vị: tốt) · thanh = tỉ lệ thắng của bên đang đi' })), E.engOn),
-      h('div', { class: 'ab-controls' }, E.engKind, E.multipv, h('label', { class: 'check' }, E.arrow, ' Mũi tên')),
+    // Điện thoại: chọn xem "Nước đi" (các phương án) hay "Thế trận" (biểu đồ) trong cùng một khung
+    E.view = h('select', { class: 'sel-sm ab-view', 'aria-label': 'Hiển thị' },
+      h('option', { value: 'lines', text: 'Nước đi' }), h('option', { value: 'chart', text: 'Thế trận' }));
+    const engCard = h('div', { class: 'card ab-card ab-engcard' },
+      h('div', { class: 'card-head plain' }, h('div', {}, h('h3', { text: 'Engine phân tích' })), E.engOn),
+      h('div', { class: 'ab-controls' }, E.engKind, E.view, E.multipv, h('label', { class: 'check' }, E.arrow, ' Mũi tên')),
       h('div', { class: 'ab-scorebox' }, E.score, E.verdict), E.stats, E.filter, E.lines, E.engMsg);
 
     E.moveList = h('ol', { class: 'ab-moves' });
-    const movesCard = h('div', { class: 'card ab-card' },
+    const movesCard = h('div', { class: 'card ab-card ab-movescard' },
       h('div', { class: 'card-head plain' }, h('h3', { text: 'Biên bản' }), h('small', { class: 'muted', text: 'Bấm nước để quay lại' })), E.moveList);
 
     E.fen = h('input', { class: 'ab-fen', spellcheck: 'false', 'aria-label': 'FEN' });
@@ -200,7 +204,7 @@
         })));
 
     // Bố cục giống bàn đấu: trái = biên bản + FEN, giữa = bàn cờ, phải = engine phân tích
-    container.replaceChildren(h('div', { class: 'ab-layout' },
+    E.layout = h('div', { class: 'ab-layout' },
       // Trái: biên bản + thanh thế trận (ngang) bên dưới. Khung FEN đã bỏ.
       h('div', { class: 'ab-left' }, movesCard,
         h('div', { class: 'card ab-card ab-evalcard' }, h('div', { class: 'card-head plain' }, h('h3', { text: 'Thế trận' }), E.evalNum),
@@ -208,7 +212,12 @@
       h('div', { class: 'ab-main' },
         h('div', { class: 'ab-board-row' }, E.frame),
         E.toolbar, E.editBar),
-      h('div', { class: 'ab-right' }, engCard)));
+      h('div', { class: 'ab-right' }, engCard));
+    container.replaceChildren(E.layout);
+    E.view.value = store.get('tk-ab-view') === 'chart' ? 'chart' : 'lines';
+    const applyView = () => E.layout.classList.toggle('ab-chart-mode', E.view.value === 'chart');
+    E.view.addEventListener('change', () => { store.set('tk-ab-view', E.view.value); applyView(); });
+    applyView();
 
     st.ui = new root.BoardUI(E.svg, { theme: st.deps.getTheme(), onClick: onBoardClick });
     const saved = (k, d) => store.get('tk-ab-' + k) ?? d;
@@ -471,7 +480,7 @@
       E.filter.textContent = sel
         ? (shown.length ? `Các nước của ${PIECE_NAME[p[1]]} đang chọn — bấm ra ngoài để xem tất cả`
           : `Chưa có điểm cho ${PIECE_NAME[p[1]]} này — chọn "Tất cả nước" để máy chấm mọi nước`)
-        : `${shown.length} nước · bấm một nước để đi`;
+        : '';
       E.lines.replaceChildren(...shown.map((l) => {
         // Đổi chuỗi nước sang ký hiệu Việt (P2-5 M8.7 …)
         let bb = b, s = side;

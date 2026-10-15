@@ -3,6 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Điện thoại (dọc): dựng giao diện theo khung chuẩn iPhone 16 Pro Max (430 × 932) rồi để trình duyệt phóng/thu
+    // cho vừa màn hình thật. Máy hẹp → thu theo bề ngang; máy thấp (màn ngắn) → thu theo chiều cao để mọi thứ
+    // nhỏ lại cân đối, bố cục theo chiều dọc giữ y như máy chuẩn.
+    (function () {
+      var STD_W = 430, STD_H = 932, meta = document.querySelector('meta[name="viewport"]');
+      function fit() {
+        var phone = Math.min(screen.width, screen.height) <= 500;
+        var portrait = window.matchMedia('(orientation: portrait)').matches;
+        var want = 'width=device-width, initial-scale=1';
+        if (phone && portrait) {
+          var ratio = window.innerHeight / window.innerWidth; // tỉ lệ cao/rộng của vùng hiển thị thật
+          want = 'width=' + Math.max(STD_W, Math.ceil(STD_H / ratio));
+        }
+        if (meta.getAttribute('content') !== want) meta.setAttribute('content', want);
+      }
+      fit();
+      window.addEventListener('orientationchange', function () { setTimeout(fit, 120); });
+      window.matchMedia('(orientation: portrait)').addEventListener('change', function () { setTimeout(fit, 120); });
+    })();
+  </script>
   <title>Tượng Kỳ — Cờ tướng Việt</title>
   <meta name="description" content="Tượng Kỳ — cờ tướng online: xếp hạng Elo, chơi với bạn, đấu máy, cờ thế.">
   <link rel="icon" href="favicon.png" type="image/png">
@@ -276,7 +297,6 @@
               <li class="js-ranked-reward">Thắng +20 xu, chơi trọn ván +10 xu</li>
             </ul>
             <span class="p2-btn gold">Vào xếp hạng <svg class="ico"><use href="#i-chev"/></svg></span>
-            <p class="p2-foot"><span><i class="dot green"></i><b class="js-online">—</b> người đang online</span></p>
           </a>
 
           <!-- 2. Chơi nhanh -->
@@ -289,7 +309,6 @@
             <div class="p2-opts js-coin-groups"></div>
             <div class="p2-opt static"><svg class="p2-opt-ico" viewBox="0 0 64 64"><use href="#p2-coins"/></svg><span class="p2-opt-text"><b>Mức đặt</b><small class="js-stakes">50 – 500 xu</small></span></div>
             <span class="p2-btn red">Vào bàn chơi nhanh <svg class="ico"><use href="#i-chev"/></svg></span>
-            <p class="p2-foot dark"><svg class="ico sm"><use href="#i-users"/></svg><span class="js-coin-waiting">— bàn chơi nhanh đang chờ</span></p>
             <svg class="p2-coin-art" viewBox="0 0 260 90" aria-hidden="true"><use href="#p2-coin-scene"/></svg>
           </a>
 
@@ -301,7 +320,6 @@
             </div>
             <div class="p2-table-list" id="play-preview"></div>
             <span class="p2-btn dark">Xem tất cả bàn đấu <svg class="ico"><use href="#i-chev"/></svg></span>
-            <p class="p2-foot light"><svg class="ico sm"><use href="#i-users"/></svg><span class="js-playing">—</span></p>
           </a>
 
           <!-- 4. Đánh với bạn -->
@@ -483,17 +501,16 @@
           <div class="card">
             <div class="card-head"><div><h3>Tạo phòng</h3><p>Phòng riêng không tính Elo.</p></div><span class="tag soft">Phòng riêng</span></div>
             <label class="field name-field"><span>Tên của bạn (khách)</span><input class="guest-name" maxlength="20" placeholder="Nhập tên..." autocomplete="nickname"></label>
-            <div class="field"><span>Nhịp chơi</span>
-              <div class="chips" id="room-tc" role="radiogroup" aria-label="Nhịp chơi">
-                <button class="chip" data-tc="5|0">5+0</button><button class="chip" data-tc="10|0">10+0</button><button class="chip" data-tc="15|10">15+10</button><button class="chip" data-tc="30|0">30+0</button><button class="chip" data-tc="0|0">Không giới hạn</button>
-              </div>
+            <div class="room-tc-row">
+              <label class="field"><span>Nhịp chơi</span><select id="room-total" aria-label="Thời gian mỗi bên"></select></label>
+              <label class="field"><span>Thời gian mỗi nước</span>
+                <select id="room-move">
+                  <option value="30">30 giây</option><option value="60" selected>1 phút</option>
+                  <option value="120">2 phút</option><option value="180">3 phút</option><option value="300">5 phút</option>
+                </select>
+              </label>
+              <label class="field"><span>Thời gian cộng</span><select id="room-inc" aria-label="Giây cộng sau mỗi nước"></select></label>
             </div>
-            <label class="field"><span>Thời gian mỗi nước</span>
-              <select id="room-move">
-                <option value="30">30 giây</option><option value="60" selected>1 phút</option>
-                <option value="120">2 phút</option><option value="180">3 phút</option><option value="300">5 phút</option>
-              </select>
-            </label>
             <div class="field"><span>Màu quân của bạn</span>
               <div class="seg" role="radiogroup" aria-label="Chọn màu quân">
                 <label><input type="radio" name="color" value="r" checked><span><i class="side-dot r"></i>Đỏ <small>(đi trước)</small></span></label>
@@ -927,8 +944,16 @@
           <div class="board-col">
             <div class="end-board-head"><h3>Bàn cờ cuối ván</h3></div>
             <div class="player" id="p-top"></div>
+            <button class="g-chat-btn" id="g-chat-btn" data-feature="chat" aria-label="Trò chuyện" title="Trò chuyện"><svg class="ico"><use href="#i-chat"/></svg></button>
+            <!-- Điện thoại: thanh thế trận dọc bên trái bàn cờ (bấm để bật/tắt máy phân tích) -->
+            <button class="g-evalv hidden" id="g-evalv" title="Thế trận — bấm để bật/tắt máy phân tích" aria-label="Thanh thế trận"><i id="g-evalv-fill"></i></button>
             <div class="board-frame" id="board-frame">
               <svg id="board" role="img" aria-label="Bàn cờ tướng"></svg>
+            </div>
+            <!-- Điện thoại: nút mở menu thao tác (Xin hoà, Đầu hàng…) và nút Gợi ý cạnh bàn cờ -->
+            <div class="g-mbar" id="g-mbar">
+              <button class="g-mbtn" id="g-menu-btn" aria-label="Thao tác" aria-expanded="false"><svg class="ico"><use href="#i-menu"/></svg></button>
+              <button class="g-mbtn gold" id="g-hint-btn"><svg class="ico"><use href="#i-bulb"/></svg>Gợi ý</button>
             </div>
             <div class="player" id="p-bottom"></div>
             <div class="end-insight" id="end-insight">
@@ -1032,6 +1057,14 @@
       </section>
     </div>
   </div>
+
+  <!-- Thanh tab dưới cùng (chỉ hiện trên điện thoại) -->
+  <nav class="bottom-nav" id="bottom-nav" aria-label="Menu nhanh">
+    <button class="bnav-item" data-go="home"><svg class="ico"><use href="#i-home"/></svg><span>Trang chủ</span></button>
+    <button class="bnav-item" data-go="play"><svg class="ico"><use href="#i-play"/></svg><span>Chơi</span></button>
+    <button class="bnav-item" data-go="ai" data-feature="analysis"><svg class="ico"><use href="#i-ai"/></svg><span>Phân tích</span></button>
+    <button class="bnav-item" data-go="profile"><svg class="ico"><use href="#i-user"/></svg><span>Kỳ thủ</span></button>
+  </nav>
 
   <!-- Chỉnh sửa hồ sơ -->
   <div id="edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Chỉnh sửa hồ sơ">

@@ -5,3 +5,6 @@ data/
 engines/
 .env.*
 !.env.example
+
+# Ảnh xuất từ Figma (nặng, chỉ dùng để so giao diện)
+figma-export/

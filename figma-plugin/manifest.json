@@ -1,0 +1,13 @@
+{
+  "name": "Tượng Kỳ – Dựng màn hình",
+  "id": "tuongky-dung-man-hinh",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] },
+  "menu": [
+    { "name": "Dựng giao diện điện thoại (mobile)", "command": "mobile" },
+    { "name": "Dựng giao diện máy tính (desktop)", "command": "desktop" }
+  ]
+}

@@ -116,7 +116,7 @@
   let siteCfg = window.SITE_CONFIG || (window.SiteConfig ? window.SiteConfig.defaults() : { ROOM_TCS: ['10|0'] });
   const roomTcs = () => siteCfg.ROOM_TCS;
   const parseTc = (v) => { const [totalMin, incSec] = v.split('|').map(Number); return { totalMin, incSec }; };
-  let roomTc = roomTcs().includes(store.get('tk-room-tc')) ? store.get('tk-room-tc') : (roomTcs().includes('10|0') ? '10|0' : roomTcs()[0]);
+  let roomTc = /^\d+\|\d+$/.test(store.get('tk-room-tc') || '') ? store.get('tk-room-tc') : (roomTcs().includes('10|0') ? '10|0' : roomTcs()[0]);
 
   function tcText(st) {
     if (!st || (!st.totalMs && !st.moveMs)) return 'Không giới hạn thời gian';
@@ -127,23 +127,29 @@
   }
   const tcShort = (st) => (!st || (!st.totalMs && !st.moveMs) ? '∞' : st.totalMs ? `${st.totalMs / 60000}+${(st.incMs || 0) / 1000}` : `${st.moveMs / 1000}s/nước`);
 
+  // Phòng riêng: 3 ô chọn — phút mỗi bên (theo nhịp Admin cấu hình) · thời gian mỗi nước · giây cộng
+  const ROOM_INC_OPTS = [0, 2, 3, 5, 10, 15, 30];
   function renderRoomTcs() {
-    if (!roomTcs().includes(roomTc)) roomTc = roomTcs()[0];
-    const label = (t) => (window.SiteConfig ? window.SiteConfig.tcLabel(t) : t);
-    $('room-tc').replaceChildren(...roomTcs().map((t) => {
-      const b = document.createElement('button');
-      b.className = 'chip' + (t === roomTc ? ' active' : '');
-      b.dataset.tc = t;
-      b.textContent = label(t);
-      b.addEventListener('click', () => { roomTc = t; store.set('tk-room-tc', roomTc); renderRoomTcs(); });
-      return b;
-    }));
+    const tcs = roomTcs().map(parseTc);
+    const totals = [...new Set(tcs.map((t) => t.totalMin))];
+    let { totalMin, incSec } = parseTc(roomTc);
+    if (!totals.includes(totalMin)) ({ totalMin, incSec } = tcs[0]);
+    const incs = [...new Set([...ROOM_INC_OPTS, ...tcs.map((t) => t.incSec)])].sort((a, b) => a - b);
+    const opt = (v, text, sel) => { const o = document.createElement('option'); o.value = v; o.textContent = text; o.selected = sel; return o; };
+    $('room-total').replaceChildren(...totals.map((m) => opt(m, m ? `${m} phút` : 'Không giới hạn', m === totalMin)));
+    $('room-inc').replaceChildren(...incs.map((i) => opt(i, i ? `${i} giây` : 'Không cộng', i === incSec)));
+    $('room-inc').disabled = totalMin === 0;
+    if (totalMin === 0) { $('room-inc').value = '0'; incSec = 0; }
+    roomTc = `${totalMin}|${incSec}`;
   }
   function setupTcPickers() {
     const paint = renderRoomTcs;
     const saved = store.get('tk-room-move');
     if (saved !== null && [...$('room-move').options].some((o) => o.value === saved)) $('room-move').value = saved;
     $('room-move').addEventListener('change', () => store.set('tk-room-move', $('room-move').value));
+    const pick = () => { roomTc = `${$('room-total').value}|${$('room-inc').value}`; store.set('tk-room-tc', roomTc); renderRoomTcs(); };
+    $('room-total').addEventListener('change', pick);
+    $('room-inc').addEventListener('change', pick);
     paint();
   }
   setupTcPickers();
@@ -513,7 +519,7 @@
       const node = last || !href ? h('b', { text: label }) : h('a', { href, text: label });
       return i ? [h('span', { text: '/' }), node] : [node];
     }));
-    document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.go === navOf(currentScreen)));
+    document.querySelectorAll('.nav-item, .bnav-item').forEach((b) => b.classList.toggle('active', b.dataset.go === navOf(currentScreen)));
     document.title = `${items[items.length - 1][0]} · Tượng Kỳ`;
     // Nút Quay lại (góc trên bên trái): về mục cha gần nhất trên đường dẫn; trang chủ thì ẩn
     const parent = items.slice(0, -1).reverse().find(([, href]) => href);
@@ -659,10 +665,66 @@
     if (['play', 'ranked', 'coin', 'tables'].includes(name)) renderPlay();
     if (name === 'room') renderInviteList();
   }
+  // ---------- Điện thoại: bàn cờ gọn (menu thao tác, trò chuyện, chỉ số trong thẻ kết quả) ----------
+  (function setupMobileGame() {
+    const game = $('game');
+    const setActs = (open) => {
+      // Menu bật lên ngay phía trên nút ☰
+      game.classList.toggle('acts-open', open);
+      if (open) {
+        // Toạ độ tính theo khối chứa thật của menu (có thể là một khung có hiệu ứng chuyển động, không phải cửa sổ)
+        const r = $('g-menu-btn').getBoundingClientRect();
+        const pop = document.querySelector('#game .actions');
+        const cb = pop.offsetParent && pop.offsetParent !== document.body ? pop.offsetParent.getBoundingClientRect() : { left: 0, bottom: innerHeight };
+        game.style.setProperty('--acts-bottom', `${Math.round(cb.bottom - r.top + 8)}px`);
+        game.style.setProperty('--acts-left', `${Math.round(r.left - cb.left)}px`);
+      } $('g-menu-btn').setAttribute('aria-expanded', String(open)); };
+    $('g-menu-btn').addEventListener('click', (e) => { e.stopPropagation(); setActs(!game.classList.contains('acts-open')); game.classList.remove('chat-open'); });
+    $('g-hint-btn').addEventListener('click', () => $('btn-hint').click());
+    $('g-evalv').addEventListener('click', () => $('eval-on').click());
+    $('g-chat-btn').addEventListener('click', (e) => { e.stopPropagation(); game.classList.toggle('chat-open'); setActs(false); });
+    // Bấm một thao tác hoặc bấm ra ngoài thì đóng menu / khung trò chuyện
+    document.addEventListener('click', (e) => {
+      if (game.classList.contains('acts-open') && !e.target.closest('.actions')) setActs(false);
+      if (game.classList.contains('chat-open') && !e.target.closest('#chat-card')) game.classList.remove('chat-open');
+    });
+    // Biểu đồ chỉ số nằm trong thẻ kết quả trên điện thoại, ở thẻ riêng trên máy tính
+    const mq = window.matchMedia('(max-width: 760px)');
+    const radar = document.querySelector('#game .radar-wrap');
+    const home = document.querySelector('#game .radar-card');
+    const placeRadar = () => {
+      if (mq.matches) $('result-card').insertBefore(radar, document.querySelector('#result-card .result-actions'));
+      else home.appendChild(radar);
+    };
+    mq.addEventListener('change', placeRadar);
+    placeRadar();
+    // Bàn cờ đang đánh trên điện thoại: đo phần còn trống rồi đặt cỡ bàn để cả màn vừa đúng một màn hình
+    const grid = document.querySelector('#game .game-grid');
+    const frame = $('board-frame');
+    const gapX = () => parseFloat(getComputedStyle(grid).columnGap) || 8;
+    const fitBoard = () => {
+      if (!mq.matches || game.classList.contains('hidden') || game.classList.contains('ended')) { game.style.removeProperty('--m-board-w'); return; }
+      const cs = getComputedStyle(game);
+      const bottom = game.getBoundingClientRect().bottom - parseFloat(cs.paddingBottom);
+      const top = grid.getBoundingClientRect().top;
+      const vis = (el) => el && el.offsetParent !== null && getComputedStyle(el).position !== 'fixed';
+      const hOf = (...els) => Math.max(0, ...els.filter(vis).map((el) => el.getBoundingClientRect().height));
+      const rows = [hOf($('p-top'), $('g-chat-btn')), hOf($('g-mbar'), $('p-bottom'))].filter((x) => x > 0);
+      const barW = vis($('g-evalv')) ? $('g-evalv').getBoundingClientRect().width + gapX() : 0;
+      const gap = parseFloat(getComputedStyle(grid).rowGap) || 8;
+      const availH = bottom - top - rows.reduce((a, b) => a + b, 0) - gap * rows.length - 2;
+      const ar = frame.offsetHeight ? frame.offsetWidth / frame.offsetHeight : 1;
+      game.style.setProperty('--m-board-w', `${Math.max(160, Math.floor(Math.min(grid.clientWidth - barW, availH * ar)))}px`);
+    };
+    window.mobileFitBoard = fitBoard;
+    new ResizeObserver(() => requestAnimationFrame(fitBoard)).observe(game);
+    for (const id of ['p-top', 'p-bottom', 'eval-card']) new ResizeObserver(() => requestAnimationFrame(fitBoard)).observe($(id));
+    new MutationObserver(() => requestAnimationFrame(fitBoard)).observe(game, { attributes: true, attributeFilter: ['class'] });
+  })();
   window.addEventListener('hashchange', route);
   // Tên mục hiện khi rê chuột (menu thu gọn thành biểu tượng lúc đang ở bàn cờ)
   document.querySelectorAll('.nav-item').forEach((b) => { if (!b.title) b.title = b.textContent.trim(); });
-  document.querySelectorAll('.nav-item').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.nav-item, .bnav-item').forEach((b) => b.addEventListener('click', () => {
     $('sidebar').classList.remove('open');
     navigate(b.dataset.go);
   }));
@@ -1604,6 +1666,7 @@
     const bottomColor = myColor || 'r';
     fillPlayer($('p-top'), X.other(bottomColor));
     fillPlayer($('p-bottom'), bottomColor);
+    if (window.mobileFitBoard) requestAnimationFrame(window.mobileFitBoard);
   }
 
   // Ảnh đại diện (viền chạy theo thời gian nước đi), tên, dòng phụ, đồng hồ
@@ -2134,6 +2197,8 @@
   function renderEval(playing) {
     const show = !!(state.ai && ai.assist && playing && !isReviewing());
     $('eval-card').classList.toggle('hidden', !show);
+    $('g-evalv').classList.toggle('hidden', !show);
+    $('g-evalv').classList.toggle('off', !evalPanel.on);
     if (!show) return;
     $('eval-body').classList.toggle('hidden', !evalPanel.on);
     if (!evalPanel.on) { $('eval-sub').textContent = 'Bật để xem nước tốt nhất và điểm thế cờ'; return; }
@@ -2159,7 +2224,10 @@
     $('eval-num').className = persp(d.lines[0].score) > 80 ? 'up' : persp(d.lines[0].score) < -80 ? 'down' : '';
     $('eval-text').textContent = top.text;
     const s = persp(d.lines[0].score);
-    $('eval-fill').style.width = `${Math.round(50 + 50 * Math.tanh((Math.abs(s) > MATE_NEAR ? Math.sign(s) * 3000 : s) / 600))}%`;
+    const pct = Math.round(50 + 50 * Math.tanh((Math.abs(s) > MATE_NEAR ? Math.sign(s) * 3000 : s) / 600));
+    $('eval-fill').style.width = `${pct}%`;
+    $('g-evalv-fill').style.height = `${pct}%`; // phần dưới (phía bạn) = tỉ lệ ưu thế của bạn
+    $('g-evalv').title = `Thế trận: ${top.num} — ${top.text}`;
     $('eval-lines').replaceChildren(...d.lines.map((l, i) => {
       const names = pvNotation(state.board, l.pv.length ? l.pv : [l.move], 7);
       const lb = evalLabel(persp(l.score));
@@ -2841,6 +2909,32 @@
     return node;
   }
 
+  // Thẻ bàn ở trang Bàn đấu: bàn cờ nhỏ · trạng thái · hai kỳ thủ · loại bàn & nhịp · nút Xem / Vào bàn
+  const CARD_STATUS = { playing: ['Đang chơi', 'live'], ready: ['Sẵn sàng', 'ready'], waiting: ['Đang chờ', 'wait'] };
+  function tableCard(m) {
+    const board = h('div', { class: 'tk-thumb' });
+    const svgB = svgEl('svg', { role: 'img', 'aria-label': 'Bàn cờ' });
+    board.appendChild(svgB);
+    const status = m.status || 'playing';
+    const [label, cls] = CARD_STATUS[status] || CARD_STATUS.playing;
+    const r = m.players.r, b = m.players.b;
+    const names = r && b ? `${r.name}  vs  ${b.name}` : `${(r || b || { name: 'Ghế trống' }).name}  ·  chờ đối thủ`;
+    const kind = KIND_TAG[m.kind] || '';
+    const meta = [kind, tcShort(m.settings), m.kind === 'coin' && m.stake ? `${fmt(m.stake)} xu` : null, status === 'playing' ? `Nước ${m.moveCount}` : null].filter(Boolean).join(' · ');
+    const seatFree = !r || !b;
+    const act = seatFree ? h('button', { class: 'tk-tbtn join', onclick: () => joinTable(m) }, 'Vào bàn', icon('chev', 'sm'))
+      : m.canWatch === false ? h('span', { class: 'tk-tbtn off', title: 'Bàn này không cho người xem' }, 'Không cho xem')
+        : h('button', { class: 'tk-tbtn', onclick: () => watchRoom(m.roomId) }, 'Xem', icon('chev', 'sm'));
+    const node = h('div', { class: 'tk-table st-' + cls }, board,
+      h('div', { class: 'tk-tinfo' },
+        h('span', { class: 'tk-tstatus ' + cls }, h('i'), label, m.spectators ? h('em', {}, icon('eye', 'sm'), String(m.spectators)) : null),
+        h('b', { class: 'tk-tnames', text: names, title: names }),
+        h('small', { text: meta }),
+        act));
+    miniBoard(svgB, m.board, { lastMove: m.lastMove });
+    return node;
+  }
+
   // ---------- Q01 Chơi ----------
   // Thẻ bậc rank ở trang Xếp hạng: huy hiệu, sao, Elo, tiến độ lên bậc sau
   const RANK_CHAR = { 'Đồng': '兵', 'Bạc': '炮', 'Vàng': '馬', 'Bạch kim': '車', 'Kim cương': '相', 'Cao thủ': '帥' };
@@ -2913,8 +3007,13 @@
       return e;
     };
     const list = live.tables || live.matches;
-    $('play-preview').replaceChildren(...(list.length ? list.slice(0, 2).map((m, i) => liveTable(m, i, true)) : [empty()]));
-    $('play-live').replaceChildren(...(list.length ? list.map((m, i) => liveTable(m, i, false)) : [empty()]));
+    const previewEmpty = () => {
+      const e = h('div', { class: 'p2-empty' }, svgEl('svg', { viewBox: '0 0 64 64', class: 'p2-empty-ico' }), h('span', { text: 'Xem các ván đấu đang diễn ra' }));
+      e.querySelector('.p2-empty-ico').innerHTML = '<use href="#p2-board"/>';
+      return e;
+    };
+    $('play-preview').replaceChildren(...(list.length ? list.slice(0, 2).map((m, i) => liveTable(m, i, true)) : [previewEmpty()]));
+    $('play-live').replaceChildren(...(list.length ? list.map((m) => tableCard(m)) : [empty()]));
   }
 
   // Vẽ lại các bàn cờ nhỏ đang hiện (khi đổi giao diện)

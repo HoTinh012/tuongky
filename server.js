@@ -980,9 +980,18 @@ io.on('connection', (socket) => {
     joinRoom(socket, room, name, token);
     return room;
   }
+  // Phòng riêng: chọn riêng phút mỗi bên (theo danh sách nhịp của Admin) và giây cộng (theo danh sách cố định + giây cộng của các nhịp)
+  const ROOM_INC_OPTS = [0, 2, 3, 5, 10, 15, 30];
+  function roomTcOk(opts) {
+    const total = Number(opts.totalMin) || 0, inc = Number(opts.incSec) || 0;
+    const tcs = CFG.ROOM_TCS.map((t) => t.split('|').map(Number));
+    if (!tcs.some(([m]) => m === total)) return false;
+    if (total === 0) return inc === 0;
+    return ROOM_INC_OPTS.includes(inc) || tcs.some(([, i]) => i === inc);
+  }
   socket.on('create', (opts) => {
     if (!F('room')) return socket.emit('error-msg', features.offMessage('room'));
-    if (opts && !CFG.ROOM_TCS.includes(`${Number(opts.totalMin) || 0}|${Number(opts.incSec) || 0}`)) return socket.emit('error-msg', 'Nhịp chơi không hợp lệ.');
+    if (opts && !roomTcOk(opts)) return socket.emit('error-msg', 'Nhịp chơi không hợp lệ.');
     createPrivateRoom(opts);
   });
 
@@ -993,6 +1002,7 @@ io.on('connection', (socket) => {
     const acc = opts.session ? users.resolveSession(opts.session) : null;
     if (!acc) return socket.emit('error-msg', 'Hãy đăng nhập để mời kỳ hữu.');
     if (!users.areFriends(acc.id, to)) return socket.emit('error-msg', 'Chỉ mời được kỳ hữu trong danh sách bạn bè.');
+    if (!roomTcOk(opts)) return socket.emit('error-msg', 'Nhịp chơi không hợp lệ.');
     const room = createPrivateRoom(opts);
     if (!room) return;
     users.notify(to, 'invite', { from: users.miniAccount(acc), roomId: room.id, tc: room.settings });

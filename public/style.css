@@ -2848,3 +2848,358 @@ body.is-guest .nav-item[data-go]:not([data-go="home"]):not([data-go="ai"])::afte
           mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272.4%27 stroke-linecap=%27round%27%3E%3Crect x=%275%27 y=%2711%27 width=%2714%27 height=%279%27 rx=%272%27/%3E%3Cpath d=%27M8 11V8a4 4 0 0 1 8 0v3%27/%3E%3C/svg%3E") center / contain no-repeat;
 }
 body.is-guest #ai-tabs .tab[data-ai-tab="puzzles"], body.is-guest #ai-tabs .tab[data-ai-tab="history"] { display: inline-flex; align-items: center; gap: 6px; }
+
+/* =====================================================================
+   Theo Figma (14/10): trang Bàn đấu — thẻ bàn tối, 3 thẻ mỗi hàng trong khung viền đứt
+   ===================================================================== */
+.p2-tables-page { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 40px; align-content: start; min-height: calc(100dvh - 190px); }
+.p2-tables-page::before { content: ""; position: absolute; inset: 20px; border: 1px dashed #4a3a30; border-radius: 10px; pointer-events: none; }
+.tk-table {
+  display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; position: relative;
+  background: linear-gradient(180deg, #2a1f19, #1a130f); border: 1px solid #4a3a30; min-width: 0;
+}
+.tk-thumb { width: 84px; flex: none; aspect-ratio: 1; border-radius: 4px; overflow: hidden; background: #e9c98f; }
+.tk-thumb svg { width: 100%; height: 100%; display: block; }
+.tk-tinfo { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.tk-tstatus { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #f1e7da; }
+.tk-tstatus i { width: 7px; height: 7px; border-radius: 50%; background: #3fbf6e; }
+.tk-tstatus.wait i { background: #e9b44c; }
+.tk-tstatus.ready i { background: #5b8def; }
+.tk-tstatus em { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-weight: 500; color: #b8a898; margin-left: 6px; }
+.tk-tstatus em .ico { width: 12px; height: 12px; }
+.tk-tnames { font-size: 14.5px; color: #fff; white-space: pre; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tk-tinfo small { font-size: 12.5px; color: #cbbfb2; }
+.tk-tbtn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font: 700 13px var(--serif);
+  background: linear-gradient(180deg, #3a2c24, #1d1612); color: #f6e1b0; border: 1px solid #8a6a3a;
+}
+.tk-tbtn:hover { filter: brightness(1.15); }
+.tk-tbtn.join { background: linear-gradient(180deg, #d93a2b, #a3150f); color: #fff; border-color: #8a1712; }
+.tk-tbtn.off { opacity: 0.55; cursor: default; font: 600 12px inherit; }
+.tk-tbtn .ico { width: 13px; height: 13px; }
+
+/* Theo Figma (14/10): Chơi với bạn — nhịp chơi là 3 ô chọn cùng hàng */
+.room-tc-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.room-tc-row .field { margin: 0; }
+.room-tc-row select:disabled { opacity: 0.55; }
+@media (max-width: 560px) { .room-tc-row { grid-template-columns: 1fr; } }
+
+/* Theo Figma (14/10): Đấu với AI — lưới cấp độ 3 × 3, cấp 9 nằm trong lưới, tên đỏ */
+@media (min-width: 900px) {
+  .level-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .level.boss { grid-column: auto; }
+}
+.level.boss b { color: var(--red); }
+
+/* Theo Figma (14/10): menu Hồ sơ xếp theo cột — trái 5 mục xem, phải Mục tiêu + 4 thao tác, không vạch ngăn */
+.pf-menu { grid-template-rows: repeat(5, auto); grid-auto-flow: column; }
+.pf-menu-sep { display: none; }
+
+/* Sửa lỗi (khổ < 1100px): thẻ kết quả không có tấm sơn mài phía sau → nền sáng, chữ trắng khó đọc.
+   Thêm nền sơn mài ngay trên thẻ */
+@media (max-width: 1099px) {
+  #game.ended #result-card {
+    background: radial-gradient(80% 45% at 50% 0%, color-mix(in srgb, var(--rs-acc) 14%, transparent), transparent 70%),
+                linear-gradient(180deg, var(--rs-bg1), var(--rs-bg2)) !important;
+  }
+}
+
+/* =====================================================================
+   GIAO DIỆN ĐIỆN THOẠI theo Figma (14/10) — chỉ áp dụng khi màn ≤ 760px
+   ===================================================================== */
+.bottom-nav, .g-chat-btn, .g-mbar { display: none; }
+@media (max-width: 760px) {
+  /* ---- Thanh tab dưới cùng ---- */
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    background: #0e0b09; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.25);
+  }
+  .bottom-nav .bnav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0; cursor: pointer;
+    color: #a89887; font: 500 12px/1.2 inherit; padding: 2px 0;
+  }
+  .bottom-nav .bnav-item .ico { width: 23px; height: 23px; stroke-width: 1.6; }
+  .bottom-nav .bnav-item.active { color: #fff; }
+  .bottom-nav .bnav-item.active .ico { color: #ff6b57; }
+  body { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
+  body[data-screen="game"] .bottom-nav { display: none; }
+  body[data-screen="game"] { padding-bottom: 0; }
+
+  /* ---- Trang chủ: bỏ 4 ô lối tắt và gợi ý Cửa hàng ---- */
+  #lobby .quick-grid, #lobby .grid-3:has(#home-shop) { display: none; }
+
+  /* ---- Bảng xếp hạng: tab một hàng cuộn ngang, top 3 cùng một hàng ---- */
+  #rank-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  #rank-tabs::-webkit-scrollbar { display: none; }
+  #rank-tabs button { flex: none; white-space: nowrap; }
+  #page-ranking .podium { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  #page-ranking .podium-card { align-items: center; text-align: center; padding: 12px 6px; gap: 6px; }
+  #page-ranking .podium-card .pc-top { justify-content: center; }
+  #page-ranking .podium-card .pc-top svg { display: none; }
+  #page-ranking .podium-card .who { flex-direction: column; gap: 6px; }
+  #page-ranking .podium-card .who small { display: none; }
+  #page-ranking .podium-card .who b { font-size: 13px; max-width: 100%; }
+  #page-ranking .podium-card .val { font-size: 20px; }
+  #page-ranking .podium-card .val small { display: none; }
+  #page-ranking #rank-me { display: none; }
+
+  /* ---- AI · Phân tích: bàn cờ · điều hướng · thao tác · [engine | biên bản] ---- */
+  .ab-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) !important;
+    grid-template-areas: "main main" "eng moves" "chart moves" !important; gap: 10px !important;
+  }
+  .ab-left, .ab-right { display: contents !important; }
+  .ab-main { grid-area: main; }
+  .ab-engcard { grid-area: eng; }
+  .ab-movescard { grid-area: moves; align-self: stretch; }
+  .ab-evalcard { grid-area: chart; display: none !important; }
+  .ab-chart-mode .ab-evalcard { display: flex !important; border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; margin-top: -10px; border-top: 0 !important; }
+  .ab-chart-mode .ab-engcard { border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+  .ab-chart-mode .ab-engcard > :not(.ab-controls) { display: none !important; }
+  .ab-chart-mode .ab-chart-note { display: none; }
+  .ab-card { padding: 10px !important; gap: 8px !important; border-radius: 14px; }
+  .ab-engcard .card-head, .ab-engcard .ab-stats, .ab-engcard .ab-filter, .ab-engcard .ab-controls .check,
+  .ab-engcard .ab-controls select:not(.ab-view):not(:first-child) { display: none !important; }
+  .ab-controls { flex-wrap: nowrap; gap: 4px; }
+  .ab-controls .sel-sm { min-width: 0; flex: 1 1 0; padding: 4px 20px 4px 8px !important; font-size: 11.5px !important; border-radius: 999px; }
+  .ab-score { font-size: 22px; }
+  .ab-lines { max-height: none !important; min-height: 0 !important; gap: 2px; }
+  .ab-line { padding: 3px 4px 3px 8px !important; border: 0 !important; border-left: 3px solid #2e9e5b !important; border-radius: 4px !important; background: none !important; }
+  .ab-line:not(.q-best):not(.q-good) { border-left-color: transparent !important; }
+  .ab-line .ab-strength, .ab-line .ab-sample, .ab-line .ab-ldepth { display: none !important; }
+  .ab-line .ab-lhead { gap: 6px; font-size: 13px; }
+  .ab-line .ab-qtag { font-size: 11px; }
+  .ab-line:not(.q-best):not(.q-good) .ab-qtag { display: none; }
+  .ab-movescard .card-head small { display: none; }
+  .ab-movescard .ab-moves { max-height: 260px !important; min-height: 0 !important; }
+  .ab-toolbar { flex-direction: column; flex-wrap: nowrap !important; gap: 8px !important; width: 100%; }
+  .ab-toolbar .ab-sep { display: none; }
+  .ab-navgrp, .ab-actgrp { display: flex; gap: 6px; justify-content: center; width: 100%; }
+  .ab-navgrp .btn { height: 26px !important; width: 30px; padding: 0 !important; font-size: 10px !important; }
+  .ab-actgrp .btn { flex: 1 1 0; min-width: 0; padding: 0 4px !important; font-size: 12px !important; }
+  .ab-actgrp .ab-new { order: 1; }
+  .ab-actgrp .ab-setup { order: 2; }
+  .ab-actgrp .ab-flip { order: 3; }
+  .ab-actgrp .ab-save { order: 4; }
+  .ab-actgrp .ab-share { order: 5; }
+
+  /* ---- Bàn cờ trong trận: thẻ kỳ thủ gọn, menu thao tác bật lên, trò chuyện dạng khung nổi ---- */
+  body #game:not(.ended) .game-head .lead, body #game:not(.ended) .head-acts { display: none; }
+  body #game:not(.ended) .game-grid { display: flex !important; flex-wrap: wrap; align-items: center; gap: 10px; height: auto !important; grid-template-areas: none; }
+  body #game:not(.ended) .board-col, body #game:not(.ended) .game-side { display: contents !important; }
+  body #game:not(.ended) .end-board-head, body #game:not(.ended) .end-insight, body #game:not(.ended) .moves-card { display: none !important; }
+  body #game:not(.ended) #p-top { order: 1; }
+  body #game:not(.ended) .g-chat-btn { order: 2; }
+  body #game:not(.ended) .board-frame { order: 3; width: 100% !important; max-width: none !important; margin: 0 !important; }
+  body #game:not(.ended) .eval-card { order: 4; width: 100%; }
+  body #game:not(.ended) .g-mbar { order: 5; }
+  body #game:not(.ended) #p-bottom { order: 6; margin-left: auto; }
+  body #game:not(.ended) .actions-card { order: 7; width: 100%; }
+  body #game:not(.ended) .chat-card { order: 8; }
+
+  body #game:not(.ended) .player {
+    display: grid !important; grid-template-columns: 40px auto; grid-template-areas: "av info" "clock clock"; gap: 6px 8px; align-items: center;
+    width: auto !important; max-width: 62%; min-height: 0 !important; padding: 7px 9px !important; border-radius: 6px !important;
+    background: linear-gradient(180deg, #7a2418, #4a120c) !important; border: 1px solid #a9562f !important; color: #fff3dc;
+    box-shadow: 0 6px 14px rgba(60, 20, 10, 0.28) !important;
+  }
+  body #game:not(.ended) #p-bottom { grid-template-columns: auto 40px; grid-template-areas: "info av" "clock clock"; text-align: right; }
+  body #game:not(.ended) .player .pc-avatar { grid-area: av; width: 40px !important; height: 40px !important; max-width: none; max-height: none; margin: 0; }
+  body #game:not(.ended) .player .pc-initial { font-size: 14px !important; }
+  body #game:not(.ended) .player .pc-info { grid-area: info; min-width: 0; }
+  body #game:not(.ended) .player .pc-name { font: 700 12.5px/1.2 var(--serif); color: #fff3dc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body #game:not(.ended) .player .pc-sub { font-size: 10.5px; color: #e3cbb5; display: flex; flex-direction: column; }
+  body #game:not(.ended) .player .pc-sub .pc-elo { color: #f9dc8a; font-weight: 700; }
+  body #game:not(.ended) .player .pc-sub .pc-handle { display: none; }
+  body #game:not(.ended) .player .pc-caps { display: none !important; }
+  body #game:not(.ended) .player .clock { grid-area: clock; justify-self: start; }
+  body #game:not(.ended) #p-bottom .clock { justify-self: end; }
+  body #game:not(.ended) .player .clock.pair { gap: 6px; padding: 0; background: none; box-shadow: none; opacity: 1; }
+  body #game:not(.ended) .player .clock.pair > span { padding: 2px 6px; border-radius: 4px; }
+  body #game:not(.ended) .player .clock.pair b, body #game:not(.ended) .player .clock.pair em { font-size: 11px; }
+  body #game:not(.ended) .player .clock.pair .ck-total { color: #1f8a4c; background: #e6f6ec; }
+  body #game:not(.ended) .player .clock.pair .ck-move { color: #d9730d; background: #fff1e2; }
+  body #game:not(.ended) .player .clock.pair svg { width: 11px; height: 11px; }
+
+  .g-chat-btn {
+    display: grid; place-items: center; margin-left: auto; width: 44px; height: 38px; border-radius: 8px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line); color: var(--text); box-shadow: var(--shadow);
+  }
+  body #game:has(#chat-card.hidden) .g-chat-btn { display: none; }
+  body #game.ended .g-chat-btn, body #game.ended .g-mbar { display: none !important; }
+
+  .g-mbar { display: flex; align-items: center; gap: 10px; }
+  .g-mbtn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; min-width: 52px; padding: 0 12px; cursor: pointer;
+    border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text); font: 700 13px inherit; box-shadow: var(--shadow);
+  }
+  .g-mbtn.gold { background: linear-gradient(180deg, #f6d98c, #e2b75a); border-color: #c99a3a; color: #4a2c0c; font-family: var(--serif); }
+  body #game:has(#btn-hint.hidden) #g-hint-btn { display: none; }
+  body #game.acts-open #g-menu-btn { background: var(--ink); color: #fff; }
+
+  /* Thẻ máy phân tích: chỉ điểm số + thanh thế trận */
+  body #game:not(.ended) .eval-card { padding: 10px 14px !important; gap: 6px; }
+  body #game:not(.ended) .eval-card .card-head, body #game:not(.ended) .eval-card .eval-lines, body #game:not(.ended) .eval-card .eval-meta { display: none !important; }
+
+  /* Thẻ thao tác: chỉ hiện lời mời (xin hoà, đi lại, sẵn sàng); các nút nằm trong menu bật lên */
+  body #game:not(.ended) .actions-card { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; gap: 8px; }
+  body #game:not(.ended) .actions-card .status-box { display: none; }
+  body #game:not(.ended) .actions-card .actions { display: none; }
+  body #game.acts-open:not(.ended) .actions-card .actions {
+    display: flex; flex-direction: column; gap: 8px; position: fixed; left: var(--acts-left, 16px); bottom: var(--acts-bottom, 74px); z-index: 70; width: 170px;
+    padding: 10px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  }
+  body #game.acts-open .actions .btn { width: 100%; justify-content: center; }
+  body #game.acts-open .actions #btn-hint { display: none; }
+  body #game.acts-open .actions #btn-draw { background: linear-gradient(180deg, #f6d98c, #e2b75a); border-color: #c99a3a; color: #4a2c0c; }
+  body #game.acts-open .actions #btn-resign { background: linear-gradient(180deg, #d93a2b, #a3150f); border-color: #8a1712; color: #fff; }
+
+  /* Trò chuyện: khung nổi phía dưới khi bấm nút chat */
+  body #game:not(.ended) .chat-card { display: none !important; }
+  body #game.chat-open:not(.ended) .chat-card:not(.hidden) {
+    display: flex !important; flex-direction: column; position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 70; max-height: 60dvh;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ---- Kết quả: chỉ thẻ kết quả, biểu đồ chỉ số nằm trong thẻ thay cho bàn cờ ---- */
+  body #game.ended .board-col, body #game.ended .game-side { display: none !important; }
+  body #game.ended .result-view > .card:not(#result-card) { display: none !important; }
+  body #game.ended #result-card .res-board-wrap { display: none !important; }
+  body #game.ended #result-card .radar-wrap { width: 100%; background: #fff; border-radius: 8px; padding: 6px; color: var(--text); }
+  body #game.ended #result-card .radar-wrap .radar-legend { display: none; }
+}
+
+/* Ô chọn "Nước đi / Thế trận" chỉ dùng trên điện thoại */
+.ab-controls .ab-view { display: none; }
+@media (max-width: 760px) { .ab-controls .ab-view { display: block; } }
+@media (max-width: 760px) {
+  .ab-line .ab-lhead { flex-wrap: nowrap; white-space: nowrap; }
+  .ab-line .ab-lscore { margin-left: auto; font-size: 12.5px; }
+}
+@media (max-width: 760px) {
+  body #game:not(.ended) .player .pc-sub > span::before { content: none !important; }
+}
+@media (max-width: 760px) {
+  body #game .game-head .lead { display: none; }
+}
+
+/* =====================================================================
+   Điện thoại (bổ sung): thanh tab luôn hiện; Phân tích & bàn cờ đang đánh vừa đúng một màn hình (không cuộn)
+   ===================================================================== */
+@media (max-width: 760px) {
+  :root { --tabbar: calc(66px + env(safe-area-inset-bottom)); }
+  body[data-screen="game"] .bottom-nav { display: grid; }
+  body[data-screen="game"] { padding-bottom: var(--tabbar); }
+
+  /* Màn cố định: trang cao đúng phần còn lại giữa thanh trên và thanh tab */
+  body:has(#page-ai:not(.hidden) #ai-panel-analysis:not(.hidden)),
+  body:has(#game:not(.hidden):not(.ended)) { padding-bottom: 0; overflow: hidden; }
+  body:has(#page-ai:not(.hidden) #ai-panel-analysis:not(.hidden)) .shell,
+  body:has(#game:not(.hidden):not(.ended)) .shell { min-height: 0; height: 100dvh; overflow: hidden; }
+
+  /* ---- Phân tích ---- */
+  #page-ai:has(#ai-panel-analysis:not(.hidden)) {
+    height: calc(100dvh - var(--topbar, 64px)); overflow: hidden; padding-bottom: calc(var(--tabbar) + 10px) !important;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #page-ai:has(#ai-panel-analysis:not(.hidden)) .page-head { margin: 0; }
+  #page-ai:has(#ai-panel-analysis:not(.hidden)) #ai-tabs { margin: 0; flex: none; }
+  #ai-panel-analysis:not(.hidden) { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  #ai-panel-analysis .ab-layout { flex: 1 1 auto; min-height: 0; height: 100%; grid-template-rows: auto minmax(0, 1fr) 0 !important; row-gap: 8px !important; }
+  #ai-panel-analysis .ab-layout.ab-chart-mode { grid-template-rows: auto auto minmax(0, 1fr) !important; }
+  #ai-panel-analysis .ab-main { gap: 8px; }
+  /* bàn cờ thu theo chiều cao còn lại (chừa ~150px cho hai khung bên dưới) */
+  #ai-panel-analysis .ab-frame { width: min(100%, calc((100dvh - var(--topbar, 64px) - var(--tabbar) - 330px) * var(--pz-ar, 1))) !important; }
+  #ai-panel-analysis .ab-engcard, #ai-panel-analysis .ab-movescard, #ai-panel-analysis .ab-evalcard { min-height: 0; overflow-y: auto; }
+  #ai-panel-analysis .ab-movescard .ab-moves { max-height: none !important; }
+  #ai-panel-analysis .ab-evalcard .ab-chart { height: auto; flex: 1 1 auto; min-height: 60px; }
+
+  /* ---- Bàn cờ đang đánh ---- */
+  body #game:not(.hidden):not(.ended) {
+    height: calc(100dvh - var(--topbar, 64px)); overflow: hidden; padding-bottom: calc(var(--tabbar) + 8px) !important;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  body #game:not(.ended) .game-head { margin: 0; flex: none; }
+  body #game:not(.ended) .game-head h1 { font-size: 22px; line-height: 1.2; }
+  body #game:not(.ended) .game-grid { flex: 1 1 auto; min-height: 0; align-content: space-between; row-gap: 8px !important; }
+  /* bàn cờ thu theo chiều cao: phần cố định ≈ đầu trang 70 + thẻ đối thủ 72 + thanh thế trận 50 + hàng dưới 78 + khoảng cách */
+  /* cỡ bàn do JS đo phần còn trống (--m-board-w), chưa đo thì dùng ước lượng */
+  body #game:not(.ended) .board-frame {
+    width: var(--m-board-w, min(100%, calc((100dvh - var(--topbar, 64px) - var(--tabbar) - 320px) * var(--board-ar, 1)))) !important;
+    margin: 0 auto !important; flex: none;
+  }
+  body #game:not(.ended) .eval-card { padding: 8px 12px !important; }
+  body #game:not(.ended) .eval-card .eval-score b { font-size: 20px; }
+  body #game.chat-open:not(.ended) .chat-card:not(.hidden) { bottom: calc(var(--tabbar) + 8px); }
+  /* lời mời (xin hoà, đi lại, sẵn sàng) nổi phía trên thanh tab để không đẩy bố cục */
+  body #game:not(.ended) .actions-card { position: fixed; left: 12px; right: 12px; bottom: calc(var(--tabbar) + 8px); z-index: 65; width: auto !important; pointer-events: none; }
+  body #game:not(.ended) .actions-card > * { pointer-events: auto; }
+  body #game:not(.ended) .actions-card .banner, body #game:not(.ended) .actions-card .ready-box { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); background: var(--surface); }
+}
+
+/* Điện thoại: lúc đánh cờ và lúc phân tích ẩn thanh tab để bàn cờ rộng hơn (phần còn lại giữ thanh tab) */
+@media (max-width: 760px) {
+  body[data-screen="game"] .bottom-nav,
+  body:has(#page-ai:not(.hidden) #ai-panel-analysis:not(.hidden)) .bottom-nav { display: none !important; }
+  body[data-screen="game"],
+  body:has(#page-ai:not(.hidden) #ai-panel-analysis:not(.hidden)) { --tabbar: env(safe-area-inset-bottom); padding-bottom: 0 !important; }
+}
+
+/* Điện thoại: thanh thế trận dọc bên trái bàn cờ thay cho khung "Máy phân tích"; đầu trang AI gọn hơn */
+.g-evalv { display: none; }
+@media (max-width: 760px) {
+  body #game:not(.ended) .eval-card { display: none !important; }
+  body #game:not(.ended) .g-evalv:not(.hidden) {
+    display: block; order: 3; align-self: stretch; position: relative; width: 12px; flex: none; padding: 0; cursor: pointer;
+    border-radius: 6px; overflow: hidden; background: #2a2420; border: 1px solid rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 10px rgba(60, 35, 15, 0.2);
+  }
+  body #game:not(.ended) .g-evalv i {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 50%; background: linear-gradient(180deg, #e04a3a, #b3160f);
+    transition: height 0.4s ease;
+  }
+  /* giữa thanh: vạch cân bằng */
+  body #game:not(.ended) .g-evalv::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(255, 255, 255, 0.55); }
+  body #game:not(.ended) .g-evalv.off { opacity: 0.35; }
+  body #game:not(.ended) .g-evalv.off i { height: 50% !important; }
+  body #game:not(.ended):has(.g-evalv:not(.hidden)) .board-frame { margin: 0 !important; }
+  body #game:not(.ended):has(.g-evalv:not(.hidden)) .game-grid { column-gap: 8px; }
+
+  /* Đầu trang AI (Quay lại · tab) nhỏ lại để dành chỗ cho bàn cờ */
+  #page-ai .page-head { margin: 0 0 2px !important; }
+  #page-ai .page-head .eyebrow { font-size: 11.5px; margin: 0; }
+  #page-ai #ai-tabs { gap: 18px; margin-bottom: 6px !important; }
+  #page-ai #ai-tabs .tab { font-size: 13.5px; padding: 6px 1px; }
+  #page-ai:has(#ai-panel-analysis:not(.hidden)) { padding-top: 10px !important; gap: 4px !important; }
+}
+@media (max-width: 760px) {
+  body #game:not(.ended):has(.g-evalv:not(.hidden)) .board-frame { width: var(--m-board-w, min(calc(100% - 20px), calc((100dvh - var(--topbar, 64px) - var(--tabbar) - 260px) * var(--board-ar, 1)))) !important; }
+}
+@media (max-width: 760px) {
+  /* ngắt dòng: thanh thế trận + bàn cờ luôn nằm chung một hàng riêng */
+  body #game:not(.ended) .game-grid::before { content: ""; order: 3; flex-basis: 100%; height: 0; }
+  body #game:not(.ended) .board-frame, body #game:not(.ended) .g-evalv:not(.hidden) { order: 4 !important; }
+  body #game:not(.ended) .game-grid { row-gap: 6px !important; }
+}
+
+/* Điện thoại · bàn cờ đang đánh: lưới cố định — thẻ đối thủ ngay trên bàn cờ, hàng nút + thẻ của bạn sát đáy */
+@media (max-width: 760px) {
+  body #game:not(.ended) .game-grid {
+    display: grid !important; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: 8px !important; row-gap: 8px !important;
+    grid-template-areas: "top top chat" "bar board board" "mbar mbar me"; grid-template-rows: auto auto minmax(0, 1fr);
+    align-content: stretch; align-items: start;
+  }
+  body #game:not(.ended) .game-grid::before { display: none; }
+  body #game:not(.ended) #p-top { grid-area: top; justify-self: start; }
+  body #game:not(.ended) .g-chat-btn { grid-area: chat; align-self: center; }
+  body #game:not(.ended) .g-evalv:not(.hidden) { grid-area: bar; align-self: stretch; width: 12px; }
+  body #game:not(.ended) .board-frame { grid-area: board; justify-self: center; }
+  body #game:not(.ended):not(:has(.g-evalv:not(.hidden))) .board-frame { grid-column: 1 / -1; }
+  body #game:not(.ended) .g-mbar { grid-area: mbar; align-self: end; }
+  body #game:not(.ended) #p-bottom { grid-area: me; align-self: end; justify-self: end; margin: 0 !important; }
+  body #game:not(.ended) .eval-card, body #game:not(.ended) .actions-card, body #game:not(.ended) .chat-card { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  body #game:not(.ended) #p-top, body #game:not(.ended) #p-bottom { width: max-content !important; max-width: 100% !important; }
+  body #game:not(.ended) #p-bottom { max-width: 64vw !important; }
+}
