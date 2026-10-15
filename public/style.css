@@ -3203,3 +3203,24 @@ body.is-guest #ai-tabs .tab[data-ai-tab="puzzles"], body.is-guest #ai-tabs .tab[
   body #game:not(.ended) #p-top, body #game:not(.ended) #p-bottom { width: max-content !important; max-width: 100% !important; }
   body #game:not(.ended) #p-bottom { max-width: 64vw !important; }
 }
+
+/* Điện thoại: banner trang chủ gọn lại (ít khoảng trên/dưới, chữ nhỏ hơn) */
+@media (max-width: 760px) {
+  #lobby > .hero { min-height: 0 !important; border-radius: 14px; }
+  #lobby .hero-body { padding: 16px 18px !important; gap: 8px !important; }
+  #lobby .hero h2 { font-size: 21px !important; line-height: 1.25; margin: 0; }
+  #lobby .hero-meta { font-size: 12.5px; gap: 4px 14px; margin: 0; }
+  #lobby .hero-actions { gap: 8px; margin-top: 2px; }
+  #lobby .hero-actions .btn { padding-top: 7px !important; padding-bottom: 7px !important; font-size: 14px; }
+  #lobby .hero .tag { font-size: 11px; padding: 3px 9px; }
+}
+/* Điện thoại: hiện logo 象 ở góc phải banner */
+@media (max-width: 760px) {
+  #lobby > .hero { grid-template-columns: minmax(0, 1fr) 118px !important; align-items: center; }
+  #lobby .hero-art { display: grid !important; padding: 8px 10px 8px 0; }
+  #lobby .hero-art img { width: 108px !important; }
+}
+@media (max-width: 760px) {
+  #lobby > .hero { grid-template-columns: minmax(0, 1fr) 86px !important; }
+  #lobby .hero-art img { width: 72px !important; }
+}

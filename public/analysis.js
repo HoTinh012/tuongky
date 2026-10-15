@@ -224,6 +224,8 @@
     st.eng.on = saved('on', '1') === '1';
     st.eng.kind = saved('kind', 'pikafish');
     st.eng.multipv = saved('multipv', '3');
+    // Điện thoại: khung "Nước đi" gọn (mỗi nước một dòng) nên hiện nhiều phương án hơn — ít nhất 8 nước
+    if (window.matchMedia('(max-width: 760px)').matches && st.eng.multipv !== 'all' && Number(st.eng.multipv) < 8) st.eng.multipv = '10';
     st.eng.arrow = saved('arrow', '1') === '1';
     E.engOn.checked = st.eng.on; E.engKind.value = st.eng.kind; E.multipv.value = String(st.eng.multipv); E.arrow.checked = st.eng.arrow;
     E.engOn.addEventListener('change', () => { st.eng.on = E.engOn.checked; store.set('tk-ab-on', st.eng.on ? '1' : '0'); restartEngine(); });
