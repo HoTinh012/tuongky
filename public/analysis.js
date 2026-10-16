@@ -508,7 +508,7 @@
           l.depth < 200 ? h('small', { class: 'ab-ldepth', text: `độ sâu ${l.depth}` }) : null);
       }));
     }
-    E.engMsg.textContent = eng.error;
+    E.engMsg.textContent = eng.error || (eng.kind === 'pikafish' && eng.fallback ? 'Server chưa có Pikafish — đang tạm dùng Fairy-Stockfish trên máy bạn.' : '');
   }
 
   function stopEngine() {
@@ -548,10 +548,15 @@
     const onError = (msg) => { if (token !== eng.token) return; eng.error = msg; eng.done = true; renderEngine(); };
 
     if (eng.kind === 'pikafish') {
-      if (eng.serverOk === null) {
+      // Kiểm tra server có Pikafish (chưa có thì hỏi lại sau 30 giây — server có thể đang tự cài)
+      if (eng.serverOk === null || (!eng.serverOk && Date.now() - (eng.checkedAt || 0) > 30000)) {
         try { eng.serverOk = !!(await (await fetch('/api/engine')).json()).available; } catch { eng.serverOk = false; }
+        eng.checkedAt = Date.now();
+        if (token !== eng.token) return;
       }
-      if (!eng.serverOk) return onError('Server chưa cài Pikafish (npm run setup:engine) — hãy chọn Fairy-Stockfish.');
+      eng.fallback = !eng.serverOk;
+    }
+    if (eng.kind === 'pikafish' && eng.serverOk) {
       const ctrl = new AbortController();
       eng.abort = ctrl;
       try {

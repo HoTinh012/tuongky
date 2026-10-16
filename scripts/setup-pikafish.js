@@ -9,13 +9,32 @@ const { path7za } = require('7zip-bin');
 
 const REPO = 'official-pikafish/Pikafish';
 const DEST = path.join(__dirname, '..', 'engines', 'pikafish');
+// Bản dự phòng khi không gọi được GitHub API (máy chủ dùng chung IP như Render hay bị giới hạn lượt gọi API)
+const PINNED = { tag_name: 'Pikafish-2026-09-06', name: 'Pikafish.2026-09-06.7z', size: 53603424 };
+
+async function findRelease() {
+  const tag = process.env.PIKAFISH_TAG;
+  const api = `https://api.github.com/repos/${REPO}/releases/${tag ? `tags/${tag}` : 'latest'}`;
+  const headers = { 'User-Agent': 'tuongky-setup' };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  try {
+    const rel = await (await fetch(api, { headers })).json();
+    const asset = (rel.assets || []).find((a) => a.name.endsWith('.7z'));
+    if (asset) return { rel, asset };
+    console.log(`GitHub API không trả bản phát hành (${rel.message || 'không có file .7z'}) — dùng bản dự phòng ${PINNED.tag_name}`);
+  } catch (err) {
+    console.log(`Không gọi được GitHub API (${err.message}) — dùng bản dự phòng ${PINNED.tag_name}`);
+  }
+  if (tag && tag !== PINNED.tag_name) throw new Error(`Không tìm thấy bản ${tag}`);
+  return {
+    rel: { tag_name: PINNED.tag_name },
+    asset: { name: PINNED.name, size: PINNED.size, browser_download_url: `https://github.com/${REPO}/releases/download/${PINNED.tag_name}/${PINNED.name}` },
+  };
+}
 
 async function main() {
   const tag = process.env.PIKAFISH_TAG;
-  const api = `https://api.github.com/repos/${REPO}/releases/${tag ? `tags/${tag}` : 'latest'}`;
-  const rel = await (await fetch(api, { headers: { 'User-Agent': 'tuongky-setup' } })).json();
-  const asset = (rel.assets || []).find((a) => a.name.endsWith('.7z'));
-  if (!asset) throw new Error(`Không tìm thấy file .7z trong bản phát hành ${rel.tag_name || tag}`);
+  const { rel, asset } = await findRelease();
 
   fs.mkdirSync(DEST, { recursive: true });
   const archive = path.join(DEST, asset.name);
