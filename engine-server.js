@@ -10,8 +10,10 @@ const { spawn } = require('child_process');
 const DIR = process.env.PIKAFISH_DIR || path.join(__dirname, 'engines', 'pikafish');
 const EXE = path.join(DIR, process.platform === 'win32' ? 'pikafish.exe' : 'pikafish');
 // Số tiến trình chạy song song (mỗi tiến trình 1 luồng) và giới hạn hàng chờ
-const POOL = Math.max(1, Number(process.env.PIKAFISH_POOL) || Math.min(4, Math.floor(os.cpus().length / 2)));
-const HASH_MB = Number(process.env.PIKAFISH_HASH_MB) || 64;
+// Mặc định 2 tiến trình, bộ nhớ đệm 16 MB: mỗi tiến trình ~70 MB RAM (mạng NNUE ~50 MB + đệm) → vừa gói 512 MB.
+// Máy mạnh hơn thì đặt biến môi trường PIKAFISH_POOL / PIKAFISH_HASH_MB để tăng.
+const POOL = Math.max(1, Number(process.env.PIKAFISH_POOL) || Math.min(2, Math.max(1, Math.floor(os.cpus().length / 2))));
+const HASH_MB = Number(process.env.PIKAFISH_HASH_MB) || 16;
 const MAX_QUEUE = 64;
 const JOB_TIMEOUT_MS = 15000;
 
