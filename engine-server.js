@@ -193,12 +193,13 @@ const BUSY = { error: 'Engine đang quá tải — thử lại sau ít giây.' }
 // Server chưa có Pikafish (vd lệnh build trên Render không chạy setup:engine hoặc tải lỗi): tự cài ngầm khi khởi động.
 // Trong lúc cài, phân tích tạm dùng engine trong trình duyệt. Tắt bằng PIKAFISH_AUTO_INSTALL=0.
 let installing = false;
+const installLog = []; // vài dòng cuối của lần tự cài gần nhất (xem qua /api/engine để biết vì sao lỗi)
 function autoInstall() {
   if (available() || installing || process.platform === 'win32' || process.env.PIKAFISH_AUTO_INSTALL === '0') return;
   installing = true;
   console.log('Chưa có Pikafish — đang tự tải và cài (chạy ngầm)…');
   const child = spawn(process.execPath, [path.join(__dirname, 'scripts', 'setup-pikafish.js')], { stdio: ['ignore', 'pipe', 'pipe'] });
-  const log = (d) => String(d).split(/\r?\n/).filter(Boolean).forEach((l) => console.log('[Pikafish] ' + l));
+  const log = (d) => String(d).split(/\r?\n/).filter(Boolean).forEach((l) => { console.log('[Pikafish] ' + l); installLog.push(l); if (installLog.length > 12) installLog.shift(); });
   child.stdout.on('data', log);
   child.stderr.on('data', log);
   child.on('exit', (code) => {
@@ -210,7 +211,7 @@ function autoInstall() {
 
 function setup(app, express) {
   autoInstall();
-  app.get('/api/engine', (req, res) => res.json({ available: available(), installing, pool: POOL }));
+  app.get('/api/engine', (req, res) => res.json({ available: available(), installing, pool: POOL, log: available() ? undefined : installLog }));
 
   app.post('/api/engine/stream', express.json({ limit: '20kb' }), async (req, res) => {
     if (!available()) return res.status(503).json({ error: 'Chưa cài Pikafish (npm run setup:engine)' });
