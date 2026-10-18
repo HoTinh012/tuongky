@@ -508,7 +508,8 @@
           l.depth < 200 ? h('small', { class: 'ab-ldepth', text: `độ sâu ${l.depth}` }) : null);
       }));
     }
-    E.engMsg.textContent = eng.error || (eng.kind === 'pikafish' && eng.fallback ? 'Server chưa có Pikafish — đang tạm dùng Fairy-Stockfish trên máy bạn.' : '');
+    E.engMsg.textContent = eng.error || eng.wait || (eng.kind === 'pikafish' && eng.fallback ? 'Server chưa có Pikafish — đang tạm dùng Fairy-Stockfish trên máy bạn.' : '');
+    E.engMsg.classList.toggle('soft', !eng.error);
   }
 
   function stopEngine() {
@@ -522,7 +523,7 @@
   function restartEngine() {
     stopEngine();
     const eng = st.eng;
-    eng.info = null; eng.done = false; eng.error = '';
+    eng.info = null; eng.done = false; eng.error = ''; eng.wait = '';
     clearTimeout(restartTimer);
     if (!eng.on || st.edit) { renderEngine(); renderBoard(); return; }
     const b = curBoard(), side = sideAt(st.ply);
@@ -560,10 +561,29 @@
       const ctrl = new AbortController();
       eng.abort = ctrl;
       try {
-        const res = await fetch('/api/engine/stream', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pos), signal: ctrl.signal,
-        });
-        if (!res.ok) return onError((await res.json().catch(() => ({}))).error || 'Engine bận, thử lại sau.');
+        // Server đang khởi động lại (502) hoặc engine đang kín chỗ (429/503): tự đợi rồi thử lại, không báo lỗi ngay
+        let res = null;
+        for (let attempt = 0; ; attempt++) {
+          try {
+            res = await fetch('/api/engine/stream', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pos), signal: ctrl.signal,
+            });
+          } catch (err) {
+            if (err.name === 'AbortError') throw err;
+            res = null; // mất kết nối tạm thời
+          }
+          if (token !== eng.token) return;
+          if (res && res.ok) break;
+          const retriable = !res || [429, 502, 503, 504].includes(res.status);
+          if (!retriable || attempt >= 7) {
+            return onError((res && (await res.json().catch(() => ({}))).error) || 'Engine đang bận — bấm lại sau ít giây.');
+          }
+          eng.wait = res && res.status === 429 ? 'Engine đang phục vụ người khác — đang chờ lượt…' : 'Máy chủ đang khởi động lại — đang thử kết nối lại…';
+          renderEngine();
+          await new Promise((r) => setTimeout(r, Math.min(8000, 1500 + attempt * 1200)));
+          if (token !== eng.token) return;
+        }
+        eng.wait = '';
         const reader = res.body.getReader();
         const dec = new TextDecoder();
         let buf = '';

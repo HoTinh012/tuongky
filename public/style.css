@@ -3224,3 +3224,5 @@ body.is-guest #ai-tabs .tab[data-ai-tab="puzzles"], body.is-guest #ai-tabs .tab[
   #lobby > .hero { grid-template-columns: minmax(0, 1fr) 86px !important; }
   #lobby .hero-art img { width: 72px !important; }
 }
+
+.ab-msg.soft { color: var(--muted); }

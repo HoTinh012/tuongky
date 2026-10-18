@@ -13,10 +13,16 @@ const REPO = 'official-pikafish/Pikafish';
 const DEST = process.env.PIKAFISH_DIR || path.join(__dirname, '..', 'engines', 'pikafish');
 // Các bản dự phòng (mới → cũ), dùng khi không gọi được GitHub API hoặc bản mới không chạy được trên máy này
 const FALLBACKS = [
-  { tag: 'Pikafish-2026-09-06', file: 'Pikafish.2026-09-06.7z', size: 53603424 }, // Linux cần glibc ≥ 2.38
-  { tag: 'Pikafish-2026-01-02', file: 'Pikafish.2026-01-02.7z', size: 55332846 }, // Linux cần glibc ≥ 2.34
-  { tag: 'Pikafish-2025-06-23', file: 'Pikafish.2025-06-23.7z', size: 47381120 },
+  { tag: 'Pikafish-2026-09-06', file: 'Pikafish.2026-09-06.7z', size: 53603424, glibc: 2.38 },
+  { tag: 'Pikafish-2026-01-02', file: 'Pikafish.2026-01-02.7z', size: 55332846, glibc: 2.34 },
+  { tag: 'Pikafish-2025-06-23', file: 'Pikafish.2025-06-23.7z', size: 47381120, glibc: 2.34 },
 ];
+// Phiên bản glibc của máy (Linux) — bỏ qua luôn các bản cần glibc mới hơn, khỏi tải ~50 MB vô ích
+const GLIBC = (() => { try { return parseFloat(process.report.getReport().header.glibcVersionRuntime) || null; } catch { return null; } })();
+const fits = (c) => {
+  const need = c.glibc || (FALLBACKS.find((f) => f.tag === c.tag) || {}).glibc;
+  return process.platform !== 'linux' || !GLIBC || !need || GLIBC >= need;
+};
 const urlOf = (f) => `https://github.com/${REPO}/releases/download/${f.tag}/${f.file}`;
 
 // Danh sách bản cần thử theo thứ tự
@@ -46,7 +52,11 @@ async function install(c) {
     console.log(`Đang tải ${c.file} (${(c.size / 1048576).toFixed(1)} MB)...`);
     const res = await fetch(c.url);
     if (!res.ok) throw new Error(`Tải thất bại: HTTP ${res.status}`);
-    fs.writeFileSync(archive, Buffer.from(await res.arrayBuffer()));
+    // Ghi thẳng xuống đĩa theo từng khúc (không giữ cả file ~50 MB trong RAM — máy chủ nhỏ dễ hết bộ nhớ)
+    const { Readable } = require('stream');
+    const { pipeline } = require('stream/promises');
+    await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(archive + '.part'));
+    fs.renameSync(archive + '.part', archive);
   }
   if (process.platform !== 'win32') fs.chmodSync(path7za, 0o755);
   const raw = path.join(DEST, 'release');
@@ -77,7 +87,9 @@ async function install(c) {
 
 async function main() {
   const list = await candidates();
+  if (GLIBC) console.log(`Máy dùng glibc ${GLIBC}`);
   for (const c of list) {
+    if (!fits(c)) { console.log(`${c.tag}: cần glibc ${c.glibc || (FALLBACKS.find((f) => f.tag === c.tag) || {}).glibc}, bỏ qua`); continue; }
     try { if (await install(c)) return; } catch (err) { console.log(`${c.tag}: ${err.message}`); }
   }
   throw new Error('Không cài được Pikafish từ bản phát hành nào.');

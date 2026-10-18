@@ -213,7 +213,7 @@ function autoInstall() {
 
 function setup(app, express) {
   autoInstall();
-  app.get('/api/engine', (req, res) => res.json({ available: available(), installing, pool: POOL, log: available() ? undefined : installLog }));
+  app.get('/api/engine', (req, res) => res.json({ available: available(), installing, pool: POOL, busy: total - idle.length, queued: queue.length, uptimeMin: Math.round(process.uptime() / 60), rssMB: Math.round(process.memoryUsage().rss / 1048576), log: available() ? undefined : installLog }));
 
   app.post('/api/engine/stream', express.json({ limit: '20kb' }), async (req, res) => {
     if (!available()) return res.status(503).json({ error: 'Chưa cài Pikafish (npm run setup:engine)' });
