@@ -285,6 +285,28 @@ module.exports = function setupAdmin(app, game) {
     res.json({ current });
   });
 
+  // ---------- Bot AI: tài khoản máy tự đánh với nhau (bots.js) ----------
+  const bots = game.bots;
+  const botFail = (res, err) => res.status(400).json({ error: err.message || 'Có lỗi xảy ra.' });
+  api.get('/bots', (req, res) => res.json(bots.adminState()));
+  api.put('/bots', (req, res) => res.json(bots.update(req.body || {})));
+  api.post('/bots/accounts', (req, res) => {
+    try {
+      const { count, eloMin, eloMax } = req.body || {};
+      bots.createAccounts(count, eloMin, eloMax);
+      res.json(bots.adminState());
+    } catch (err) { botFail(res, err); }
+  });
+  api.put('/bots/accounts/:id', (req, res) => {
+    try { bots.setSkill(req.params.id, (req.body || {}).skill); res.json(bots.adminState()); } catch (err) { botFail(res, err); }
+  });
+  api.delete('/bots/accounts/:id', (req, res) => {
+    if (!bots.isBot(req.params.id)) return res.status(404).json({ error: 'Không phải bot.' });
+    bots.removeAccount(req.params.id);
+    res.json(bots.adminState());
+  });
+  api.post('/bots/stop', (req, res) => { bots.stopAll(); res.json(bots.update({ enabled: false })); });
+
   // ---------- Cửa hàng vật phẩm: bàn cờ, quân cờ, đồng hồ (Túi đồ & Cửa hàng của người chơi) ----------
   const shop = game.shop;
   const shopData = () => ({ items: shop.current(), locked: shop.LOCKED, library: game.theme.library() });

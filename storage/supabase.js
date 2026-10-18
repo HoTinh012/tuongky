@@ -17,7 +17,7 @@ const T = {
 
 // Các trường mở rộng của tài khoản lưu chung trong cột profile (jsonb)
 const PROFILE_KEYS = ['friends', 'friendIn', 'friendOut', 'blocked', 'owned', 'equip', 'freshItems', 'notifications',
-  'missions', 'coinStats', 'puzzleLog', 'badges', 'peakRating', 'analyses'];
+  'missions', 'coinStats', 'puzzleLog', 'badges', 'peakRating', 'analyses', 'bot'];
 // Các trường mở rộng của ván lưu trong cột extra (jsonb)
 const GAME_EXTRA = ['kind', 'stake', 'tc', 'fee', 'tournament'];
 
@@ -239,6 +239,8 @@ module.exports = {
   // Cài đặt hệ thống (Elo, ghép trận, nhiệm vụ, nội dung trang chủ...)
   async loadSiteConfig() { return (await loadSettings()).siteConfig || null; },
   saveSiteConfig(value) { settingsState.siteConfig = value; return pushSettings(); },
+  async loadBots() { return (await loadSettings()).bots || null; },
+  saveBots(value) { settingsState.bots = value; return pushSettings(); },
 
   async loadTournaments() {
     const rows = await selectAll(T.tournaments);

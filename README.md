@@ -138,6 +138,14 @@ Mở http://localhost:3000/admin
     (thời gian chấp nhận, giữ chỗ, xoá phòng trống, khoảng chênh Elo), nhịp phòng riêng, giới hạn chat/cộng đồng, nhiệm vụ
     hằng ngày (tên, mục tiêu, thưởng, bật/tắt), điểm Danh vọng giải đấu, giới hạn engine, thời hạn đăng nhập, khu vực.
     Danh sách mục ở `public/site-config.js`, lưu ở `data/site-config.json` (hoặc Supabase), web cập nhật ngay.
+  - **Bot AI** (`bots.js`): tài khoản do máy điều khiển tự online theo phiên, ghép cặp và đánh ván **Xếp hạng / Chơi nhanh**
+    thật trên server với nhau (tính Elo, xu, lịch sử; hiện ở Trận đấu hot & Bàn đấu, người chơi vào xem được — bàn bot chỉ xem,
+    không ngồi được). Nước đi do Pikafish tính theo trình độ 1–8 của từng bot (độ sâu + chọn ngẫu nhiên giữa vài nước tốt + thỉnh thoảng
+    đi hớ); thời gian nghĩ theo đồng hồ như người (khai cuộc nhanh, trung cuộc lâu, sắp hết giờ đi vội), biết đầu hàng khi thua rõ,
+    xin / nhận hoà khi cân bằng hoặc lặp thế, chào hỏi / "gg", đôi khi đấu lại. Admin chỉnh: bật/tắt, số ván cùng lúc, loại ván,
+    tốc độ, trò chuyện, tỉ lệ đấu lại; tạo bot (tên, khu vực, Elo ngẫu nhiên), đổi trình độ, xoá bot, dừng ngay mọi ván bot.
+    Bot chỉ đánh với bot, không vào hàng chờ của người chơi; dùng 1 tiến trình Pikafish mỗi lúc (không có Pikafish thì dùng engine JS cũ).
+    Cấu hình lưu ở `data/bots.json` (hoặc khoá `bots` trong bảng settings của Supabase); tài khoản bot có trường `bot: true`.
   - Menu admin chia 3 nhóm: Vận hành · Nội dung · Cài đặt.
   - **Chức năng web**: công tắc bật/tắt 17 chức năng (Xếp hạng, Tranh xu, Bàn chơi, Chơi với bạn, Xem trận, Chat trong trận,
     Đấu máy, Phân tích, Cờ thế, Cộng đồng, Bạn bè, Giải đấu, Bảng xếp hạng, Đăng ký, Cửa hàng, Nhiệm vụ, Góp ý). Tắt là áp dụng

@@ -1222,6 +1222,97 @@
   // Hiện số chức năng đang tắt trên menu ngay khi mở trang quản trị
   setTimeout(() => api('GET', '/features').then((d) => { featState = d.current; renderFeatures(); }).catch(() => {}), 0);
 
+  // ---------- Bot AI: tài khoản máy tự online, ghép cặp và đánh với nhau ----------
+  let botData = null;
+  let botDirty = false; // admin đang sửa dở form → không ghi đè khi tự cập nhật mỗi 5 giây
+  const BOT_STATE = { playing: 'Đang chơi', idle: 'Online', offline: 'Offline' };
+  async function loadBots() {
+    try { botData = await api('GET', '/bots'); } catch (err) { toast(err.message); }
+    renderBots();
+  }
+  function fillBotForm() {
+    botDirty = false;
+    const st = botData.settings;
+    $('bot-enabled').checked = st.enabled;
+    $('bot-tables').value = st.tables;
+    $('bot-speed').value = String(st.speed);
+    if ($('bot-speed').value !== String(st.speed)) $('bot-speed').append(h('option', { value: st.speed, selected: true }, 'Tuỳ chỉnh ×' + st.speed));
+    $('bot-rematch').value = Math.round(st.rematchRate * 100);
+    $('bot-kind-ranked').checked = st.kinds.includes('ranked');
+    $('bot-kind-coin').checked = st.kinds.includes('coin');
+    $('bot-chat').checked = st.chat;
+  }
+  function renderBots() {
+    if (!botData) return;
+    const d = botData;
+    $('c-bots').hidden = !d.playing;
+    $('c-bots').textContent = d.playing;
+    if (!botDirty) fillBotForm();
+    $('bot-summary').textContent = d.settings.enabled
+      ? `Đang bật · ${d.bots.length} bot · ${d.online} online · ${d.playing} ván đang diễn ra`
+      : `Đang tắt · ${d.bots.length} bot${d.playing ? ` · ${d.playing} ván đang đánh nốt` : ''}`;
+    $('bot-engine').textContent = d.engine === 'pikafish'
+      ? 'Engine: Pikafish trên server (bot dùng 1 tiến trình mỗi lúc, không làm chậm phân tích của người chơi).'
+      : 'Engine: chưa cài Pikafish — bot dùng engine JS cũ (yếu hơn). Chạy npm run setup:engine để bot đánh hay hơn.';
+    const body = $('bots-body');
+    if (!d.bots.length) { body.replaceChildren(h('tr', {}, h('td', { colspan: 7, class: 'empty' }, 'Chưa có bot — tạo vài bot ở trên rồi bật Hoạt động.'))); return; }
+    const order = { playing: 0, idle: 1, offline: 2 };
+    const rows = [...d.bots].sort((a, b) => order[a.state] - order[b.state] || b.rating - a.rating);
+    body.replaceChildren(...rows.map((b) => h('tr', {},
+      h('td', {}, h('a', { href: '#user/' + encodeURIComponent(b.id) }, h('b', {}, b.name)), h('div', { style: 'color:var(--muted);font-size:12px' }, '@' + b.username)),
+      h('td', { class: 'num' }, b.rating),
+      h('td', {}, h('select', { 'aria-label': 'Trình độ', onchange: (e) => setBotSkill(b, e.target.value) },
+        ...Object.entries(d.skills).map(([k, elo]) => h('option', { value: k, selected: Number(k) === b.skill }, `Cấp ${k} (~${elo})`)))),
+      h('td', {}, h('span', { class: 'bot-state ' + b.state }, BOT_STATE[b.state] || b.state),
+        b.roomId ? h('a', { href: '/?room=' + b.roomId + '&watch=1', target: '_blank', rel: 'noopener', style: 'margin-left:8px;font-size:12px' }, 'Xem') : null),
+      h('td', {}, `${b.wins}-${b.draws}-${b.losses}`),
+      h('td', { class: 'num' }, b.coins),
+      h('td', {}, h('button', { class: 'btn sm', onclick: () => removeBot(b) }, 'Xoá')))));
+  }
+  async function setBotSkill(b, skill) {
+    try { botData = await api('PUT', '/bots/accounts/' + encodeURIComponent(b.id), { skill: Number(skill) }); toast(`${b.name}: cấp ${skill}.`); } catch (err) { toast(err.message); }
+    renderBots();
+  }
+  async function removeBot(b) {
+    if (!confirm(`Xoá bot "${b.name}"?\nTài khoản bị xoá hẳn${b.state === 'playing' ? ', ván đang chơi bị đóng' : ''}.`)) return;
+    try { botData = await api('DELETE', '/bots/accounts/' + encodeURIComponent(b.id)); toast('Đã xoá bot.'); } catch (err) { toast(err.message); }
+    renderBots();
+  }
+  function botForm() {
+    return {
+      enabled: $('bot-enabled').checked,
+      tables: Number($('bot-tables').value),
+      speed: Number($('bot-speed').value),
+      rematchRate: Number($('bot-rematch').value) / 100,
+      chat: $('bot-chat').checked,
+      kinds: [$('bot-kind-ranked').checked && 'ranked', $('bot-kind-coin').checked && 'coin'].filter(Boolean),
+    };
+  }
+  for (const id of ['bot-tables', 'bot-speed', 'bot-rematch', 'bot-kind-ranked', 'bot-kind-coin', 'bot-chat']) $(id).addEventListener('input', () => { botDirty = true; });
+  $('bot-save').addEventListener('click', async () => {
+    try { botData = await api('PUT', '/bots', botForm()); fillBotForm(); toast('Đã lưu cài đặt bot.'); } catch (err) { toast(err.message); }
+    renderBots();
+  });
+  $('bot-enabled').addEventListener('change', async (e) => {
+    try { botData = await api('PUT', '/bots', { enabled: e.target.checked }); toast(e.target.checked ? 'Đã bật bot.' : 'Đã tắt bot — các ván đang chơi sẽ đánh nốt.'); } catch (err) { toast(err.message); }
+    renderBots();
+  });
+  $('bot-create').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      botData = await api('POST', '/bots/accounts', { count: Number($('bot-count').value), eloMin: Number($('bot-elo-min').value), eloMax: Number($('bot-elo-max').value) });
+      toast('Đã tạo bot.');
+    } catch (err) { toast(err.message); }
+    e.target.disabled = false;
+    renderBots();
+  });
+  $('bot-stop').addEventListener('click', async () => {
+    if (!confirm('Đóng ngay mọi ván bot đang diễn ra và tắt bot?\nVán bị đóng không tính kết quả.')) return;
+    try { botData = await api('POST', '/bots/stop'); fillBotForm(); toast('Đã dừng bot.'); } catch (err) { toast(err.message); }
+    renderBots();
+  });
+  setInterval(() => { if (!document.hidden && !$('page-bots').classList.contains('hidden')) loadBots(); }, 5000);
+
   // ---------- Cửa hàng vật phẩm: mọi bàn cờ, quân cờ, đồng hồ người chơi thấy trong Túi đồ & Cửa hàng ----------
   const SH = { items: null, saved: null, locked: [], library: [], cat: 'board', loading: false };
   const SH_CATS = { board: 'Bàn cờ', pieces: 'Quân cờ', clock: 'Đồng hồ' };
@@ -1426,7 +1517,7 @@
   const PAGES = {
     overview: 'Tổng quan', features: 'Chức năng web', 'site-config': 'Cài đặt hệ thống', rooms: 'Phòng & trận đấu', users: 'Kỳ thủ', user: 'Chi tiết kỳ thủ', ranking: 'Bảng xếp hạng',
     puzzles: 'Cờ thế', puzzle: 'Soạn cờ thế', feedback: 'Góp ý', theme: 'Bàn cờ & quân cờ', shop: 'Cửa hàng vật phẩm', economy: 'Chế độ chơi & xu', community: 'Cộng đồng',
-    tournaments: 'Giải đấu', tournament: 'Chi tiết giải',
+    tournaments: 'Giải đấu', tournament: 'Chi tiết giải', bots: 'Bot AI',
   };
   function route() {
     const hash = location.hash.slice(1);
@@ -1449,6 +1540,7 @@
     if (name === 'theme') loadTheme();
     if (name === 'shop') loadShop();
     if (name === 'features') loadFeatures();
+    if (name === 'bots') loadBots();
     if (name === 'site-config') loadSiteConfig();
     if (name === 'economy') loadEconomy(true);
     if (name === 'community') loadCommunityAdmin();
