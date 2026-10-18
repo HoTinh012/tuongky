@@ -26,8 +26,6 @@ services:
         sync: false
       - key: SUPABASE_BUCKET
         value: tuongky
-      # Engine Pikafish vừa RAM gói Starter (512 MB): 2 tiến trình, đệm 16 MB. Nâng gói thì tăng lên (vd 4 / 64).
-      - key: PIKAFISH_POOL
-        value: "2"
+      # Số tiến trình Pikafish tự tính theo RAM (gói Starter 512 MB → 1). Nâng gói thì server tự tăng; muốn ép thì thêm PIKAFISH_POOL.
       - key: PIKAFISH_HASH_MB
         value: "16"

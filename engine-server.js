@@ -10,9 +10,24 @@ const { spawn } = require('child_process');
 const DIR = process.env.PIKAFISH_DIR || path.join(__dirname, 'engines', 'pikafish');
 const EXE = path.join(DIR, process.platform === 'win32' ? 'pikafish.exe' : 'pikafish');
 // Số tiến trình chạy song song (mỗi tiến trình 1 luồng) và giới hạn hàng chờ
-// Mặc định 2 tiến trình, bộ nhớ đệm 16 MB: mỗi tiến trình ~70 MB RAM (mạng NNUE ~50 MB + đệm) → vừa gói 512 MB.
-// Máy mạnh hơn thì đặt biến môi trường PIKAFISH_POOL / PIKAFISH_HASH_MB để tăng.
-const POOL = Math.max(1, Number(process.env.PIKAFISH_POOL) || Math.min(2, Math.max(1, Math.floor(os.cpus().length / 2))));
+// Mỗi tiến trình Pikafish chiếm ~250 MB RAM (mạng NNUE + bộ nhớ đệm). Số tiến trình tự tính theo RAM thật của máy
+// (giới hạn bộ nhớ của container nếu chạy trên Render/Docker), chừa ~220 MB cho Node.js — gói 512 MB chỉ chạy 1.
+// Đặt biến môi trường PIKAFISH_POOL để ép số khác.
+function memLimitMB() {
+  for (const f of ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes']) {
+    try {
+      const v = Number(fs.readFileSync(f, 'utf8').trim());
+      if (v > 0 && v < 1e15) return Math.round(v / 1048576);
+    } catch { /* không phải Linux / không có cgroup */ }
+  }
+  return Math.round(os.totalmem() / 1048576);
+}
+const PER_ENGINE_MB = 260;
+const MEM_MB = memLimitMB();
+const POOL = Math.max(1, Number(process.env.PIKAFISH_POOL)
+  || Math.min(4, Math.max(1, Math.floor(os.cpus().length / 2)), Math.max(1, Math.floor((MEM_MB - 220) / PER_ENGINE_MB))));
+// Tiến trình rảnh quá lâu thì tắt để trả RAM (mở lại khi có người phân tích, mất ~1 giây)
+const IDLE_KILL_MS = 90 * 1000;
 const HASH_MB = Number(process.env.PIKAFISH_HASH_MB) || 16;
 const MAX_QUEUE = 64;
 const JOB_TIMEOUT_MS = 15000;
@@ -68,12 +83,22 @@ const queue = [];
 function acquire() {
   while (idle.length) {
     const p = idle.pop();
+    clearTimeout(p.idleTimer);
     if (!p.dead) return Promise.resolve(p);
     total--;
   }
   if (total < POOL) { total++; const p = new UciProcess(); return p.ready.then(() => p, (e) => { total--; throw e; }); }
   if (queue.length >= MAX_QUEUE) return Promise.reject(Object.assign(new Error('Máy chủ engine đang bận'), { busy: true }));
   return new Promise((resolve, reject) => queue.push({ resolve, reject }));
+}
+
+function reapLater(p) {
+  clearTimeout(p.idleTimer);
+  p.idleTimer = setTimeout(() => {
+    const i = idle.indexOf(p);
+    if (i >= 0) { idle.splice(i, 1); total--; p.kill(); }
+  }, IDLE_KILL_MS);
+  if (p.idleTimer.unref) p.idleTimer.unref();
 }
 
 function release(p) {
@@ -84,7 +109,7 @@ function release(p) {
     return;
   }
   const next = queue.shift();
-  if (next) next.resolve(p); else idle.push(p);
+  if (next) next.resolve(p); else { idle.push(p); reapLater(p); }
 }
 
 async function withEngine(fn) {
@@ -213,7 +238,7 @@ function autoInstall() {
 
 function setup(app, express) {
   autoInstall();
-  app.get('/api/engine', (req, res) => res.json({ available: available(), installing, pool: POOL, busy: total - idle.length, queued: queue.length, uptimeMin: Math.round(process.uptime() / 60), rssMB: Math.round(process.memoryUsage().rss / 1048576), log: available() ? undefined : installLog }));
+  app.get('/api/engine', (req, res) => res.json({ available: available(), installing, pool: POOL, memMB: MEM_MB, busy: total - idle.length, queued: queue.length, uptimeMin: Math.round(process.uptime() / 60), rssMB: Math.round(process.memoryUsage().rss / 1048576), log: available() ? undefined : installLog }));
 
   app.post('/api/engine/stream', express.json({ limit: '20kb' }), async (req, res) => {
     if (!available()) return res.status(503).json({ error: 'Chưa cài Pikafish (npm run setup:engine)' });
