@@ -521,7 +521,7 @@ function vacateSeat(room, color) {
 // Người cuối cùng chủ động rời → huỷ ngay; mất kết nối → chờ thời gian giữ chỗ (abandonMs) để còn kịp tải lại trang.
 function checkEmpty(room, immediate) {
   if (room.members.size > 0) return;
-  if (room.bot && room.players.r && room.players.b && !room.game.result) return; // ván bot vẫn chạy khi không ai xem
+  if (room.bot && (room.players.r || room.players.b) && !room.game.result) return; // bàn / ván bot vẫn chạy khi không ai xem
   room.emptySince = Date.now();
   clearTimeout(room.emptyTimer);
   if (immediate) destroyRoom(room);
@@ -990,6 +990,26 @@ function playMove(room, color, from, to) {
   return null;
 }
 
+// Phòng riêng & Chơi nhanh: cả hai bấm Sẵn sàng (xác nhận) thì ván bắt đầu
+function playReady(room, color, on = true) {
+  if (!color || !NEEDS_READY.includes(room.kind) || room.game.startedAt || room.game.result) return null;
+  // Chơi nhanh: kiểm tra lại xu trước khi xác nhận cược
+  if (on && room.kind === 'coin') {
+    const acc = room.players[color].accountId ? users.get(room.players[color].accountId) : null;
+    if (!acc || acc.coins < room.stake) return `Không đủ xu — bàn này cược ${room.stake} xu.`;
+  }
+  if (on) room.ready.add(color); else room.ready.delete(color);
+  systemMsg(room, room.kind === 'coin'
+    ? `${room.players[color].name} ${on ? `đã xác nhận cược ${room.stake} xu` : 'huỷ xác nhận'}.`
+    : `${room.players[color].name} ${on ? 'đã sẵn sàng' : 'huỷ sẵn sàng'}.`);
+  if (room.players.r && room.players.b && room.ready.size === 2) {
+    beginGame(room);
+    systemMsg(room, 'Cả hai đã sẵn sàng — ván đấu bắt đầu!');
+  }
+  broadcast(room);
+  return null;
+}
+
 function playResign(room, color) {
   if (!color || room.game.result || !room.players.r || !room.players.b) return;
   finish(room, X.other(color), 'resign');
@@ -1049,7 +1069,7 @@ function playRematch(room, color) {
 bots.setup({
   users, rooms, engine: engineServer, E, F, tcSettings, regions: () => CFG.REGIONS || [],
   createRoom, beginGame, broadcast, systemMsg, chat: roomChat, vacateSeat, destroyRoom,
-  playMove, playResign, playOfferDraw, playDeclineDraw, playRematch,
+  playMove, playReady, playResign, playOfferDraw, playDeclineDraw, playRematch,
 });
 
 io.on('connection', (socket) => {
@@ -1135,8 +1155,12 @@ io.on('connection', (socket) => {
     name = identify(socket, uid, name, session);
     if (!name) return;
     if (!needAccount(socket)) return;
-    spectate = !!spectate || !!room.bot; // bàn của bot AI: chỉ vào xem
+    spectate = !!spectate;
     let note = null;
+    if (room.bot && !spectate && !colorOf(room, token)) {
+      spectate = true; // bàn của bot AI: chỉ vào xem
+      if (!room.players.r || !room.players.b) note = 'Bàn này đã hẹn đối thủ trước — bạn đang xem.';
+    }
     const accId = socket.data.accountId;
     const reservedSeat = room.reserved && accId && ['r', 'b'].some((c) => room.reserved[c] === accId);
     const wouldSit = !spectate && !colorOf(room, token) && (room.reserved ? reservedSeat : (!room.players.r || !room.players.b));
@@ -1211,25 +1235,7 @@ io.on('connection', (socket) => {
   socket.on('rematch', () => { const s = seated(); if (s) playRematch(s.room, s.color); });
 
   // Phòng riêng & Chơi nhanh: cả hai bấm Sẵn sàng (xác nhận) thì ván bắt đầu
-  socket.on('ready', (on = true) => {
-    const room = currentRoom(socket);
-    const color = room && colorOf(room, socket.data.token);
-    if (!color || !NEEDS_READY.includes(room.kind) || room.game.startedAt || room.game.result) return;
-    // Chơi nhanh: kiểm tra lại xu trước khi xác nhận cược
-    if (on && room.kind === 'coin') {
-      const acc = room.players[color].accountId ? users.get(room.players[color].accountId) : null;
-      if (!acc || acc.coins < room.stake) return socket.emit('error-msg', `Không đủ xu — bàn này cược ${room.stake} xu.`);
-    }
-    if (on) room.ready.add(color); else room.ready.delete(color);
-    systemMsg(room, room.kind === 'coin'
-      ? `${room.players[color].name} ${on ? `đã xác nhận cược ${room.stake} xu` : 'huỷ xác nhận'}.`
-      : `${room.players[color].name} ${on ? 'đã sẵn sàng' : 'huỷ sẵn sàng'}.`);
-    if (room.players.r && room.players.b && room.ready.size === 2) {
-      beginGame(room);
-      systemMsg(room, 'Cả hai đã sẵn sàng — ván đấu bắt đầu!');
-    }
-    broadcast(room);
-  });
+  socket.on('ready', (on = true) => { const s = seated(); if (s) reply(playReady(s.room, s.color, on)); });
 
   // Xin đi lại (chỉ phòng riêng có bật luật đi lại). Đối thủ đồng ý → lùi về trước nước đi gần nhất của người xin.
   socket.on('takeback', () => {

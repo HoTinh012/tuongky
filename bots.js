@@ -333,27 +333,52 @@ function startGame(a, b) {
   const accs = [api.users.get(a), api.users.get(b)];
   if (accs.some((x) => !x || x.banned)) return false;
   for (const acc of accs) topUp(acc.id, stake || fee);
-  if (fee) for (const acc of accs) api.users.spendCoins(acc.id, fee);
 
-  const room = api.createRoom(settings, { kind, matchmaking: true, stake, fee, rules: { spectators: true, takeback: false } });
+  // Bot chủ bàn mở bàn chờ (hiện "đang chờ" ở Bàn đấu), lát sau bot kia vào ngồi, xác nhận rồi mới đánh — như người
+  const [host, guest] = accs;
+  const room = api.createRoom(settings, { kind, matchmaking: true, stake, fee: null, rules: { spectators: true, takeback: false } });
   room.bot = true;
-  const [red, black] = chance(0.5) ? accs : [accs[1], accs[0]];
-  for (const [c, acc] of [['r', red], ['b', black]]) {
-    room.players[c] = {
-      token: 'bot:' + acc.id, uid: 'a:' + acc.id, accountId: acc.id, name: acc.displayName, online: true,
-      avatar: acc.avatar || null, username: acc.username, rating: acc.rating,
-    };
+  const hostColor = chance(0.5) ? 'r' : 'b', guestColor = hostColor === 'r' ? 'b' : 'r';
+  const seatOf = (acc) => ({
+    token: 'bot:' + acc.id, uid: 'a:' + acc.id, accountId: acc.id, name: acc.displayName, online: true,
+    avatar: acc.avatar || null, username: acc.username, rating: acc.rating,
+  });
+  room.players[hostColor] = seatOf(host);
+  for (const acc of accs) {
     api.users.touch(acc.id);
     const rt = runtime.get(acc.id);
     rt.state = 'playing'; rt.roomId = room.id;
   }
   runtime.get(a).lastOpp = b; runtime.get(b).lastOpp = a;
-  room.game.names = { r: red.displayName, b: black.displayName };
   games.set(room.id, { game: room.game, ply: -1, busy: false, evals: { r: [], b: [] }, ended: false, positions: new Map() });
-  api.systemMsg(room, kind === 'ranked' ? `Ván xếp hạng — có tính Elo, đã trừ ${fee} xu phí mỗi bên.`
-    : `Chơi nhanh ${stake} xu — thắng nhận ${stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`);
-  api.beginGame(room);
+  const tcText = `${settings.totalMs / 60000}+${(settings.incMs || 0) / 1000}`;
+  api.systemMsg(room, kind === 'ranked' ? `${host.displayName} mở bàn xếp hạng ${tcText} — đang chờ đối thủ vào bàn.`
+    : `Bàn chơi nhanh ${stake} xu · ${tcText} — đang chờ đối thủ vào bàn.`);
   api.broadcast(room);
+
+  const alive = () => api.rooms.get(room.id) === room && !room.game.result;
+  const wait = Math.max(3000, rand(10000, 60000) * cfg.speed);
+  setTimeout(() => {
+    if (!alive()) return;
+    const g = api.users.get(guest.id);
+    if (!g) { api.destroyRoom(room); games.delete(room.id); return; }
+    room.players[guestColor] = seatOf(g);
+    room.game.names = { r: room.players.r.name, b: room.players.b.name };
+    api.systemMsg(room, `${g.displayName} đã vào cầm quân ${guestColor === 'r' ? 'Đỏ' : 'Đen'}.`);
+    if (kind === 'ranked') {
+      for (const acc of accs) api.users.spendCoins(acc.id, fee);
+      room.fee = fee;
+      api.systemMsg(room, `Ván xếp hạng — có tính Elo, đã trừ ${fee} xu phí mỗi bên.`);
+      api.broadcast(room);
+      setTimeout(() => { if (alive()) { api.beginGame(room); api.broadcast(room); } }, Math.max(800, rand(1500, 4000) * cfg.speed));
+    } else {
+      api.systemMsg(room, `Chơi nhanh ${stake} xu — thắng nhận ${stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`);
+      api.broadcast(room);
+      // Mỗi bên bấm xác nhận cược sau vài giây (người vào sau thường xác nhận trước)
+      setTimeout(() => { if (alive()) api.playReady(room, guestColor, true); }, Math.max(600, rand(1500, 5000) * cfg.speed));
+      setTimeout(() => { if (alive()) api.playReady(room, hostColor, true); }, Math.max(1200, rand(3000, 9000) * cfg.speed));
+    }
+  }, wait);
   return true;
 }
 
@@ -498,7 +523,7 @@ function presence(id) {
 /**
  * server = {
  *   users, rooms, engine, E, F, tcSettings, regions(), createRoom, beginGame, broadcast, systemMsg, chat(room, color, text),
- *   vacateSeat, destroyRoom, playMove, playResign, playOfferDraw, playDeclineDraw, playRematch
+ *   vacateSeat, destroyRoom, playMove, playReady, playResign, playOfferDraw, playDeclineDraw, playRematch
  * }
  */
 function setup(server) {
