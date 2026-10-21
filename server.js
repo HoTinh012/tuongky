@@ -1356,7 +1356,7 @@ setInterval(() => {
     process.exit(1);
   }
   server.listen(PORT, () => {
-    console.log(`Tượng Kỳ đang chạy tại http://localhost:${PORT}`);
+    console.log(`Sĩ Tượng Kỳ đang chạy tại http://localhost:${PORT}`);
     console.log(`Dữ liệu: ${storage.describe()}`);
     console.log(`Trang quản trị: http://localhost:${PORT}/admin`);
     console.log(process.env.ADMIN_PASSWORD

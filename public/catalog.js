@@ -28,10 +28,10 @@
   // ghi đè vào chính object này, trình duyệt nhận bản mới qua /api/economy.js).
 
   // cat: 'board' | 'pieces' | 'clock'. price 0 = có sẵn cho mọi người.
-  // board: { type:'default' } (theo Tượng Kỳ) | { type:'image', src } | { type:'classic', palette }
-  // pieces: { style } ('default' = theo Tượng Kỳ); clock: { style }
+  // board: { type:'default' } (theo Sĩ Tượng Kỳ) | { type:'image', src } | { type:'classic', palette }
+  // pieces: { style } ('default' = theo Sĩ Tượng Kỳ); clock: { style }
   const ITEMS = [
-    { id: 'board-default', cat: 'board', name: 'Theo Tượng Kỳ', desc: 'Bàn cờ chính thức', price: 0, board: { type: 'default' } },
+    { id: 'board-default', cat: 'board', name: 'Theo Sĩ Tượng Kỳ', desc: 'Bàn cờ chính thức', price: 0, board: { type: 'default' } },
     { id: 'board-wood', cat: 'board', name: 'Gỗ sáng', desc: 'Vân gỗ thật', price: 0, board: { type: 'image', src: '/assets/board.webp' } },
     { id: 'board-classic', cat: 'board', name: 'Cổ điển', desc: 'Nét vẽ truyền thống', price: 0, board: { type: 'classic', palette: 'classic' } },
     { id: 'board-thidau', cat: 'board', name: 'Thi Đấu', desc: 'Nền sáng, nét rõ như bàn giải', price: 100, board: { type: 'classic', palette: 'thidau' } },
@@ -40,7 +40,7 @@
     { id: 'board-ngoc', cat: 'board', name: 'Ngọc Sáng', desc: 'Ngọc bích trong trẻo', price: 250, board: { type: 'classic', palette: 'ngoc' } },
     { id: 'board-devuong', cat: 'board', name: 'Đế Vương', desc: 'Son đỏ, viền vàng', price: 400, board: { type: 'classic', palette: 'devuong' } },
 
-    { id: 'pieces-default', cat: 'pieces', name: 'Theo Tượng Kỳ', desc: 'Quân cờ chính thức', price: 0, pieces: { style: 'default' } },
+    { id: 'pieces-default', cat: 'pieces', name: 'Theo Sĩ Tượng Kỳ', desc: 'Quân cờ chính thức', price: 0, pieces: { style: 'default' } },
     { id: 'pieces-wood', cat: 'pieces', name: 'Truyền thống', desc: 'Gỗ khắc chữ', price: 0, pieces: { style: 'wood' } },
     { id: 'pieces-classic', cat: 'pieces', name: 'Cổ điển', desc: 'Viền nét mảnh', price: 0, pieces: { style: 'classic' } },
     { id: 'pieces-modern', cat: 'pieces', name: 'Hiện đại', desc: 'Phẳng, tương phản cao', price: 0, pieces: { style: 'modern' } },
