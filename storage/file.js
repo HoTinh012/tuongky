@@ -6,7 +6,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const DIRS = { avatars: path.join(DATA_DIR, 'avatars'), uploads: path.join(DATA_DIR, 'uploads') };
 for (const d of [DATA_DIR, ...Object.values(DIRS)]) fs.mkdirSync(d, { recursive: true });
 
-const FILES = { users: 'db.json', puzzles: 'puzzles.json', theme: 'theme.json', tournaments: 'tournaments.json', economy: 'economy.json', community: 'community.json', uiNotes: 'ui-notes.json', shop: 'shop.json', features: 'features.json', siteConfig: 'site-config.json' };
+const FILES = { users: 'db.json', puzzles: 'puzzles.json', theme: 'theme.json', tournaments: 'tournaments.json', economy: 'economy.json', community: 'community.json', uiNotes: 'ui-notes.json', shop: 'shop.json', features: 'features.json', siteConfig: 'site-config.json', bots: 'bots.json' };
 const file = (name) => path.join(DATA_DIR, FILES[name]);
 
 function readJson(name) {
@@ -49,6 +49,8 @@ module.exports = {
   async saveFeatures(value) { writeJson('features', value, true); },
   async loadSiteConfig() { return readJson('siteConfig'); },
   async saveSiteConfig(value) { writeJson('siteConfig', value, true); },
+  async loadBots() { return readJson('bots'); },
+  async saveBots(value) { writeJson('bots', value, true); },
   async saveCommunity(list) { writeJson('community', list); },
   async saveEconomy(value) { writeJson('economy', value, true); },
   async loadTournaments() { return readJson('tournaments') || []; },

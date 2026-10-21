@@ -22,6 +22,7 @@ const config = require('./config-store.js');
 const CFG = config.values; // cài đặt hệ thống (admin chỉnh) — luôn đọc CFG.X lúc dùng
 const F = (key) => features.on(key); // chức năng đang bật? (admin → Chức năng web)
 const community = require('./community.js');
+const bots = require('./bots.js');
 const E = Catalog.ECONOMY; // cài đặt chế độ chơi (admin chỉnh được) — luôn đọc E.X để thấy giá trị mới nhất
 
 const PORT = process.env.PORT || 3000;
@@ -373,6 +374,7 @@ function broadcast(room) {
   for (const [sid, token] of room.members) {
     io.to(sid).emit('state', { ...base, you: colorOf(room, token) });
   }
+  if (room.bot) bots.onState(room); // ván của bot AI: đến lượt bot thì bot "suy nghĩ" rồi đi
 }
 
 function systemMsg(room, text) {
@@ -519,6 +521,7 @@ function vacateSeat(room, color) {
 // Người cuối cùng chủ động rời → huỷ ngay; mất kết nối → chờ thời gian giữ chỗ (abandonMs) để còn kịp tải lại trang.
 function checkEmpty(room, immediate) {
   if (room.members.size > 0) return;
+  if (room.bot && (room.players.r || room.players.b) && !room.game.result) return; // bàn / ván bot vẫn chạy khi không ai xem
   room.emptySince = Date.now();
   clearTimeout(room.emptyTimer);
   if (immediate) destroyRoom(room);
@@ -653,6 +656,11 @@ function onlineInfo() {
     o.roomId = o.roomId || s.data.roomId || null;
     accounts.set(s.data.accountId, o);
   }
+  // Bot AI đang online cũng tính như kỳ thủ online
+  for (const id of bots.onlineIds()) {
+    identities.add('a:' + id);
+    if (!accounts.has(id)) accounts.set(id, { sockets: 1, roomId: (bots.presence(id) || {}).roomId || null });
+  }
   return { accounts, total: identities.size };
 }
 
@@ -694,6 +702,8 @@ function closeRoom(id, reason) {
 
 // Kỳ thủ đang online? Đang ở phòng nào (đang chơi / xem)?
 function presenceOf(accountId) {
+  const botPresence = bots.presence(accountId);
+  if (botPresence) return botPresence;
   const s = socketsOf(accountId);
   if (!s.length) return { online: false, roomId: null, playing: false };
   const roomId = (s.find((x) => x.data.roomId) || {}).data?.roomId || null;
@@ -711,6 +721,7 @@ setupAdmin(app, {
   features, onFeaturesChange: (state) => io.emit('features', state),
   config, onConfigChange: (values) => io.emit('site-config', values),
   community, onCommunityDelete: (id) => io.emit('community-delete', id),
+  bots,
 });
 
 // Bàn chơi nhanh đang chờ: đúng nhịp & mức đặt, mới có 1 người (không phải mình), chưa bắt đầu
@@ -935,6 +946,132 @@ users.hooks.onNotify = (accountId, n, unread) => {
   for (const s of socketsOf(accountId)) s.emit('notify', { notification: n, unread });
 };
 
+// ---------- Thao tác trong ván (người qua socket, bot qua bots.js) ----------
+function roomChat(room, color, text) {
+  text = String(text || '').trim().slice(0, CFG.CHAT_MAX_TEXT);
+  if (!text) return;
+  const name = color ? room.players[color].name : 'Khán giả';
+  const msg = { name, color, text, at: Date.now() };
+  room.chat.push(msg);
+  if (room.chat.length > 100) room.chat.shift();
+  io.to(room.id).emit('chat', msg);
+}
+
+// Trả về chuỗi lỗi để báo cho người chơi, hoặc null nếu hợp lệ
+function playMove(room, color, from, to) {
+  const g = room.game;
+  if (!color || g.result || !room.players.r || !room.players.b) return null;
+  if (!g.startedAt) return 'Ván chưa bắt đầu — chờ cả hai bấm Sẵn sàng.';
+  if (color !== g.turn) return 'Chưa đến lượt bạn.';
+  if (!X.isLegalMove(g.board, color, from, to)) return 'Nước đi không hợp lệ.';
+  const now = Date.now();
+  if (isTimeUp(room, now)) { timeOut(room); return null; }
+  if (hasClock(room) && g.clock.turnStartedAt && room.settings.totalMs) {
+    g.clock[color] -= now - g.clock.turnStartedAt;
+    g.clock[color] += room.settings.incMs || 0; // cộng giờ sau mỗi nước (nhịp x+y)
+  }
+
+  const captured = g.board[to[0]][to[1]];
+  g.board = X.applyMove(g.board, from, to);
+  g.lastMove = { from, to, captured };
+  g.history.push(g.lastMove);
+  g.moveCount++;
+  g.turn = X.other(color);
+  room.drawOffer = null;
+  room.takebackOffer = null;
+
+  if (!X.hasAnyLegalMove(g.board, g.turn)) {
+    finish(room, color, X.isInCheck(g.board, g.turn) ? 'checkmate' : 'stalemate');
+  } else if (hasClock(room)) {
+    g.clock.turnStartedAt = now;
+    scheduleTimeout(room);
+  }
+  broadcast(room);
+  return null;
+}
+
+// Phòng riêng & Chơi nhanh: cả hai bấm Sẵn sàng (xác nhận) thì ván bắt đầu
+function playReady(room, color, on = true) {
+  if (!color || !NEEDS_READY.includes(room.kind) || room.game.startedAt || room.game.result) return null;
+  // Chơi nhanh: kiểm tra lại xu trước khi xác nhận cược
+  if (on && room.kind === 'coin') {
+    const acc = room.players[color].accountId ? users.get(room.players[color].accountId) : null;
+    if (!acc || acc.coins < room.stake) return `Không đủ xu — bàn này cược ${room.stake} xu.`;
+  }
+  if (on) room.ready.add(color); else room.ready.delete(color);
+  systemMsg(room, room.kind === 'coin'
+    ? `${room.players[color].name} ${on ? `đã xác nhận cược ${room.stake} xu` : 'huỷ xác nhận'}.`
+    : `${room.players[color].name} ${on ? 'đã sẵn sàng' : 'huỷ sẵn sàng'}.`);
+  if (room.players.r && room.players.b && room.ready.size === 2) {
+    beginGame(room);
+    systemMsg(room, 'Cả hai đã sẵn sàng — ván đấu bắt đầu!');
+  }
+  broadcast(room);
+  return null;
+}
+
+function playResign(room, color) {
+  if (!color || room.game.result || !room.players.r || !room.players.b) return;
+  finish(room, X.other(color), 'resign');
+  systemMsg(room, `${room.players[color].name} đã đầu hàng.`);
+  broadcast(room);
+}
+
+function playOfferDraw(room, color) {
+  if (!color || room.game.result || !room.players.r || !room.players.b) return;
+  if (room.drawOffer && room.drawOffer !== color) {
+    finish(room, null, 'draw');
+    systemMsg(room, 'Hai bên đồng ý hoà.');
+  } else {
+    room.drawOffer = color;
+    systemMsg(room, `${room.players[color].name} xin hoà.`);
+  }
+  broadcast(room);
+}
+
+function playDeclineDraw(room, color) {
+  if (!color || !room.drawOffer || room.drawOffer === color) return;
+  room.drawOffer = null;
+  systemMsg(room, `${room.players[color].name} từ chối hoà.`);
+  broadcast(room);
+}
+
+function playRematch(room, color) {
+  // Phòng riêng & ván ghép trận (xếp hạng / chơi nhanh / ghép thường) được đấu lại; ván giải đấu thì không
+  if (!color || !room.game.result || !room.players.r || !room.players.b || !['room', 'ranked', 'coin', 'match'].includes(room.kind)) return;
+  room.rematch.add(color);
+  if (room.rematch.size === 2) {
+    // Ván xếp hạng / chơi nhanh: kiểm tra lại xu của cả hai, xếp hạng thì trừ phí như ván mới
+    const need = room.kind === 'coin' ? room.stake : room.kind === 'ranked' ? E.RANKED_FEE : 0;
+    if (need) {
+      const accs = ['r', 'b'].map((c) => (room.players[c].accountId ? users.get(room.players[c].accountId) : null));
+      if (accs.some((a) => !a || a.coins < need)) {
+        room.rematch.clear();
+        systemMsg(room, `Không thể đấu lại — mỗi bên cần ít nhất ${need} xu.`);
+        return broadcast(room);
+      }
+      if (room.kind === 'ranked') { for (const a of accs) users.spendCoins(a.id, need); room.fee = need; }
+    }
+    archiveGame(room);
+    // Đổi màu cho ván mới
+    [room.players.r, room.players.b] = [room.players.b, room.players.r];
+    room.game = newGame(room.settings);
+    room.game.names = { r: room.players.r.name, b: room.players.b.name };
+    room.game.startedAt = Date.now();
+    startClock(room);
+    room.rematch.clear();
+    room.drawOffer = null;
+    systemMsg(room, 'Ván mới bắt đầu — hai bên đã đổi màu quân.');
+  }
+  broadcast(room);
+}
+
+bots.setup({
+  users, rooms, engine: engineServer, E, F, tcSettings, regions: () => CFG.REGIONS || [],
+  createRoom, beginGame, broadcast, systemMsg, chat: roomChat, vacateSeat, destroyRoom,
+  playMove, playReady, playResign, playOfferDraw, playDeclineDraw, playRematch,
+});
+
 io.on('connection', (socket) => {
   // Trình duyệt báo mã người chơi ngay khi kết nối (để biết ai đang online)
   socket.on('hello', ({ uid, session } = {}) => {
@@ -1020,6 +1157,10 @@ io.on('connection', (socket) => {
     if (!needAccount(socket)) return;
     spectate = !!spectate;
     let note = null;
+    if (room.bot && !spectate && !colorOf(room, token)) {
+      spectate = true; // bàn của bot AI: chỉ vào xem
+      if (!room.players.r || !room.players.b) note = 'Bàn này đã hẹn đối thủ trước — bạn đang xem.';
+    }
     const accId = socket.data.accountId;
     const reservedSeat = room.reserved && accId && ['r', 'b'].some((c) => room.reserved[c] === accId);
     const wouldSit = !spectate && !colorOf(room, token) && (room.reserved ? reservedSeat : (!room.players.r || !room.players.b));
@@ -1084,124 +1225,17 @@ io.on('connection', (socket) => {
 
   socket.on('leave', () => leaveRoom(socket, { explicit: true }));
 
-  socket.on('move', ({ from, to } = {}) => {
-    const room = currentRoom(socket);
-    if (!room) return;
-    const g = room.game;
-    const color = colorOf(room, socket.data.token);
-    if (!color || g.result || !room.players.r || !room.players.b) return;
-    if (!g.startedAt) return socket.emit('error-msg', 'Ván chưa bắt đầu — chờ cả hai bấm Sẵn sàng.');
-    if (color !== g.turn) return socket.emit('error-msg', 'Chưa đến lượt bạn.');
-    if (!X.isLegalMove(g.board, color, from, to)) return socket.emit('error-msg', 'Nước đi không hợp lệ.');
-    const now = Date.now();
-    if (isTimeUp(room, now)) return timeOut(room);
-    if (hasClock(room) && g.clock.turnStartedAt && room.settings.totalMs) {
-      g.clock[color] -= now - g.clock.turnStartedAt;
-      g.clock[color] += room.settings.incMs || 0; // cộng giờ sau mỗi nước (nhịp x+y)
-    }
-
-    const captured = g.board[to[0]][to[1]];
-    g.board = X.applyMove(g.board, from, to);
-    g.lastMove = { from, to, captured };
-    g.history.push(g.lastMove);
-    g.moveCount++;
-    g.turn = X.other(color);
-    room.drawOffer = null;
-    room.takebackOffer = null;
-
-    if (!X.hasAnyLegalMove(g.board, g.turn)) {
-      finish(room, color, X.isInCheck(g.board, g.turn) ? 'checkmate' : 'stalemate');
-    } else if (hasClock(room)) {
-      g.clock.turnStartedAt = now;
-      scheduleTimeout(room);
-    }
-    broadcast(room);
-  });
-
-  socket.on('resign', () => {
-    const room = currentRoom(socket);
-    const color = room && colorOf(room, socket.data.token);
-    if (!color || room.game.result || !room.players.r || !room.players.b) return;
-    finish(room, X.other(color), 'resign');
-    systemMsg(room, `${room.players[color].name} đã đầu hàng.`);
-    broadcast(room);
-  });
-
-  socket.on('offer-draw', () => {
-    const room = currentRoom(socket);
-    const color = room && colorOf(room, socket.data.token);
-    if (!color || room.game.result || !room.players.r || !room.players.b) return;
-    if (room.drawOffer && room.drawOffer !== color) {
-      finish(room, null, 'draw');
-      systemMsg(room, 'Hai bên đồng ý hoà.');
-    } else {
-      room.drawOffer = color;
-      systemMsg(room, `${room.players[color].name} xin hoà.`);
-    }
-    broadcast(room);
-  });
-
-  socket.on('decline-draw', () => {
-    const room = currentRoom(socket);
-    const color = room && colorOf(room, socket.data.token);
-    if (!color || !room.drawOffer || room.drawOffer === color) return;
-    room.drawOffer = null;
-    systemMsg(room, `${room.players[color].name} từ chối hoà.`);
-    broadcast(room);
-  });
-
-  socket.on('rematch', () => {
-    const room = currentRoom(socket);
-    const color = room && colorOf(room, socket.data.token);
-    // Phòng riêng & ván ghép trận (xếp hạng / chơi nhanh / ghép thường) được đấu lại; ván giải đấu thì không
-    if (!color || !room.game.result || !room.players.r || !room.players.b || !['room', 'ranked', 'coin', 'match'].includes(room.kind)) return;
-    room.rematch.add(color);
-    if (room.rematch.size === 2) {
-      // Ván xếp hạng / chơi nhanh: kiểm tra lại xu của cả hai, xếp hạng thì trừ phí như ván mới
-      const need = room.kind === 'coin' ? room.stake : room.kind === 'ranked' ? E.RANKED_FEE : 0;
-      if (need) {
-        const accs = ['r', 'b'].map((c) => (room.players[c].accountId ? users.get(room.players[c].accountId) : null));
-        if (accs.some((a) => !a || a.coins < need)) {
-          room.rematch.clear();
-          systemMsg(room, `Không thể đấu lại — mỗi bên cần ít nhất ${need} xu.`);
-          return broadcast(room);
-        }
-        if (room.kind === 'ranked') { for (const a of accs) users.spendCoins(a.id, need); room.fee = need; }
-      }
-      archiveGame(room);
-      // Đổi màu cho ván mới
-      [room.players.r, room.players.b] = [room.players.b, room.players.r];
-      room.game = newGame(room.settings);
-      room.game.names = { r: room.players.r.name, b: room.players.b.name };
-      room.game.startedAt = Date.now();
-      startClock(room);
-      room.rematch.clear();
-      room.drawOffer = null;
-      systemMsg(room, 'Ván mới bắt đầu — hai bên đã đổi màu quân.');
-    }
-    broadcast(room);
-  });
+  // Nước đi / đầu hàng / hoà / đấu lại: dùng chung với bot (bots.js) qua các hàm play*() ở trên
+  const seated = () => { const room = currentRoom(socket); const color = room && colorOf(room, socket.data.token); return color ? { room, color } : null; };
+  const reply = (err) => { if (err) socket.emit('error-msg', err); };
+  socket.on('move', ({ from, to } = {}) => { const s = seated(); if (s) reply(playMove(s.room, s.color, from, to)); });
+  socket.on('resign', () => { const s = seated(); if (s) playResign(s.room, s.color); });
+  socket.on('offer-draw', () => { const s = seated(); if (s) playOfferDraw(s.room, s.color); });
+  socket.on('decline-draw', () => { const s = seated(); if (s) playDeclineDraw(s.room, s.color); });
+  socket.on('rematch', () => { const s = seated(); if (s) playRematch(s.room, s.color); });
 
   // Phòng riêng & Chơi nhanh: cả hai bấm Sẵn sàng (xác nhận) thì ván bắt đầu
-  socket.on('ready', (on = true) => {
-    const room = currentRoom(socket);
-    const color = room && colorOf(room, socket.data.token);
-    if (!color || !NEEDS_READY.includes(room.kind) || room.game.startedAt || room.game.result) return;
-    // Chơi nhanh: kiểm tra lại xu trước khi xác nhận cược
-    if (on && room.kind === 'coin') {
-      const acc = room.players[color].accountId ? users.get(room.players[color].accountId) : null;
-      if (!acc || acc.coins < room.stake) return socket.emit('error-msg', `Không đủ xu — bàn này cược ${room.stake} xu.`);
-    }
-    if (on) room.ready.add(color); else room.ready.delete(color);
-    systemMsg(room, room.kind === 'coin'
-      ? `${room.players[color].name} ${on ? `đã xác nhận cược ${room.stake} xu` : 'huỷ xác nhận'}.`
-      : `${room.players[color].name} ${on ? 'đã sẵn sàng' : 'huỷ sẵn sàng'}.`);
-    if (room.players.r && room.players.b && room.ready.size === 2) {
-      beginGame(room);
-      systemMsg(room, 'Cả hai đã sẵn sàng — ván đấu bắt đầu!');
-    }
-    broadcast(room);
-  });
+  socket.on('ready', (on = true) => { const s = seated(); if (s) reply(playReady(s.room, s.color, on)); });
 
   // Xin đi lại (chỉ phòng riêng có bật luật đi lại). Đối thủ đồng ý → lùi về trước nước đi gần nhất của người xin.
   socket.on('takeback', () => {
@@ -1245,14 +1279,7 @@ io.on('connection', (socket) => {
     const room = currentRoom(socket);
     if (!room) return;
     if (!F('chat')) return socket.emit('error-msg', features.offMessage('chat'));
-    text = String(text || '').trim().slice(0, CFG.CHAT_MAX_TEXT);
-    if (!text) return;
-    const color = colorOf(room, socket.data.token);
-    const name = color ? room.players[color].name : 'Khán giả';
-    const msg = { name, color, text, at: Date.now() };
-    room.chat.push(msg);
-    if (room.chat.length > 100) room.chat.shift();
-    io.to(room.id).emit('chat', msg);
+    roomChat(room, colorOf(room, socket.data.token), text);
   });
 
   // ---------- Ghép trận ----------
@@ -1322,7 +1349,7 @@ setInterval(() => {
 (async () => {
   try {
     if (storage.check) await storage.check();
-    await Promise.all([users.init(), puzzles.init(), theme.init(), tournaments.init(), economy.init(), community.init(), features.init(), config.init()]);
+    await Promise.all([users.init(), puzzles.init(), theme.init(), tournaments.init(), economy.init(), community.init(), features.init(), config.init(), bots.init()]);
     await shop.init(); // sau theme.init(): vật phẩm bàn cờ ảnh tải lên cần thư viện ảnh
   } catch (err) {
     console.error('Không nạp được dữ liệu:', err.message);
