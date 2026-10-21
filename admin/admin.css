@@ -1,4 +1,4 @@
-/* Trang quản trị Tượng Kỳ — dùng chung token & thành phần của /style.css, phần dưới là riêng cho admin */
+/* Trang quản trị Sĩ Tượng Kỳ — dùng chung token & thành phần của /style.css, phần dưới là riêng cho admin */
 
 /* Đăng nhập */
 #login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
