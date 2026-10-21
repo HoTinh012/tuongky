@@ -513,14 +513,14 @@
   }
   function updateCrumbs() {
     const nav = $('crumbs');
-    const items = [['Tượng Kỳ', '#/'], ...crumbsOf(currentScreen)];
+    const items = [['Sĩ Tượng Kỳ', '#/'], ...crumbsOf(currentScreen)];
     nav.replaceChildren(...items.flatMap(([label, href], i) => {
       const last = i === items.length - 1;
       const node = last || !href ? h('b', { text: label }) : h('a', { href, text: label });
       return i ? [h('span', { text: '/' }), node] : [node];
     }));
     document.querySelectorAll('.nav-item, .bnav-item').forEach((b) => b.classList.toggle('active', b.dataset.go === navOf(currentScreen)));
-    document.title = `${items[items.length - 1][0]} · Tượng Kỳ`;
+    document.title = `${items[items.length - 1][0]} · Sĩ Tượng Kỳ`;
     // Nút Quay lại (góc trên bên trái): về mục cha gần nhất trên đường dẫn; trang chủ thì ẩn
     const parent = items.slice(0, -1).reverse().find(([, href]) => href);
     backTarget = currentScreen === 'home' ? null : parent ? parent[1] : '#/';
@@ -873,7 +873,7 @@
     else toast(msg);
   });
 
-  // ---------- Giao diện bàn cờ: theo Tượng Kỳ + đồ trang bị trong Túi đồ ----------
+  // ---------- Giao diện bàn cờ: theo Sĩ Tượng Kỳ + đồ trang bị trong Túi đồ ----------
   const svg = $('board');
   let serverTheme = BR.DEFAULT_THEME;
   // Bộ trang bị (mã vật phẩm trong catalog.js): tài khoản lưu trên server, khách lưu trên trình duyệt (chỉ đồ miễn phí)
@@ -1473,7 +1473,7 @@
       board: X.replay(state.history).boards[state.history.length], lastMove: state.history[state.history.length - 1] || null,
       link: share.gameId ? `${location.host}/#/replay/${share.gameId}` : location.host,
     };
-    share.text = [`Tượng Kỳ — ${info.title}`, info.sub, elo !== null ? `Elo ${signed(elo)}` : null].filter(Boolean).join(' · ');
+    share.text = [`Sĩ Tượng Kỳ — ${info.title}`, info.sub, elo !== null ? `Elo ${signed(elo)}` : null].filter(Boolean).join(' · ');
     $('share-link').disabled = !share.gameId;
     $('share-link').title = share.gameId ? '' : 'Đăng nhập để lưu ván và có link xem lại';
     $('share-modal').classList.remove('hidden');
@@ -1496,7 +1496,7 @@
     const logo = await loadLogo();
     if (logo) ctx.drawImage(logo, 64, 52, 64, 64);
     ctx.fillStyle = '#fff'; ctx.font = font(800, 34); ctx.textBaseline = 'middle';
-    ctx.fillText('Tượng Kỳ', logo ? 142 : 64, 84);
+    ctx.fillText('Sĩ Tượng Kỳ', logo ? 142 : 64, 84);
     ctx.fillStyle = '#cbbfb2'; ctx.font = font(600, 22);
     ctx.fillText(info.kind, 64, 160);
     // Kết quả
@@ -1585,8 +1585,8 @@
     const url = share.gameId ? replayUrl(share.gameId) : location.origin;
     try {
       const file = share.blob && new File([share.blob], 'tuongky-ket-qua.png', { type: 'image/png' });
-      if (file && navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Tượng Kỳ', text: `${share.text} ${url}` });
-      else if (navigator.share) await navigator.share({ title: 'Tượng Kỳ', text: share.text, url });
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Sĩ Tượng Kỳ', text: `${share.text} ${url}` });
+      else if (navigator.share) await navigator.share({ title: 'Sĩ Tượng Kỳ', text: share.text, url });
       else { $('share-download').click(); toast('Trình duyệt không hỗ trợ chia sẻ — đã tải ảnh về máy.'); }
     } catch { /* người dùng huỷ chia sẻ */ }
   });
@@ -3208,7 +3208,7 @@
     navigate('rules');
   });
   $('pf-share').addEventListener('click', async () => {
-    const data = { title: 'Tượng Kỳ', text: `Chơi cờ tướng với mình trên Tượng Kỳ nhé!${me ? ` Tìm mình: @${me.username}` : ''}`, url: location.origin };
+    const data = { title: 'Sĩ Tượng Kỳ', text: `Chơi cờ tướng với mình trên Sĩ Tượng Kỳ nhé!${me ? ` Tìm mình: @${me.username}` : ''}`, url: location.origin };
     try {
       if (navigator.share) await navigator.share(data);
       else { await navigator.clipboard.writeText(`${data.text} ${data.url}`); toast('Đã sao chép lời mời — dán gửi cho bạn bè nhé!'); }
@@ -4661,7 +4661,7 @@
     const { notes } = replayData(game);
     const where = roomId ? 'Phòng ' + roomId : state.ai ? 'Đấu máy' : 'Xem lại';
     const lines = [
-      `Tượng Kỳ — ${where} — Ván ${game.n}`,
+      `Sĩ Tượng Kỳ — ${where} — Ván ${game.n}`,
       'Đỏ: ' + (game.players.r || '?'),
       'Đen: ' + (game.players.b || '?'),
       resultText(game.result, game.players) || 'Kết quả: chưa kết thúc',

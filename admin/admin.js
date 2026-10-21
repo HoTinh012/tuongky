@@ -396,7 +396,7 @@
     const v = t || { name: '', description: '', format: 'swiss', maxPlayers: 16, totalRounds: 5, tc: { totalMin: 10, incSec: 5 }, entryFee: 0, prizes: [300, 150, 80], startAt: Date.now() + 3600e3, checkinMin: 15, noShowMin: 5 };
     const inp = (name, value, attrs = {}) => h('input', { name, value: value ?? '', autocomplete: 'off', ...attrs });
     const f = {
-      name: inp('name', v.name, { maxlength: 80, required: true, placeholder: 'VD: Cúp Tượng Kỳ mùa thu' }),
+      name: inp('name', v.name, { maxlength: 80, required: true, placeholder: 'VD: Cúp Sĩ Tượng Kỳ mùa thu' }),
       description: h('textarea', { name: 'description', rows: 2, maxlength: 600, placeholder: 'Thể lệ, đối tượng, ghi chú…' }),
       format: h('select', { name: 'format' }, ...Object.entries(FORMAT).map(([k, label]) => { const o = h('option', { value: k }, label); o.selected = v.format === k; return o; })),
       maxPlayers: inp('maxPlayers', v.maxPlayers, { type: 'number', min: 2, max: 64 }),
@@ -560,7 +560,7 @@
       return;
     }
     $('page-title').textContent = detail.account.displayName;
-    document.title = `${detail.account.displayName} · Quản trị Tượng Kỳ`;
+    document.title = `${detail.account.displayName} · Quản trị Sĩ Tượng Kỳ`;
     renderUserDetail();
   }
 
@@ -1341,7 +1341,7 @@
   }
   const shopDirty = () => JSON.stringify(SH.items) !== JSON.stringify(SH.saved);
 
-  // Vật phẩm → cấu hình vẽ (giống trang chơi; "Theo Tượng Kỳ" = giao diện mặc định ở trang Bàn cờ & quân cờ)
+  // Vật phẩm → cấu hình vẽ (giống trang chơi; "Theo Sĩ Tượng Kỳ" = giao diện mặc định ở trang Bàn cờ & quân cờ)
   function shopTheme(it) {
     const base = themeCache || BR.DEFAULT_THEME;
     if (it.cat === 'board') {
@@ -1532,7 +1532,7 @@
     document.querySelectorAll('.nav-item[data-page]').forEach((b) => b.classList.toggle('active', b.dataset.page === navName));
     for (const p of Object.keys(PAGES)) $('page-' + p).classList.toggle('hidden', p !== name);
     $('page-title').textContent = PAGES[name];
-    document.title = `${PAGES[name]} · Quản trị Tượng Kỳ`;
+    document.title = `${PAGES[name]} · Quản trị Sĩ Tượng Kỳ`;
     if (!['user', 'puzzle', 'tournament'].includes(name) && location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
     if (name === 'tournaments') loadTournaments();
     if (name === 'puzzles') loadPuzzles();

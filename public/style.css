@@ -1,5 +1,5 @@
 /* =========================================================
-   Tượng Kỳ — giao diện sáng (kem / đỏ son / đen nâu)
+   Sĩ Tượng Kỳ — giao diện sáng (kem / đỏ son / đen nâu)
    Token theo tài liệu nhận diện: Đỏ son #C61D1D · Ngà #F2D7A6 · Đen nâu #1B1612 · Vàng đồng (tiết chế)
    ========================================================= */
 :root {
@@ -3226,3 +3226,15 @@ body.is-guest #ai-tabs .tab[data-ai-tab="puzzles"], body.is-guest #ai-tabs .tab[
 }
 
 .ab-msg.soft { color: var(--muted); }
+
+/* Biên bản (Phân tích): khung luôn cao cố định, nước đi xếp từ trên xuống, dài thì cuộn trong khung */
+.ab-moves { align-content: start; grid-auto-rows: max-content; }
+.ab-movescard { display: flex; flex-direction: column; }
+.ab-movescard .ab-moves { flex: 1 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; }
+@media (min-width: 761px) {
+  .ab-left .ab-movescard { height: 260px; flex: none; }
+}
+
+/* Tên "Sĩ Tượng Kỳ" dài hơn: giữ một dòng trên menu trái */
+.brand-text b { font-size: 19px; white-space: nowrap; letter-spacing: -0.015em; }
+.brand-text { min-width: 0; }
