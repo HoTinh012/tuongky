@@ -825,9 +825,48 @@ function runMatchmaker() {
       proposeMatch(a, best);
     }
   }
+  fillWithBots(now);
   for (const e of queue.values()) {
     const w = mmWindow(e, now);
     e.socket.emit('mm-status', { queued: true, since: e.since, now, range: w === Infinity ? null : w, searching: queue.size, rating: e.rating, mode: e.mode, stake: e.stake || null });
+  }
+}
+
+// Người chơi chờ quá lâu (admin → Bot AI → Ghép bot cho người chờ lâu): xếp một bot có Elo gần nhất làm đối thủ.
+// Hàng chờ ghép trận: bot "tìm thấy" người chơi, người chơi vẫn bấm Chấp nhận như thường, bot chấp nhận sau 1–4 giây.
+// Bàn chờ Chơi nhanh có 1 người: bot vào ngồi rồi xác nhận cược.
+const botSeat = (acc) => ({
+  token: 'bot:' + acc.id, uid: 'a:' + acc.id, accountId: acc.id, name: acc.displayName, online: true,
+  avatar: acc.avatar || null, username: acc.username, rating: acc.rating,
+});
+function fillWithBots(now) {
+  const fillMs = bots.fillAfterMs();
+  if (fillMs === null) return;
+  for (const e of [...queue.values()].sort((a, b) => a.since - b.since)) {
+    if (now - e.since < fillMs || !e.accountId || !F(e.mode)) continue;
+    const bot = bots.reserveForHuman(e.rating, e.mode === 'coin' ? e.stake : E.RANKED_FEE);
+    if (!bot) return;
+    const be = {
+      bot: true, socket: { id: 'bot:' + bot.id, connected: true, emit() {} }, token: 'bot:' + bot.id, name: bot.displayName,
+      identity: 'a:' + bot.id, accountId: bot.id, rating: bot.rating, settings: e.settings, since: now, mode: e.mode, stake: e.stake,
+    };
+    const m = proposeMatch(e, be);
+    setTimeout(() => acceptMatch(be.socket, m.id), 1000 + Math.random() * 3000);
+  }
+  for (const room of waitingCoinTables()) {
+    if (room.bot || now - room.createdAt < fillMs) continue;
+    const hc = room.players.r ? 'r' : 'b';
+    const host = room.players[hc].accountId ? users.get(room.players[hc].accountId) : null;
+    if (!host) continue;
+    const bot = bots.reserveForHuman(host.rating, room.stake);
+    if (!bot) return;
+    const c = X.other(hc);
+    room.players[c] = botSeat(bot);
+    bots.attach(room, bot.id);
+    room.game.names = { r: room.players.r.name, b: room.players.b.name };
+    systemMsg(room, `${bot.displayName} đã vào cầm quân ${c === 'r' ? 'Đỏ' : 'Đen'}.`);
+    systemMsg(room, `Chơi nhanh ${room.stake} xu — thắng nhận ${room.stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`);
+    broadcast(room);
   }
 }
 
@@ -849,6 +888,7 @@ function proposeMatch(a, b) {
       fee: rated ? E.RANKED_FEE : 0, deadline: m.deadline, now: Date.now(),
     });
   }
+  return m;
 }
 
 function acceptMatch(socket, matchId) {
@@ -870,6 +910,7 @@ function declineMatch(m, socketId, why) {
   clearTimeout(m.timer);
   pendingMatches.delete(m.id);
   for (const e of [m.a, m.b]) {
+    if (e.bot) { bots.release(e.accountId); continue; } // bot không quay lại hàng chờ
     if (e.socket.id === socketId) {
       e.socket.emit('mm-status', { queued: false, reason: why === 'timeout' ? 'Bạn chưa xác nhận kịp — đã rời hàng chờ.' : null });
     } else if (e.socket.connected) {
@@ -883,7 +924,7 @@ function declineMatch(m, socketId, why) {
 // Tạo phòng cho 2 người đã chấp nhận (dùng thể thức của người chờ lâu hơn), màu quân ngẫu nhiên
 function startMatch(a, b) {
   if (!a.socket.connected || !b.socket.connected) {
-    for (const e of [a, b]) if (e.socket.connected) { queue.set(e.socket.id, e); e.socket.emit('mm-requeue', { reason: 'Đối thủ đã thoát — đang tìm người khác.' }); }
+    for (const e of [a, b]) if (e.bot) bots.release(e.accountId); else if (e.socket.connected) { queue.set(e.socket.id, e); e.socket.emit('mm-requeue', { reason: 'Đối thủ đã thoát — đang tìm người khác.' }); }
     return;
   }
   const accA = a.accountId ? users.get(a.accountId) : null, accB = b.accountId ? users.get(b.accountId) : null;
@@ -894,8 +935,9 @@ function startMatch(a, b) {
     if (need && (!acc || acc.coins < need)) {
       const other = e === a ? b : a;
       e.socket.emit('mm-status', { queued: false, reason: `Không đủ xu (cần ${need} xu).` });
-      queue.set(other.socket.id, other);
-      other.socket.emit('mm-requeue', { reason: 'Đối thủ không đủ xu — đang tìm người khác.' });
+      if (other.bot) bots.release(other.accountId);
+      else { queue.set(other.socket.id, other); other.socket.emit('mm-requeue', { reason: 'Đối thủ không đủ xu — đang tìm người khác.' }); }
+      if (e.bot) bots.release(e.accountId);
       return;
     }
   }
@@ -907,9 +949,15 @@ function startMatch(a, b) {
   }
   const room = createRoom(a.settings, { kind, matchmaking: true, stake: kind === 'coin' ? a.stake : null, fee, rules: { spectators: true, takeback: false } });
   const colorA = Math.random() < 0.5 ? 'r' : 'b';
-  room.players[colorA] = { token: a.token, uid: a.identity, accountId: a.accountId, name: a.name, online: true };
-  joinRoom(a.socket, room, a.name, a.token);
-  joinRoom(b.socket, room, b.name, b.token);
+  const botE = [a, b].find((e) => e.bot);
+  if (botE) {
+    // Bot ngồi trước (không có socket), người chơi vào ghế còn lại
+    room.players[botE === a ? colorA : X.other(colorA)] = botSeat(users.get(botE.accountId));
+    bots.attach(room, botE.accountId);
+  } else {
+    room.players[colorA] = { token: a.token, uid: a.identity, accountId: a.accountId, name: a.name, online: true };
+  }
+  for (const e of [a, b]) if (!e.bot) joinRoom(e.socket, room, e.name, e.token);
   systemMsg(room, kind === 'ranked' ? `Ván xếp hạng — có tính Elo, đã trừ ${E.RANKED_FEE} xu phí mỗi bên.`
     : kind === 'coin' ? `Chơi nhanh ${a.stake} xu — thắng nhận ${a.stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`
       : 'Ván được ghép tự động — không tính Elo (có khách tham gia).');

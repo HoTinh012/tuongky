@@ -1,6 +1,6 @@
 // Bot AI: các tài khoản do máy điều khiển, tự ghép cặp và đánh với nhau như kỳ thủ thật để sân chơi đông vui.
 // Ván của bot là phòng thật trên server (Xếp hạng / Chơi nhanh): hiện ở Trận đấu hot, Bàn đấu, ai cũng vào xem được,
-// tính Elo / xu / lịch sử như người. Bot chỉ đánh với bot — không vào hàng chờ ghép trận của người chơi.
+// tính Elo / xu / lịch sử như người. Bật fillHumans thì người chờ ghép trận / bàn chờ quá lâu được xếp một bot làm đối thủ.
 // Trang quản trị → Bot AI: bật/tắt, số bàn, loại ván, tốc độ, trò chuyện, tạo / xoá tài khoản bot.
 // Cấu hình lưu qua storage/ (data/bots.json hoặc khoá `bots` trong bảng settings của Supabase).
 'use strict';
@@ -36,6 +36,8 @@ const DEFAULTS = {
   speed: 1,              // 1 = nhịp như người thật; 0.25 = nhanh gấp 4
   chat: true,            // chào hỏi / "gg" trong ván
   rematchRate: 0.3,      // tỉ lệ hai bot đấu lại sau ván
+  fillHumans: false,     // người chơi chờ ghép trận / ngồi bàn chờ quá lâu → xếp một bot làm đối thủ
+  fillAfterSec: 30,      // chờ bao lâu thì xếp bot (giây)
   bots: [],              // [{ id, skill }]
 };
 
@@ -112,6 +114,8 @@ function clean(next) {
   if (next.speed !== undefined) out.speed = Math.max(0.1, Math.min(3, Number(next.speed) || 1));
   if (typeof next.chat === 'boolean') out.chat = next.chat;
   if (next.rematchRate !== undefined) out.rematchRate = Math.max(0, Math.min(1, Number(next.rematchRate) || 0));
+  if (typeof next.fillHumans === 'boolean') out.fillHumans = next.fillHumans;
+  if (next.fillAfterSec !== undefined) out.fillAfterSec = Math.max(5, Math.min(600, Math.round(Number(next.fillAfterSec)) || 30));
   return out;
 }
 function save() {
@@ -192,7 +196,7 @@ function thinkMs(room, color, forced) {
     ms = Math.max(1200, ms);
   }
   if (remaining < 40000) ms = Math.min(ms, rand(600, 2500));
-  ms *= cfg.speed;
+  if (!room.vsHuman) ms *= cfg.speed; // đánh với người thật: luôn nhịp như người
   return Math.max(400, Math.min(ms, perMoveCap, remaining * 0.3, 90000));
 }
 
@@ -217,6 +221,17 @@ function onState(room) {
     st.game = g; st.ply = -1; st.evals = { r: [], b: [] }; st.ended = false; st.positions = new Map(); st.greeted = true;
   }
   if (g.result) { if (!st.ended) { st.ended = true; setTimeout(() => afterGame(room), 50); } return; }
+  // Bàn Chơi nhanh đủ 2 người, chưa bắt đầu: bot bấm xác nhận cược sau vài giây
+  if (!g.startedAt && room.kind === 'coin' && room.players.r && room.players.b) {
+    st.readyAsked = st.readyAsked && st.readyAsked.game === g ? st.readyAsked : { game: g, colors: new Set() };
+    for (const c of ['r', 'b']) {
+      if (!isBot(room.players[c].accountId) || room.ready.has(c) || st.readyAsked.colors.has(c)) continue;
+      st.readyAsked.colors.add(c);
+      setTimeout(() => {
+        if (api.rooms.get(room.id) === room && room.game === g && !g.startedAt && !room.ready.has(c) && room.players[c] && isBot(room.players[c].accountId)) api.playReady(room, c, true);
+      }, rand(1500, 6000) * (room.vsHuman ? 1 : cfg.speed) + 600);
+    }
+  }
   if (!g.startedAt || st.ply === g.history.length || st.busy) return;
   const color = g.turn;
   const seat = room.players[color];
@@ -274,33 +289,53 @@ function afterGame(room) {
   if (!st || api.rooms.get(room.id) !== room) return;
   const g = room.game, res = g.result;
   const ids = ['r', 'b'].map((c) => room.players[c] && room.players[c].accountId).filter(Boolean);
-  // Lời chào cuối ván
+  const botColors = ['r', 'b'].filter((c) => room.players[c] && isBot(room.players[c].accountId));
+  const botSay = (c, lines, ms) => { if (botColors.includes(c)) setTimeout(() => say(room, c, lines), ms); };
+  // Lời chào cuối ván (chỉ bot nói)
   if (res && res.winner && chance(0.45)) {
     const loser = res.winner === 'r' ? 'b' : 'r';
-    setTimeout(() => say(room, loser, ['gg', 'gg bạn', 'hay', 'thua tâm phục', 'ván sau gỡ', 'gg wp']), rand(1200, 3500));
-    if (chance(0.5)) setTimeout(() => say(room, res.winner, ['gg', 'cảm ơn bạn', 'may thôi', 'gg wp', 'ván hay']), rand(2500, 6000));
-  } else if (res && !res.winner && chance(0.3)) setTimeout(() => say(room, pick(['r', 'b']), ['hoà vui', 'gg', 'cân quá']), rand(1500, 4000));
+    botSay(loser, ['gg', 'gg bạn', 'hay', 'thua tâm phục', 'ván sau gỡ', 'gg wp'], rand(1200, 3500));
+    if (chance(0.5)) botSay(res.winner, ['gg', 'cảm ơn bạn', 'may thôi', 'gg wp', 'ván hay'], rand(2500, 6000));
+  } else if (res && !res.winner && chance(0.3)) botSay(pick(botColors), ['hoà vui', 'gg', 'cân quá'], rand(1500, 4000));
+
+  const here = () => api.rooms.get(room.id) === room && room.game === g;
+  if (room.vsHuman) {
+    // Đánh với người: người bấm "Đấu lại" thì bot thường đồng ý, không thì bot rời bàn sau ít giây
+    const botC = botColors[0], humanC = botC === 'r' ? 'b' : 'r';
+    let decided = false;
+    const check = (final) => {
+      if (decided || !here()) return;
+      if (room.rematch.has(humanC)) {
+        decided = true;
+        if (chance(0.65)) { topUp(room.players[botC].accountId, room.stake || api.E.RANKED_FEE); api.playRematch(room, botC); }
+        else { say(room, botC, ['thôi mình nghỉ', 'hẹn ván sau nhé', 'mình bận rồi']); setTimeout(() => leave(room), rand(1500, 3000)); }
+      } else if (final) { decided = true; leave(room); }
+    };
+    setTimeout(() => check(false), rand(4000, 8000));
+    setTimeout(() => check(true), rand(12000, 18000));
+    return;
+  }
 
   const sessionOk = ids.every((id) => { const rt = runtime.get(id); return rt && rt.until > Date.now() + 60000; });
   if (cfg.enabled && sessionOk && ids.length === 2 && chance(cfg.rematchRate)) {
     // Đấu lại (đổi màu). Xếp hạng / Chơi nhanh cần đủ xu → nạp thêm cho bot nếu thiếu
     for (const id of ids) topUp(id, room.stake || api.E.RANKED_FEE);
-    const [a, b] = ['r', 'b'];
-    setTimeout(() => api.playRematch(room, a), rand(3000, 8000));
-    setTimeout(() => { if (api.rooms.get(room.id) === room && room.game === g) api.playRematch(room, b); }, rand(9000, 14000));
+    setTimeout(() => api.playRematch(room, 'r'), rand(3000, 8000));
+    setTimeout(() => { if (here()) api.playRematch(room, 'b'); }, rand(9000, 14000));
     // Không đấu lại được (vd thiếu xu) → rời bàn sau đó
-    setTimeout(() => { if (api.rooms.get(room.id) === room && room.game === g) leave(room); }, 20000);
+    setTimeout(() => { if (here()) leave(room); }, 20000);
   } else {
     setTimeout(() => leave(room), rand(5000, 15000));
   }
 }
 
+// Bot rời bàn sau ván (người thật vẫn ở lại xem kết quả)
 function leave(room) {
   if (api.rooms.get(room.id) !== room) { games.delete(room.id); return; }
   if (!room.game.result) return; // ván mới đã bắt đầu (đấu lại)
   for (const c of ['r', 'b']) {
     const seat = room.players[c];
-    if (!seat) continue;
+    if (!seat || !isBot(seat.accountId)) continue;
     const rt = runtime.get(seat.accountId);
     if (rt) { rt.state = 'idle'; rt.roomId = null; rt.readyAt = Date.now() + rand(20000, 120000) * Math.max(0.3, cfg.speed); }
     api.vacateSeat(room, c);
@@ -308,6 +343,38 @@ function leave(room) {
   games.delete(room.id);
   api.broadcast(room);
   if (room.members.size === 0) api.destroyRoom(room);
+}
+
+// ---------- Đánh với người chơi chờ lâu ----------
+// Server gọi khi một người chờ ghép trận / ngồi bàn chờ quá cfg.fillAfterSec: giữ một bot có Elo gần nhất.
+const fillAfterMs = () => (cfg.fillHumans && cfg.bots.length ? cfg.fillAfterSec * 1000 : null);
+function reserveForHuman(rating, coinsNeeded) {
+  if (!cfg.fillHumans) return null;
+  const now = Date.now();
+  const cands = cfg.bots.map((b) => ({ acc: api.users.get(b.id), rt: runtime.get(b.id) }))
+    .filter((x) => x.acc && !x.acc.banned && x.rt && (x.rt.state === 'idle' || x.rt.state === 'offline'));
+  if (!cands.length) return null;
+  // Ưu tiên bot đang online, Elo gần người chơi (thêm chút ngẫu nhiên cho tự nhiên)
+  const score = (x) => Math.abs(x.acc.rating - rating) + (x.rt.state === 'offline' ? 80 : 0) + Math.random() * 60;
+  const best = cands.map((x) => ({ ...x, s: score(x) })).sort((p, q) => p.s - q.s)[0];
+  if (best.rt.state === 'offline') best.rt.until = now + rand(20, 90) * 60000;
+  best.rt.state = 'reserved'; best.rt.reservedAt = now; best.rt.roomId = null;
+  topUp(best.acc.id, coinsNeeded || 0);
+  return best.acc;
+}
+// Người chơi từ chối / không xác nhận → trả bot về
+function release(id) {
+  const rt = runtime.get(id);
+  if (rt && rt.state === 'reserved') { rt.state = 'idle'; rt.readyAt = Date.now() + rand(5000, 20000); }
+}
+// Bot đã ngồi vào phòng có người thật: từ đây bot tự đi quân qua onState
+function attach(room, id) {
+  room.bot = true;
+  room.vsHuman = true;
+  const rt = runtime.get(id);
+  if (rt) { rt.state = 'playing'; rt.roomId = room.id; }
+  if (!games.has(room.id)) games.set(room.id, { game: room.game, ply: -1, busy: false, evals: { r: [], b: [] }, ended: false, positions: new Map(), vsHuman: true });
+  api.users.touch(id);
 }
 
 // ---------- Ghép cặp & lịch online ----------
@@ -374,9 +441,6 @@ function startGame(a, b) {
     } else {
       api.systemMsg(room, `Chơi nhanh ${stake} xu — thắng nhận ${stake} xu của đối thủ, hoà hoàn nguyên. Không tính Elo.`);
       api.broadcast(room);
-      // Mỗi bên bấm xác nhận cược sau vài giây (người vào sau thường xác nhận trước)
-      setTimeout(() => { if (alive()) api.playReady(room, guestColor, true); }, Math.max(600, rand(1500, 5000) * cfg.speed));
-      setTimeout(() => { if (alive()) api.playReady(room, hostColor, true); }, Math.max(1200, rand(3000, 9000) * cfg.speed));
     }
   }, wait);
   return true;
@@ -395,6 +459,7 @@ function tick() {
   // Dọn bot "đang chơi" ở phòng đã bị đóng (vd admin đóng phòng)
   for (const [id, rt] of runtime) {
     if (rt.state === 'playing' && !api.rooms.has(rt.roomId)) { rt.state = 'idle'; rt.roomId = null; rt.readyAt = now + 30000; }
+    if (rt.state === 'reserved' && now - rt.reservedAt > 60000) { rt.state = 'idle'; rt.readyAt = now + 10000; }
   }
   for (const id of games.keys()) if (!api.rooms.has(id)) games.delete(id);
 
@@ -418,7 +483,7 @@ function tick() {
   }
 
   // Ghép cặp: mỗi lần tick mở tối đa 1 bàn cho tự nhiên
-  const playing = games.size;
+  const playing = [...games.values()].filter((g) => !g.vsHuman).length;
   if (playing >= cfg.tables) return;
   const ready = all.filter(([, rt]) => rt.state === 'idle' && rt.readyAt <= now).map(([id]) => id);
   if (ready.length < 2) return;
@@ -533,5 +598,5 @@ function setup(server) {
 
 module.exports = {
   init, setup, onState, update, adminState, createAccounts, removeAccount, setSkill, stopAll,
-  isBot, onlineIds, presence, SKILL,
+  isBot, onlineIds, presence, SKILL, fillAfterMs, reserveForHuman, release, attach,
 };
