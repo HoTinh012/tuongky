@@ -374,7 +374,7 @@
           <div>
             <p class="eyebrow">Bot AI</p>
             <h1>Máy tự đánh với nhau.</h1>
-            <p class="lead">Các tài khoản bot tự online, ghép cặp và đánh ván Xếp hạng / Chơi nhanh thật trên server như kỳ thủ — hiện ở Trận đấu hot, Bàn đấu, ai cũng vào xem được. Bot chỉ đánh với bot, không vào hàng chờ của người chơi. Chỉ trang quản trị biết đâu là bot.</p>
+            <p class="lead">Các tài khoản bot tự online, ghép cặp và đánh ván Xếp hạng / Chơi nhanh thật trên server như kỳ thủ — hiện ở Trận đấu hot, Bàn đấu, ai cũng vào xem được. Bật "Ghép bot cho người chơi chờ quá lâu" thì người chờ ghép trận / ngồi bàn chờ quá số giây đặt dưới đây sẽ được xếp một bot có Elo gần nhất. Chỉ trang quản trị biết đâu là bot.</p>
           </div>
           <div class="row-actions">
             <button class="btn" id="bot-stop">Dừng ngay mọi ván bot</button>
@@ -400,6 +400,10 @@
               <label><input type="checkbox" id="bot-kind-ranked"> Ván Xếp hạng (tính Elo, trừ phí)</label>
               <label><input type="checkbox" id="bot-kind-coin"> Ván Chơi nhanh (tranh xu)</label>
               <label><input type="checkbox" id="bot-chat"> Trò chuyện trong ván ("chào bạn", "gg"…)</label>
+              <label><input type="checkbox" id="bot-fill"> Ghép bot cho người chơi chờ quá lâu (Xếp hạng, Chơi nhanh, bàn chờ)</label>
+            </div>
+            <div class="eco-fields">
+              <label class="field"><span>Chờ bao lâu thì xếp bot (giây, 5–600)</span><input type="number" min="5" max="600" step="5" id="bot-fill-sec"></label>
             </div>
             <div class="row-actions"><button class="btn primary" id="bot-save">Lưu cài đặt</button></div>
           </section>

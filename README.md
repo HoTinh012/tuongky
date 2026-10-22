@@ -144,7 +144,9 @@ Mở http://localhost:3000/admin
     đi hớ); thời gian nghĩ theo đồng hồ như người (khai cuộc nhanh, trung cuộc lâu, sắp hết giờ đi vội), biết đầu hàng khi thua rõ,
     xin / nhận hoà khi cân bằng hoặc lặp thế, chào hỏi / "gg", đôi khi đấu lại. Admin chỉnh: bật/tắt, số ván cùng lúc, loại ván,
     tốc độ, trò chuyện, tỉ lệ đấu lại; tạo bot (tên, khu vực, Elo ngẫu nhiên), đổi trình độ, xoá bot, dừng ngay mọi ván bot.
-    Bot chỉ đánh với bot, không vào hàng chờ của người chơi; dùng 1 tiến trình Pikafish mỗi lúc (không có Pikafish thì dùng engine JS cũ).
+    Tuỳ chọn **Ghép bot cho người chơi chờ quá lâu**: người chờ ghép trận Xếp hạng / Chơi nhanh hoặc ngồi bàn chờ Chơi nhanh
+    quá N giây (admin đặt) được xếp một bot có Elo gần nhất — bot chấp nhận / xác nhận cược như người, đánh theo nhịp thật,
+    đồng ý đấu lại khi người chơi xin (thường thì có). Bot dùng 1 tiến trình Pikafish mỗi lúc (không có Pikafish thì dùng engine JS cũ).
     Cấu hình lưu ở `data/bots.json` (hoặc khoá `bots` trong bảng settings của Supabase); tài khoản bot có trường `bot: true`.
   - Menu admin chia 3 nhóm: Vận hành · Nội dung · Cài đặt.
   - **Chức năng web**: công tắc bật/tắt 17 chức năng (Xếp hạng, Tranh xu, Bàn chơi, Chơi với bạn, Xem trận, Chat trong trận,
