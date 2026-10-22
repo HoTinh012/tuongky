@@ -1225,7 +1225,7 @@
   // ---------- Bot AI: tài khoản máy tự online, ghép cặp và đánh với nhau ----------
   let botData = null;
   let botDirty = false; // admin đang sửa dở form → không ghi đè khi tự cập nhật mỗi 5 giây
-  const BOT_STATE = { playing: 'Đang chơi', idle: 'Online', offline: 'Offline' };
+  const BOT_STATE = { playing: 'Đang chơi', reserved: 'Đang ghép', idle: 'Online', offline: 'Offline' };
   async function loadBots() {
     try { botData = await api('GET', '/bots'); } catch (err) { toast(err.message); }
     renderBots();
@@ -1241,6 +1241,8 @@
     $('bot-kind-ranked').checked = st.kinds.includes('ranked');
     $('bot-kind-coin').checked = st.kinds.includes('coin');
     $('bot-chat').checked = st.chat;
+    $('bot-fill').checked = !!st.fillHumans;
+    $('bot-fill-sec').value = st.fillAfterSec || 30;
   }
   function renderBots() {
     if (!botData) return;
@@ -1256,7 +1258,7 @@
       : 'Engine: chưa cài Pikafish — bot dùng engine JS cũ (yếu hơn). Chạy npm run setup:engine để bot đánh hay hơn.';
     const body = $('bots-body');
     if (!d.bots.length) { body.replaceChildren(h('tr', {}, h('td', { colspan: 7, class: 'empty' }, 'Chưa có bot — tạo vài bot ở trên rồi bật Hoạt động.'))); return; }
-    const order = { playing: 0, idle: 1, offline: 2 };
+    const order = { playing: 0, reserved: 1, idle: 2, offline: 3 };
     const rows = [...d.bots].sort((a, b) => order[a.state] - order[b.state] || b.rating - a.rating);
     body.replaceChildren(...rows.map((b) => h('tr', {},
       h('td', {}, h('a', { href: '#user/' + encodeURIComponent(b.id) }, h('b', {}, b.name)), h('div', { style: 'color:var(--muted);font-size:12px' }, '@' + b.username)),
@@ -1285,10 +1287,12 @@
       speed: Number($('bot-speed').value),
       rematchRate: Number($('bot-rematch').value) / 100,
       chat: $('bot-chat').checked,
+      fillHumans: $('bot-fill').checked,
+      fillAfterSec: Number($('bot-fill-sec').value),
       kinds: [$('bot-kind-ranked').checked && 'ranked', $('bot-kind-coin').checked && 'coin'].filter(Boolean),
     };
   }
-  for (const id of ['bot-tables', 'bot-speed', 'bot-rematch', 'bot-kind-ranked', 'bot-kind-coin', 'bot-chat']) $(id).addEventListener('input', () => { botDirty = true; });
+  for (const id of ['bot-tables', 'bot-speed', 'bot-rematch', 'bot-kind-ranked', 'bot-kind-coin', 'bot-chat', 'bot-fill', 'bot-fill-sec']) $(id).addEventListener('input', () => { botDirty = true; });
   $('bot-save').addEventListener('click', async () => {
     try { botData = await api('PUT', '/bots', botForm()); fillBotForm(); toast('Đã lưu cài đặt bot.'); } catch (err) { toast(err.message); }
     renderBots();
